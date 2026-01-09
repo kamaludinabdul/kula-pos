@@ -1,0 +1,484 @@
+import React, { Suspense, lazy } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { DataProvider, useData } from './context/DataContext';
+import { ShiftProvider } from './context/ShiftContext';
+
+// Components
+import Layout from './components/Layout';
+import ErrorBoundary from './components/ErrorBoundary';
+import LockScreen from './components/LockScreen';
+import { Toaster } from './components/ui/toaster';
+
+// Lazy Load Pages
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const POS = lazy(() => import('./pages/POS'));
+const MobilePOS = lazy(() => import('./pages/MobilePOS'));
+const RentalDashboard = lazy(() => import('./pages/RentalDashboard'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Transactions = lazy(() => import('./pages/Transactions'));
+const Stores = lazy(() => import('./pages/Stores'));
+const PlanManagement = lazy(() => import('./pages/PlanManagement'));
+
+// Product Management
+const Products = lazy(() => import('./pages/Products'));
+const ProductForm = lazy(() => import('./pages/ProductForm'));
+const Categories = lazy(() => import('./pages/Categories'));
+const Suppliers = lazy(() => import('./pages/Suppliers'));
+const PurchaseOrders = lazy(() => import('./pages/PurchaseOrders'));
+const PurchaseOrderForm = lazy(() => import('./pages/PurchaseOrderForm'));
+const StockManagement = lazy(() => import('./pages/StockManagement'));
+const StockOpname = lazy(() => import('./pages/StockOpname'));
+const ShoppingRecommendations = lazy(() => import('./pages/ShoppingRecommendations'));
+const PromotionsList = lazy(() => import('./pages/promotions/PromotionsList'));
+const PromotionForm = lazy(() => import('./pages/promotions/PromotionForm'));
+const MarketBasketAnalysis = React.lazy(() => import('./pages/smart-insights/MarketBasketAnalysis'));
+const SalesForecast = React.lazy(() => import('./pages/smart-insights/SalesForecast'));
+const CustomerSegmentation = React.lazy(() => import('./pages/smart-insights/CustomerSegmentation'));
+
+// Customer & Staff
+const Customers = lazy(() => import('./pages/Customers'));
+const Staff = lazy(() => import('./pages/Staff'));
+const LoginHistory = lazy(() => import('./pages/LoginHistory'));
+
+// Settings
+const SettingsLayout = lazy(() => import('./pages/settings/SettingsLayout'));
+const ProfileSettings = lazy(() => import('./pages/settings/ProfileSettings'));
+const FeesSettings = lazy(() => import('./pages/settings/FeesSettings'));
+const PrinterSettings = lazy(() => import('./pages/settings/PrinterSettings'));
+const AccessSettings = lazy(() => import('./pages/settings/AccessSettings'));
+const LoyaltySettings = lazy(() => import('./pages/settings/LoyaltySettings'));
+const SubscriptionSettings = lazy(() => import('./pages/settings/SubscriptionSettings'));
+const TelegramSettings = lazy(() => import('./pages/settings/TelegramSettings'));
+const SalesPerformanceSettings = lazy(() => import('./pages/settings/SalesPerformanceSettings'));
+const GeneralSettings = lazy(() => import('./pages/settings/GeneralSettings'));
+const SecuritySettings = lazy(() => import('./pages/settings/SecuritySettings'));
+
+// Reports
+const ReportsLayout = lazy(() => import('./pages/reports/ReportsLayout'));
+const ProfitLoss = lazy(() => import('./pages/reports/ProfitLoss'));
+const ItemSales = lazy(() => import('./pages/reports/ItemSales'));
+const CategorySales = lazy(() => import('./pages/reports/CategorySales'));
+const InventoryValue = lazy(() => import('./pages/reports/InventoryValue'));
+const ShiftReport = lazy(() => import('./pages/reports/ShiftReport'));
+const ExpenseReport = lazy(() => import('./pages/reports/ExpenseReport'));
+const TopSellingProducts = lazy(() => import('./pages/reports/TopSellingProducts'));
+const LoyaltyPointsReport = lazy(() => import('./pages/reports/LoyaltyPointsReport'));
+const SalesPerformanceReport = lazy(() => import('./pages/reports/SalesPerformanceReport'));
+
+// Sales & Finance
+const SalesTarget = lazy(() => import('./pages/sales/SalesTarget'));
+const CashFlow = lazy(() => import('./pages/finance/CashFlow'));
+const ChangeLog = lazy(() => import('./pages/ChangeLog'));
+
+// Loading Component
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-screen bg-background">
+    <div className="flex flex-col items-center gap-2">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+      <p className="text-sm text-muted-foreground animate-pulse">Memuat aplikasi...</p>
+    </div>
+  </div>
+);
+
+import { checkPlanAccess, hasFeatureAccess } from './utils/plans';
+import { version } from '../package.json';
+
+const PrivateRoute = ({ children, feature, plan, permission }) => {
+  const authContext = useAuth();
+  const dataContext = useData();
+  const location = useLocation();
+
+  // Handle null context (shouldn't happen but defensive coding)
+  if (!authContext || !dataContext) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+
+  const { user, loading } = authContext;
+  const { currentStore, loading: dataLoading, storesLoading } = dataContext;
+
+  if (loading || dataLoading || storesLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-white text-black z-50">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mb-4"></div>
+        <p>Memuat Data...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Super Admin / Owner bypass
+  if (user.role === 'super_admin' || user.role === 'owner') return children;
+
+  // Check feature permission
+  if (feature) {
+    // If currentStore not loaded yet, send to stores page (only for non-owners)
+    if (!currentStore) {
+      return <Navigate to="/stores" replace />;
+    }
+
+    // 1. Check Plan Access (only for non-owners)
+    const currentPlan = currentStore.plan || 'free';
+    const dynamicPlans = dataContext.plans;
+
+    if (!checkPlanAccess(currentPlan, plan) && !hasFeatureAccess(currentPlan, feature, dynamicPlans)) {
+      return <Navigate to="/dashboard" replace />;
+    }
+
+    // 2. Check Permissions
+    const rolePermissions = currentStore.permissions?.[user.role] || [];
+    const permissionKey = permission || feature;
+
+    // Direct match
+    if (rolePermissions.includes(permissionKey)) return children;
+
+    // Sub-permission match
+    if (rolePermissions.some(p => p.startsWith(`${permissionKey}.`))) return children;
+
+    // Parent permission match
+    if (permissionKey.includes('.')) {
+      const parentFeature = permissionKey.split('.')[0];
+      if (rolePermissions.includes(parentFeature)) return children;
+    }
+
+    // Default: no permission
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
+
+const RootRedirect = () => {
+  const { user } = useAuth();
+  const { currentStore } = useData();
+
+  if (!user) return <Navigate to="/login" />;
+
+  if (user.role === 'super_admin') {
+    return <Navigate to="/stores" replace />;
+  }
+
+  // Loop Prevention: If user has no active store context, go to /stores 
+  // to select or create one, instead of forcing /dashboard or /pos.
+  if (!currentStore) {
+    return <Navigate to="/stores" replace />;
+  }
+
+  return <Navigate to="/dashboard" replace />;
+};
+
+const VersionChecker = () => {
+  // Force update logic
+  const handleUpdate = () => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+        window.location.reload(true);
+      });
+    } else {
+      window.location.reload(true);
+    }
+  };
+
+  return (
+    <div className="fixed bottom-1 left-1 z-50 bg-black/50 text-white text-[10px] px-1 rounded pointer-events-none group hover:pointer-events-auto transition-all">
+      v{version}
+      <button
+        onClick={handleUpdate}
+        className="hidden group-hover:inline-block ml-2 bg-blue-500 hover:bg-blue-600 px-1 rounded cursor-pointer pointer-events-auto"
+      >
+        Update
+      </button>
+    </div>
+  )
+}
+
+const App = () => {
+  return (
+    <ErrorBoundary>
+      <AuthProvider>
+        <DataProvider>
+          <ShiftProvider>
+            <VersionChecker />
+            <LockScreen />
+            <Router>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+
+                  {/* Root Redirect */}
+                  <Route path="/" element={
+                    <PrivateRoute>
+                      <RootRedirect />
+                    </PrivateRoute>
+                  } />
+
+                  {/* POS Route */}
+                  <Route path="/pos" element={
+                    <PrivateRoute feature="pos">
+                      <POS />
+                    </PrivateRoute>
+                  } />
+
+                  {/* Mobile POS Route */}
+                  <Route path="/mobile-pos" element={
+                    <PrivateRoute feature="pos">
+                      <ErrorBoundary>
+                        <MobilePOS />
+                      </ErrorBoundary>
+                    </PrivateRoute>
+                  } />
+
+                  {/* Admin Routes - With Sidebar Layout */}
+                  <Route element={
+                    <PrivateRoute>
+                      <Layout />
+                    </PrivateRoute>
+                  }>
+                    <Route path="/dashboard" element={
+                      <PrivateRoute feature="dashboard">
+                        <Dashboard />
+                      </PrivateRoute>
+                    } />
+
+                    <Route path="/rental" element={
+                      <PrivateRoute feature="rental" permission="pos" plan="pro">
+                        <RentalDashboard />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/transactions" element={
+                      <PrivateRoute feature="pos">
+                        <Transactions />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/products" element={
+                      <PrivateRoute feature="products.list">
+                        <Products />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/products/add" element={
+                      <PrivateRoute feature="products.manage">
+                        <ProductForm />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/products/edit/:id" element={
+                      <PrivateRoute feature="products.manage">
+                        <ProductForm />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/categories" element={
+                      <PrivateRoute feature="products.categories">
+                        <Categories />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/suppliers" element={
+                      <PrivateRoute feature="products.suppliers">
+                        <Suppliers />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/purchase-orders" element={
+                      <PrivateRoute feature="products.purchase_orders">
+                        <PurchaseOrders />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/purchase-orders/new" element={
+                      <PrivateRoute feature="products.purchase_orders">
+                        <PurchaseOrderForm />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/purchase-orders/:id" element={
+                      <PrivateRoute feature="products.purchase_orders">
+                        <PurchaseOrderForm />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/stock-management" element={
+                      <PrivateRoute feature="products.stock">
+                        <StockManagement />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/stock-opname" element={
+                      <PrivateRoute feature="products.stock">
+                        <StockOpname />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/shopping-recommendations" element={
+                      <PrivateRoute feature="products.stock">
+                        <ShoppingRecommendations />
+                      </PrivateRoute>
+                    } />
+                    {/* Smart Insights Direct Routes */}
+                    <Route path="/smart-insights">
+                      <Route index element={<Navigate to="bundling" replace />} />
+                      <Route path="bundling" element={
+                        <PrivateRoute feature="smart_insights" plan="pro">
+                          <MarketBasketAnalysis />
+                        </PrivateRoute>
+                      } />
+                      <Route path="forecast" element={
+                        <PrivateRoute feature="smart_insights" plan="pro">
+                          <SalesForecast />
+                        </PrivateRoute>
+                      } />
+                      <Route path="segmentation" element={
+                        <PrivateRoute feature="smart_insights" plan="pro">
+                          <CustomerSegmentation />
+                        </PrivateRoute>
+                      } />
+                    </Route>
+
+                    {/* Promotions */}
+                    <Route path="/promotions" element={
+                      <PrivateRoute feature="products.list">
+                        <PromotionsList />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/promotions/new" element={
+                      <PrivateRoute feature="products.list">
+                        <PromotionForm />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/promotions/edit/:id" element={
+                      <PrivateRoute feature="products.list">
+                        <PromotionForm />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/customers" element={
+                      <PrivateRoute feature="products.manage" plan="pro">
+                        <Customers />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/staff" element={
+                      <PrivateRoute feature="others.staff">
+                        <Staff />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/login-history" element={
+                      <PrivateRoute feature="others.login_history">
+                        <LoginHistory />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/sales/target" element={
+                      <PrivateRoute feature="sales.target">
+                        <SalesTarget />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/sales/forecast" element={
+                      <PrivateRoute feature="reports.forecast">
+                        <SalesForecast />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/stores" element={<Stores />} />
+                    <Route path="/admin/plans" element={
+                      <PrivateRoute>
+                        <PlanManagement />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/settings" element={
+                      <PrivateRoute feature="settings">
+                        <SettingsLayout />
+                      </PrivateRoute>
+                    }>
+                      <Route index element={<Navigate to="profile" replace />} />
+                      <Route path="general" element={<GeneralSettings />} />
+                      <Route path="profile" element={<ProfileSettings />} />
+                      <Route path="subscription" element={<SubscriptionSettings />} />
+                      <Route path="fees" element={<FeesSettings />} />
+                      <Route path="printer" element={<PrinterSettings />} />
+                      <Route path="access" element={<AccessSettings />} />
+                      <Route path="loyalty" element={<LoyaltySettings />} />
+                      <Route path="telegram" element={<TelegramSettings />} />
+                      <Route path="sales-performance" element={<SalesPerformanceSettings />} />
+                      <Route path="security" element={<SecuritySettings />} />
+                    </Route>
+
+                    {/* Finance Routes */}
+                    <Route path="/finance/cash-flow" element={
+                      <PrivateRoute feature="finance.cash_flow">
+                        <CashFlow />
+                      </PrivateRoute>
+                    } />
+
+                    {/* Reports Routes */}
+                    <Route path="/reports" element={
+                      <PrivateRoute feature="reports">
+                        <ReportsLayout />
+                      </PrivateRoute>
+                    }>
+                      <Route index element={<Navigate to="profit-loss" replace />} />
+                      <Route path="profit-loss" element={
+                        <PrivateRoute feature="reports.profit_loss">
+                          <ProfitLoss />
+                        </PrivateRoute>
+                      } />
+                      <Route path="sales-items" element={
+                        <PrivateRoute feature="reports.sales_items">
+                          <ItemSales />
+                        </PrivateRoute>
+                      } />
+                      <Route path="top-selling" element={
+                        <PrivateRoute feature="reports.sales_items" plan="pro">
+                          <TopSellingProducts />
+                        </PrivateRoute>
+                      } />
+                      <Route path="sales-categories" element={
+                        <PrivateRoute feature="reports.sales_categories">
+                          <CategorySales />
+                        </PrivateRoute>
+                      } />
+                      <Route path="inventory-value" element={
+                        <PrivateRoute feature="reports.inventory_value">
+                          <InventoryValue />
+                        </PrivateRoute>
+                      } />
+                      <Route path="shifts" element={
+                        <PrivateRoute feature="reports.shifts">
+                          <ShiftReport />
+                        </PrivateRoute>
+                      } />
+                      <Route path="expenses" element={
+                        <PrivateRoute feature="reports.shifts">
+                          <ExpenseReport />
+                        </PrivateRoute>
+                      } />
+                      <Route path="loyalty-points" element={
+                        <PrivateRoute feature="reports">
+                          <LoyaltyPointsReport />
+                        </PrivateRoute>
+                      } />
+                      <Route path="sales-performance" element={
+                        <PrivateRoute feature="reports">
+                          <SalesPerformanceReport />
+                        </PrivateRoute>
+                      } />
+                    </Route>
+
+                    {/* System Routes */}
+                    <Route path="/changelog" element={
+                      <PrivateRoute>
+                        <ChangeLog />
+                      </PrivateRoute>
+                    } />
+                  </Route>
+
+                  <Route path="*" element={<Navigate to="/" />} />
+                </Routes>
+              </Suspense>
+            </Router>
+            <Toaster />
+          </ShiftProvider>
+        </DataProvider>
+      </AuthProvider>
+    </ErrorBoundary>
+  );
+};
+
+export default App;

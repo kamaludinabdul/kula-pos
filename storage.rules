@@ -1,0 +1,45 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    function isValidSize() {
+      // Limit to 1MB (1 * 1024 * 1024 bytes)
+      return request.resource.size <= 1 * 1024 * 1024;
+    }
+
+    // Rules for store-specific files (e.g., product images)
+    match /stores/{storeId}/{allPaths=**} {
+       // Allow read if part of the store (can use custom claims or firestore lookups if needed, 
+       // but for storage, public read for product images is often acceptable if the path is known.
+       // Here we restrict to authenticated users for basic protection against scraping).
+       allow read: if isAuthenticated();
+       
+       // write: Must be authenticated, valid image, size < 1MB
+       // Ideally verify user belongs to storeId, but Storage rules don't easily support cross-service lookups without custom claims.
+       // For now, reliance on authentication + path structure + app logic (which enforces storeId) is a baseline.
+       // Detailed store membership check in Storage rules is complex and often costly or requires Custom Claims.
+       allow write: if isAuthenticated() && isImage() && isValidSize();
+    }
+
+    // Rules for user-specific files (e.g., profile pictures)
+    match /users/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == userId && isImage() && isValidSize();
+    }
+
+    // Default deny for everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

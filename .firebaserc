@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "kula-pos",
+    "staging": "kula-pos-staging"
+  }
+}

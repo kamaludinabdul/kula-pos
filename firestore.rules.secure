@@ -1,0 +1,118 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isStoreOwner(storeId) {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/stores/$(storeId)).data.ownerId == request.auth.uid;
+    }
+
+    function canAccessStore(storeId) {
+       let user = getUserData();
+       return isAuthenticated() && (
+         user.role == 'super_admin' || 
+         user.storeId == storeId
+       );
+    }
+
+    // Rules for specific collections
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isOwner(userId) 
+                  || (isAuthenticated() && getUserData().role == 'super_admin')
+                  || (isAuthenticated() && getUserData().role == 'admin' && resource.data.storeId == getUserData().storeId);
+      
+      // Allow create if:
+      // 1. Self-registration (isOwner)
+      // 2. Super Admin (can create anyone)
+      // 3. Store Admin (can create staff for their store)
+      allow create: if (isOwner(userId) && request.resource.data.role != 'super_admin')
+                    || (isAuthenticated() && getUserData().role == 'super_admin')
+                    || (isAuthenticated() && getUserData().role == 'admin' && request.resource.data.storeId == getUserData().storeId && request.resource.data.role != 'super_admin');
+      
+      // Allow update if owner, but PREVENT changing sensitive fields
+      allow update: if (isOwner(userId) 
+                    && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'storeId', 'plan', 'status'])))
+                    || (isAuthenticated() && getUserData().role == 'super_admin')
+                    || (isAuthenticated() && getUserData().role == 'admin' && resource.data.storeId == getUserData().storeId && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['storeId'])));
+                    
+      allow delete: if isOwner(userId) 
+                    || (isAuthenticated() && getUserData().role == 'super_admin')
+                    || (isAuthenticated() && getUserData().role == 'admin' && resource.data.storeId == getUserData().storeId);
+    }
+
+    // Stores collection
+    match /stores/{storeId} {
+      allow read: if true; 
+      allow create: if isAuthenticated();
+      
+      // Allow update if owner, but PREVENT changing sensitive fields (plan, status)
+      allow update: if (isStoreOwner(storeId) 
+                        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['plan', 'status', 'subscriptionEndDate']))
+                    || (isAuthenticated() && getUserData().role == 'super_admin');
+                    
+      allow delete: if isStoreOwner(storeId) || (isAuthenticated() && getUserData().role == 'super_admin');
+    }
+
+    // Products, Categories, Transactions, etc. (Store-specific data)
+    match /products/{productId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId) && request.resource.data.stock >= 0;
+      allow update: if canAccessStore(resource.data.storeId);
+      allow delete: if canAccessStore(resource.data.storeId);
+    }
+    match /categories/{categoryId} {
+      allow read, write: if canAccessStore(resource.data.storeId) || canAccessStore(request.resource.data.storeId);
+    }
+    match /transactions/{transactionId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /shifts/{shiftId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /shift_movements/{movementId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /stock_movements/{movementId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /batches/{batchId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /sales_targets/{targetId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /shopping_recommendations/{recId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /stock_opname_sessions/{sessionId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /customers/{customerId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /login_history/{historyId} {
+       allow create: if isAuthenticated();
+       allow read: if isAuthenticated();
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

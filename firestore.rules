@@ -1,0 +1,240 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isStoreOwner(storeId) {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/stores/$(storeId)).data.ownerId == request.auth.uid;
+    }
+
+    function canAccessStore(storeId) {
+       let user = getUserData();
+       return isAuthenticated() && (
+         user.role == 'super_admin' || 
+         user.role == 'admin' ||
+         user.role == 'administrator' ||
+         user.storeId == storeId
+       );
+    }
+
+    // Rules for specific collections
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      
+      // Allow creating users (staff) if the creator has access to the target store
+      // OR if the user is creating their own profile (Registration)
+      allow create: if isAuthenticated() && (
+        request.auth.uid == userId ||
+        (request.resource.data.storeId != null && canAccessStore(request.resource.data.storeId))
+      );
+      
+      // Allow users to update their own profile OR admins to update their staff
+      allow update: if isAuthenticated() && (
+        request.auth.uid == userId || 
+        (resource.data.storeId != null && canAccessStore(resource.data.storeId))
+      );
+      
+      // Allow admins to delete staff
+      allow delete: if isAuthenticated() && (
+        resource.data.storeId != null && canAccessStore(resource.data.storeId)
+      );
+    }
+
+    // Stores collection
+    match /stores/{storeId} {
+      allow read: if isAuthenticated(); // Restricted to authenticated users
+      allow create: if isAuthenticated();
+      
+      // RESTRICTED: Only owners or super admins can update store details
+      allow update: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid || 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.storeId == storeId ||
+        getUserData().role == 'super_admin'
+      );
+                    
+      allow delete: if isStoreOwner(storeId) || (isAuthenticated() && getUserData().role == 'super_admin');
+    }
+
+    // Store Settings (backdate toggle, etc.)
+    match /store_settings/{storeId} {
+      allow read: if isAuthenticated() && canAccessStore(storeId);
+      allow write: if isAuthenticated() && (
+        getUserData().role == 'admin' ||
+        getUserData().role == 'super_admin'
+      ) && canAccessStore(storeId);
+    }
+    
+    // System Settings (Subscription Plans, etc.)
+    match /system_settings/{document} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && getUserData().role == 'super_admin';
+    }
+
+    // Products, Categories, Transactions, etc. (Store-specific data)
+    match /products/{productId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId); // && request.resource.data.stock >= 0; // Removing complex validation for simplicity, handled in app layer
+      allow update: if canAccessStore(resource.data.storeId);
+      allow delete: if canAccessStore(resource.data.storeId);
+    }
+    match /categories/{categoryId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId);
+      allow update: if canAccessStore(resource.data.storeId);
+      allow delete: if canAccessStore(resource.data.storeId);
+    }
+    match /transactions/{transactionId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId);
+      allow update: if canAccessStore(resource.data.storeId) && canAccessStore(request.resource.data.storeId); // Ensure moving to another store is also checked if applicable (immutability preferred)
+      allow delete: if false; // Transactions should generally not be deleted
+    }
+    match /shifts/{shiftId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId);
+      allow update: if canAccessStore(resource.data.storeId);
+      allow delete: if canAccessStore(resource.data.storeId);
+    }
+    match /shift_movements/{movementId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId);
+      allow update: if canAccessStore(resource.data.storeId);
+      allow delete: if canAccessStore(resource.data.storeId);
+    }
+    match /stock_movements/{movementId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId);
+      allow update: if canAccessStore(resource.data.storeId);
+      allow delete: if canAccessStore(resource.data.storeId);
+    }
+    match /batches/{batchId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId);
+      allow update: if canAccessStore(resource.data.storeId);
+      allow delete: if canAccessStore(resource.data.storeId);
+    }
+    match /sales_targets/{targetId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId);
+      allow update: if canAccessStore(resource.data.storeId);
+      allow delete: if canAccessStore(resource.data.storeId);
+    }
+    match /shopping_recommendations/{recId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId);
+      allow update: if canAccessStore(resource.data.storeId);
+      allow delete: if canAccessStore(resource.data.storeId);
+    }
+    match /stock_opname_sessions/{sessionId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId);
+      allow update: if canAccessStore(resource.data.storeId);
+      allow delete: if canAccessStore(resource.data.storeId);
+    }
+    match /customers/{customerId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId);
+      allow update: if canAccessStore(resource.data.storeId);
+      allow delete: if canAccessStore(resource.data.storeId);
+    }
+    match /suppliers/{supplierId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId);
+      allow update: if canAccessStore(resource.data.storeId);
+      allow delete: if canAccessStore(resource.data.storeId);
+    }
+    match /purchase_orders/{poId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId);
+      allow update: if canAccessStore(resource.data.storeId);
+      allow delete: if canAccessStore(resource.data.storeId);
+    }
+    
+    // Pet Care Collections
+    match /pets/{petId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId);
+      allow update: if canAccessStore(resource.data.storeId);
+      allow delete: if canAccessStore(resource.data.storeId);
+    }
+    match /bookings/{bookingId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId);
+      allow update: if canAccessStore(resource.data.storeId);
+      allow delete: if canAccessStore(resource.data.storeId);
+    }
+    match /rooms/{roomId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId);
+      allow update: if canAccessStore(resource.data.storeId);
+      allow delete: if canAccessStore(resource.data.storeId);
+    }
+
+    match /audit_logs/{historyId} {
+       allow read: if isAuthenticated() && (
+         resource.data.userId == request.auth.uid || 
+         canAccessStore(resource.data.storeId) ||
+         getUserData().role == 'super_admin'
+       );
+       allow create: if isAuthenticated(); // Typically serverside or own logging
+       allow update, delete: if false; // Immutable logs
+    }
+
+    // Point Adjustments (Loyalty Points Audit Trail)
+    match /point_adjustments/{adjustmentId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId) 
+                    && (getUserData().role == 'admin' || getUserData().role == 'super_admin');
+      // Immutable records - no updates or deletes allowed for audit integrity
+      allow update, delete: if false;
+    }
+
+    match /cash_flow/{flowId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId);
+      allow update: if canAccessStore(resource.data.storeId);
+      allow delete: if canAccessStore(resource.data.storeId);
+    }
+
+    match /promotions/{promoId} {
+      allow read: if canAccessStore(resource.data.storeId);
+      allow create: if canAccessStore(request.resource.data.storeId);
+      allow update: if canAccessStore(resource.data.storeId);
+      allow delete: if canAccessStore(resource.data.storeId);
+    }
+
+    // Rental System - Temporary Relaxed Rules
+    match /rental_units/{unitId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated(); 
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+    match /rental_sessions/{sessionId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
