@@ -115,9 +115,50 @@ export const DataProvider = ({ children }) => {
 
     const updateStore = async (id, data) => {
         try {
+            // Map camelCase to snake_case for database compatibility
+            const mappedData = { ...data };
+            if (data.enableSalesPerformance !== undefined) {
+                mappedData.enable_sales_performance = data.enableSalesPerformance;
+                delete mappedData.enableSalesPerformance;
+            }
+            if (data.petCareEnabled !== undefined) {
+                mappedData.pet_care_enabled = data.petCareEnabled;
+                delete mappedData.petCareEnabled;
+            }
+            if (data.telegramBotToken !== undefined) {
+                mappedData.telegram_bot_token = data.telegramBotToken;
+                delete mappedData.telegramBotToken;
+            }
+            if (data.telegramChatId !== undefined) {
+                mappedData.telegram_chat_id = data.telegramChatId;
+                delete mappedData.telegramChatId;
+            }
+            if (data.planExpiryDate !== undefined) {
+                mappedData.plan_expiry_date = data.planExpiryDate;
+                delete mappedData.planExpiryDate;
+            }
+
+            // Handle fields that belong in 'settings' JSONB
+            const settingsFields = ['autoPrintReceipt', 'printerType', 'receiptHeader', 'receiptFooter', 'printerWidth'];
+            let settingsUpdated = false;
+            const currentSettings = currentStore?.settings || {};
+            const newSettings = { ...currentSettings, ...(mappedData.settings || {}) };
+
+            settingsFields.forEach(field => {
+                if (data[field] !== undefined) {
+                    newSettings[field] = data[field];
+                    delete mappedData[field];
+                    settingsUpdated = true;
+                }
+            });
+
+            if (settingsUpdated) {
+                mappedData.settings = newSettings;
+            }
+
             const { error } = await supabase
                 .from('stores')
-                .update(data)
+                .update(mappedData)
                 .eq('id', id);
 
             if (error) throw error;
@@ -179,8 +220,15 @@ export const DataProvider = ({ children }) => {
                 .limit(500);
 
             if (error) throw error;
-            setStockMovements(data);
-            return data;
+            const mappedData = data.map(m => ({
+                ...m,
+                storeId: m.store_id,
+                productId: m.product_id,
+                refId: m.ref_id,
+                performedBy: m.performed_by
+            }));
+            setStockMovements(mappedData);
+            return mappedData;
         } catch (error) {
             console.error("Failed to fetch stock movements:", error);
             return [];
@@ -296,11 +344,56 @@ export const DataProvider = ({ children }) => {
                 // Fetch secondary data like history, customers, reports
                 Promise.all([
                     safeFetchSupabase('transactions', setTransactions, (q) => q.order('date', { ascending: false }).limit(50)),
-                    safeFetchSupabase('customers', setCustomers, (q) => q.limit(2000)),
-                    safeFetchSupabase('sales_targets', setSalesTargets),
-                    safeFetchSupabase('suppliers', setSuppliers),
-                    safeFetchSupabase('promotions', setPromotions, (q) => q.eq('is_active', true)),
-                    safeFetchSupabase('purchase_orders', setPurchaseOrders, (q) => q.order('date', { ascending: false }).limit(100)),
+                    safeFetchSupabase('customers', setCustomers, (q) => q.limit(2000), (data) => {
+                        return data.map(c => ({
+                            ...c,
+                            loyaltyPoints: c.loyalty_points || 0,
+                            totalSpent: c.total_spent || 0,
+                            totalLifetimePoints: c.total_lifetime_points || 0
+                        }));
+                    }),
+                    safeFetchSupabase('sales_targets', setSalesTargets, null, (data) => {
+                        return data.map(t => ({
+                            ...t,
+                            // Map snake_case to camelCase
+                            storeId: t.store_id,
+                            targetAmount: t.target_amount,
+                            startDate: t.start_date,
+                            endDate: t.end_date
+                        }));
+                    }),
+                    safeFetchSupabase('suppliers', setSuppliers, null, (data) => {
+                        return data.map(s => ({
+                            ...s,
+                            contactPerson: s.contact_person,
+                            storeId: s.store_id
+                        }));
+                    }),
+                    safeFetchSupabase('promotions', setPromotions, (q) => q.eq('is_active', true), (data) => {
+                        return data.map(p => ({
+                            ...p,
+                            storeId: p.store_id,
+                            discountValue: p.discount_value,
+                            targetIds: p.target_ids,
+                            startDate: p.start_date,
+                            endDate: p.end_date,
+                            isActive: p.is_active,
+                            minPurchase: p.min_purchase,
+                            usageLimit: p.usage_limit,
+                            currentUsage: p.current_usage,
+                            allowMultiples: p.allow_multiples
+                        }));
+                    }),
+                    safeFetchSupabase('purchase_orders', setPurchaseOrders, (q) => q.order('date', { ascending: false }).limit(100), (data) => {
+                        return data.map(po => ({
+                            ...po,
+                            storeId: po.store_id,
+                            supplierId: po.supplier_id,
+                            supplierName: po.supplier_name,
+                            totalAmount: po.total_amount,
+                            createdAt: po.created_at
+                        }));
+                    }),
                     fetchStockMovements()
                 ]).catch(err => console.error("Background fetch error:", err));
 
@@ -408,6 +501,9 @@ export const DataProvider = ({ children }) => {
                 }
                 const { data, error } = await query;
                 if (!error && data) {
+                    console.log("[DataContext] Fetched stores:", data.length);
+                    if (data.length > 0) console.log("[DataContext] First store logo length:", data[0].logo ? data[0].logo.length : 'NULL');
+
                     setStores(data.map(s => ({
                         ...s,
                         // Map snake_case to camelCase for frontend compatibility
@@ -419,6 +515,9 @@ export const DataProvider = ({ children }) => {
                         ownerName: s.owner_name,
                         ownerId: s.owner_id,
                         createdAt: s.created_at,
+                        // Extract settings for easier access
+                        loyaltySettings: s.settings?.loyaltySettings,
+                        autoPrintReceipt: s.settings?.autoPrintReceipt,
                         permissions: normalizePermissions(s.settings?.permissions)
                     })));
                 } else if (error) {
@@ -971,12 +1070,19 @@ export const DataProvider = ({ children }) => {
 
             if (error) throw error;
 
-            // Optimistic update
+            // Optimistic update with mapping
+            const processedNewCustomer = {
+                ...data,
+                loyaltyPoints: data.loyalty_points || 0,
+                totalSpent: data.total_spent || 0,
+                totalLifetimePoints: data.total_lifetime_points || 0
+            };
+
             setCustomers(prev => {
                 if (prev.some(c => c.id === data.id)) {
-                    return prev.map(c => c.id === data.id ? data : c);
+                    return prev.map(c => c.id === data.id ? processedNewCustomer : c);
                 }
-                return [...prev, data];
+                return [...prev, processedNewCustomer];
             });
 
             return { success: true };
@@ -996,7 +1102,17 @@ export const DataProvider = ({ children }) => {
             if (error) throw error;
 
             // Optimistic update
-            setCustomers(prev => prev.map(cust => cust.id === id ? { ...cust, ...data } : cust));
+            setCustomers(prev => prev.map(cust => {
+                if (cust.id === id) {
+                    return {
+                        ...cust,
+                        ...data,
+                        // Ensure critical fields are mapped if passed in update data
+                        loyaltyPoints: data.loyalty_points !== undefined ? data.loyalty_points : (data.loyaltyPoints !== undefined ? data.loyaltyPoints : cust.loyaltyPoints)
+                    };
+                }
+                return cust;
+            }));
 
             return { success: true };
         } catch (error) {
@@ -1083,7 +1199,7 @@ export const DataProvider = ({ children }) => {
             // Optimistic update
             setCustomers(prev => prev.map(cust =>
                 cust.id === customerId
-                    ? { ...cust, loyalty_points: newBalance }
+                    ? { ...cust, loyaltyPoints: newBalance, loyalty_points: newBalance } // Update both for safety, but primary is camelCase
                     : cust
             ));
 
@@ -1151,7 +1267,7 @@ export const DataProvider = ({ children }) => {
 
             // Updated local state
             setCustomers(prev => prev.map(c =>
-                c.store_id === activeStoreId ? { ...c, loyalty_points: 0 } : c
+                c.store_id === activeStoreId ? { ...c, loyaltyPoints: 0, loyalty_points: 0 } : c
             ));
 
             // Update store settings with last reset date
@@ -1241,7 +1357,7 @@ export const DataProvider = ({ children }) => {
                 qty: item.qty,
                 name: item.name,
                 price: item.price,
-                buyPrice: item.buyPrice || item.buy_price || 0
+                buy_price: item.buyPrice || item.buy_price || 0, // Map to snake_case for RPC
             }));
 
             // Call Supabase RPC
@@ -1250,8 +1366,13 @@ export const DataProvider = ({ children }) => {
                 p_customer_id: transactionData.customerId || null,
                 p_total: transactionData.total,
                 p_discount: transactionData.discount || 0,
+                p_subtotal: transactionData.subtotal || null,
                 p_payment_method: transactionData.paymentMethod,
                 p_items: rpcItems,
+                p_amount_paid: transactionData.cashAmount || transactionData.amount_paid || 0,
+                p_change: transactionData.change || 0,
+                p_type: transactionData.type || 'sale',
+                p_rental_session_id: transactionData.rental_session_id || null,
                 p_points_earned: transactionData.pointsEarned || 0,
                 p_date: transactionData.date || new Date().toISOString()
             });
@@ -1300,7 +1421,10 @@ export const DataProvider = ({ children }) => {
                         return {
                             ...c,
                             total_spent: (c.total_spent || 0) + transactionData.total,
-                            loyalty_points: (c.loyalty_points || 0) + (transactionData.pointsEarned || 0),
+                            // Use mapped camelCase or fallback to snake_case if mixed
+                            loyaltyPoints: (c.loyaltyPoints || c.loyalty_points || 0) + (transactionData.pointsEarned || 0),
+                            // Also update snake_case for consistency if needed by other parts, or just use camelCase
+                            loyalty_points: (c.loyaltyPoints || c.loyalty_points || 0) + (transactionData.pointsEarned || 0),
                             debt: newDebt
                         };
                     }
@@ -1308,7 +1432,7 @@ export const DataProvider = ({ children }) => {
                 }));
             }
 
-            return { success: true, id: numericId, transactionId: numericId };
+            return { success: true, id: numericId, transactionId: numericId, transaction: newTransaction };
         } catch (error) {
             console.error("Error processing sale:", error);
             return { success: false, error: error.message || error };

@@ -36,7 +36,17 @@ const StockOpname = () => {
                 .limit(20);
 
             if (error) throw error;
-            setOpnameHistory(data || []);
+
+            const mappedHistory = (data || []).map(session => ({
+                id: session.id,
+                date: session.created_at,
+                notes: session.notes,
+                totalProducts: session.total_products,
+                totalDifferenceValue: session.total_difference_value,
+                records: session.records // records is likely JSONB, check if it needs mapping or is already objects
+            }));
+
+            setOpnameHistory(mappedHistory);
         } catch (error) {
             console.error("Error fetching opname history:", error);
         } finally {

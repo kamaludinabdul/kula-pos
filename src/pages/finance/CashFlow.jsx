@@ -57,19 +57,25 @@ const CashFlow = () => {
 
             if (error) throw error;
 
-            // Client-side filtering for date range
-            const filtered = data.filter(item => {
-                if (!datePickerDate?.from) return true;
+            // Client-side filtering and Mapping
+            const mappedData = data.filter(item => {
                 const itemDate = new Date(item.date);
+                if (!datePickerDate?.from) return true;
                 const start = new Date(datePickerDate.from);
                 start.setHours(0, 0, 0, 0);
                 const end = datePickerDate.to ? new Date(datePickerDate.to) : new Date(start);
                 end.setHours(23, 59, 59, 999);
 
                 return itemDate >= start && itemDate <= end;
-            });
+            }).map(item => ({
+                ...item,
+                storeId: item.store_id,
+                performedBy: item.performed_by,
+                createdAt: item.created_at,
+                expenseGroup: item.expense_group
+            }));
 
-            setTransactions(filtered);
+            setTransactions(mappedData);
         } catch (error) {
             console.error("Error fetching cash flow:", error);
         } finally {
@@ -134,7 +140,7 @@ const CashFlow = () => {
             acc.income += (curr.amount || 0);
         } else {
             acc.expense += (curr.amount || 0);
-            if (curr.expense_group === 'non_operational') {
+            if (curr.expenseGroup === 'non_operational') {
                 acc.capex += (curr.amount || 0);
             } else {
                 acc.opex += (curr.amount || 0);
@@ -463,12 +469,12 @@ const CashFlow = () => {
                                             </span>
                                             {t.type === 'out' && (
                                                 <div className="text-[10px] text-muted-foreground mt-1">
-                                                    {t.expense_group === 'non_operational' ? '(Aset/Modal)' : '(Operasional)'}
+                                                    {t.expenseGroup === 'non_operational' ? '(Aset/Modal)' : '(Operasional)'}
                                                 </div>
                                             )}
                                         </TableCell>
                                         <TableCell className="max-w-[200px] truncate" title={t.description}>{t.description || '-'}</TableCell>
-                                        <TableCell>{t.performed_by}</TableCell>
+                                        <TableCell>{t.performedBy}</TableCell>
                                         <TableCell className="text-right font-medium text-green-600">
                                             {t.type === 'in' ? `Rp ${t.amount.toLocaleString()}` : '-'}
                                         </TableCell>

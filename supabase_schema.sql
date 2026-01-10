@@ -326,36 +326,56 @@ CREATE OR REPLACE FUNCTION process_sale(
     p_discount NUMERIC,
     p_payment_method TEXT,
     p_items JSONB,
+    p_amount_paid NUMERIC DEFAULT 0,
+    p_change NUMERIC DEFAULT 0,
+    p_type TEXT DEFAULT 'sale',
+    p_rental_session_id UUID DEFAULT NULL,
     p_payment_details JSONB DEFAULT '{}'::jsonb,
     p_points_earned NUMERIC DEFAULT 0,
     p_shift_id UUID DEFAULT NULL,
-    p_date TIMESTAMPTZ DEFAULT NOW()
+    p_date TIMESTAMPTZ DEFAULT NOW(),
+    p_subtotal NUMERIC DEFAULT NULL
 ) RETURNS JSONB AS $$
 DECLARE
     v_transaction_id TEXT;
     v_item RECORD;
     v_new_transaction_id TEXT;
+    v_subtotal NUMERIC;
 BEGIN
+    -- Calculate subtotal if not provided
+    v_subtotal := COALESCE(p_subtotal, p_total + p_discount);
+
     -- 1. Create Transaction ID (YYMMDDHHmmss + random)
     v_new_transaction_id := to_char(NOW(), 'YYMMDDHH24MISS') || floor(random() * 1000)::text;
 
     -- 2. Insert Transaction Record
-    INSERT INTO transactions (id, store_id, customer_id, total, discount, payment_method, payment_details, items, date, status, shift_id)
-    VALUES (v_new_transaction_id, p_store_id, p_customer_id, p_total, p_discount, p_payment_method, p_payment_details, p_items, p_date, 'completed', p_shift_id);
+    INSERT INTO transactions (
+        id, store_id, customer_id, total, discount, subtotal, payment_method, 
+        amount_paid, "change", "type", rental_session_id, payment_details, 
+        items, date, status, shift_id, points_earned
+    )
+    VALUES (
+        v_new_transaction_id, p_store_id, p_customer_id, p_total, p_discount, v_subtotal, p_payment_method, 
+        p_amount_paid, p_change, p_type, p_rental_session_id, p_payment_details, 
+        p_items, p_date, 'completed', p_shift_id, p_points_earned
+    );
 
     -- 3. Process each item
-    FOR v_item IN SELECT * FROM jsonb_to_recordset(p_items) AS x(id UUID, qty NUMERIC, name TEXT, price NUMERIC)
+    FOR v_item IN SELECT * FROM jsonb_to_recordset(p_items) AS x(id TEXT, qty NUMERIC, name TEXT, price NUMERIC)
     LOOP
-        -- Update Product Stock
-        UPDATE products 
-        SET stock = stock - v_item.qty,
-            sold = sold + v_item.qty,
-            revenue = revenue + (v_item.qty * v_item.price)
-        WHERE id = v_item.id AND store_id = p_store_id;
+        -- Only update stock if ID is a valid UUID (ignore 'rental-fee' or other custom strings)
+        IF v_item.id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' THEN
+            -- Update Product Stock
+            UPDATE products 
+            SET stock = stock - v_item.qty,
+                sold = sold + v_item.qty,
+                revenue = revenue + (v_item.qty * v_item.price)
+            WHERE id = v_item.id::UUID AND store_id = p_store_id;
 
-        -- Create Stock Movement
-        INSERT INTO stock_movements (store_id, product_id, type, qty, date, note, ref_id)
-        VALUES (p_store_id, v_item.id, 'sale', -v_item.qty, p_date, 'Penjualan #' || right(v_new_transaction_id, 6), v_new_transaction_id);
+            -- Create Stock Movement
+            INSERT INTO stock_movements (store_id, product_id, type, qty, date, note, ref_id)
+            VALUES (p_store_id, v_item.id::UUID, 'sale', -v_item.qty, p_date, 'Penjualan #' || right(v_new_transaction_id, 6), v_new_transaction_id);
+        END IF;
     END LOOP;
 
     -- 4. Update Customer Data

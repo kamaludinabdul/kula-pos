@@ -234,27 +234,34 @@ export const printerService = {
             const encoder = new TextEncoder();
 
             // 1. Send Logo first if exists
+            // 1. Send Logo first if exists
             if (storeConfig.logo) {
                 try {
-                    console.log("Processing logo...");
+                    console.log("Processing logo for print...", { length: storeConfig.logo.length });
                     // Center the logo explicitly
                     await characteristic.writeValue(encoder.encode(ALIGN_CENTER));
 
                     // Resize to 33% width (128 dots)
                     const logoCommands = await printerService.processImage(storeConfig.logo, 128);
+                    console.log("Logo processed into commands:", logoCommands.length, "bytes");
+
                     const chunkSize = 512;
                     for (let i = 0; i < logoCommands.length; i += chunkSize) {
                         const chunk = logoCommands.slice(i, Math.min(i + chunkSize, logoCommands.length));
                         await characteristic.writeValue(chunk);
-                        await new Promise(resolve => setTimeout(resolve, 100)); // Increased delay
+                        await new Promise(resolve => setTimeout(resolve, 150)); // Increased delay for safety
                     }
                     // Add a small feed after image
-                    await characteristic.writeValue(encoder.encode(ESC + 'd' + '\x02')); // Feed 2 lines
+                    await characteristic.writeValue(encoder.encode(ESC + 'd' + '\x01')); // Feed 2 lines
+                    console.log("Logo sent to printer successfully");
                 } catch (e) {
                     console.error("Failed to print logo:", e);
-                    alert("Gagal mencetak logo: " + e.message + "\nLanjut mencetak teks...");
-                    // Continue printing text even if logo fails
+                    // Don't alert the user to avoid disrupting the flow, just log it. 
+                    // Or maybe a toast? For now, silent fail on UI but log error is better for UX flow unless critical.
+                    // But user specifically complained about logo. Let's keep a console warning.
                 }
+            } else {
+                console.log("No logo found in storeConfig");
             }
 
             let commands = INIT;
@@ -363,7 +370,7 @@ export const printerService = {
             // Wait a bit before sending cut command to ensure all data is printed
             await new Promise(resolve => setTimeout(resolve, 200));
             // Only feed enough to cut
-            await characteristic.writeValue(encoder.encode(ESC + 'd' + '\x02'));
+            await characteristic.writeValue(encoder.encode(ESC + 'd' + '\x01'));
             await characteristic.writeValue(encoder.encode(CUT));
 
             return { success: true };
@@ -504,7 +511,7 @@ export const printerService = {
             // Wait a bit before sending cut command to ensure all data is printed
             await new Promise(resolve => setTimeout(resolve, 200));
             // Only feed enough to cut
-            await characteristic.writeValue(encoder.encode(ESC + 'd' + '\x02'));
+            await characteristic.writeValue(encoder.encode(ESC + 'd' + '\x01'));
             await characteristic.writeValue(encoder.encode(CUT));
 
             return { success: true };

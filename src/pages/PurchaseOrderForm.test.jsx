@@ -21,19 +21,7 @@ vi.mock('../components/ui/use-toast', () => ({
     useToast: () => ({ toast: mockToast }),
 }));
 
-// Mock Firebase
-const mockGetDocs = vi.fn();
-vi.mock('../firebase', () => ({
-    db: {}
-}));
 
-vi.mock('firebase/firestore', () => ({
-    collection: vi.fn(),
-    query: vi.fn(),
-    where: vi.fn(),
-    getDocs: (...args) => mockGetDocs(...args),
-    orderBy: vi.fn(),
-}));
 
 // Mock DataContext
 const mockAddPurchaseOrder = vi.fn();
@@ -73,8 +61,6 @@ vi.mock('../context/DataContext', () => ({
 describe('PurchaseOrderForm', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        // Default mock response for getDocs (empty)
-        mockGetDocs.mockResolvedValue({ docs: [] });
     });
 
     it('renders the form correctly', () => {

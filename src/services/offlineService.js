@@ -59,7 +59,7 @@ export const offlineService = {
 
         for (const tx of pending) {
             try {
-                // Remove internal Dexie ID before sending to Firestore
+                // Remove internal Dexie ID before sending to Supabase
                 const { id, ...dataToSync } = tx;
 
                 const result = await processSaleFn(dataToSync);

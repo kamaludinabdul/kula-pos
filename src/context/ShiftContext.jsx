@@ -34,7 +34,18 @@ export const ShiftProvider = ({ children }) => {
                 if (error) {
                     console.error('Error fetching active shift:', error);
                 } else {
-                    setCurrentShift(data || null);
+                    const shiftData = data || null;
+                    if (shiftData) {
+                        setCurrentShift({
+                            ...shiftData,
+                            startTime: shiftData.start_time,
+                            initialCash: shiftData.initial_cash,
+                            cashierName: shiftData.cashier_name,
+                            storeId: shiftData.store_id
+                        });
+                    } else {
+                        setCurrentShift(null);
+                    }
                 }
             } catch (err) {
                 console.error('Unexpected error fetching shift:', err);
@@ -57,7 +68,13 @@ export const ShiftProvider = ({ children }) => {
 
                 if (eventType === 'INSERT' || eventType === 'UPDATE') {
                     if (newRow.status === 'active') {
-                        setCurrentShift(newRow);
+                        setCurrentShift({
+                            ...newRow,
+                            startTime: newRow.start_time,
+                            initialCash: newRow.initial_cash,
+                            cashierName: newRow.cashier_name,
+                            storeId: newRow.store_id
+                        });
                     } else if (newRow.status === 'closed' && currentShift?.id === newRow.id) {
                         setCurrentShift(null);
                     }
@@ -133,7 +150,12 @@ export const ShiftProvider = ({ children }) => {
                 ...data,
                 // Ensure consistency between snake_case and camelCase for UI components if needed
                 totalCashIn: currentShift.total_cash_in || 0,
-                totalCashOut: currentShift.total_cash_out || 0
+                totalCashOut: currentShift.total_cash_out || 0,
+                startTime: currentShift.start_time,
+                endTime: currentShift.end_time,
+                initialCash: currentShift.initial_cash,
+                cashierName: currentShift.cashier_name,
+                finalCash: currentShift.final_cash
             };
 
         } catch (error) {

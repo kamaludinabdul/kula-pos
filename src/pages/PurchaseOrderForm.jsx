@@ -536,7 +536,7 @@ const PurchaseOrderForm = () => {
         const tableRows = items.map((item, index) => {
             const product = products.find(p => p.id === item.productId);
             const hasConversion = product?.purchaseUnit && product?.conversionToUnit;
-            const unitName = hasConversion ? product.purchaseUnit : product.unit;
+            const unitName = hasConversion ? product?.purchaseUnit : (product?.unit || '-');
 
             // Calculate PO Price
             const conversion = product?.conversionToUnit ? Number(product.conversionToUnit) : 1;
@@ -975,9 +975,9 @@ const PurchaseOrderForm = () => {
                                         </TableCell>
                                         <TableCell>
                                             <span className="text-sm font-medium">
-                                                {hasConversion ? product.purchaseUnit : product.unit}
+                                                {hasConversion ? product?.purchaseUnit : (product?.unit || '-')}
                                             </span>
-                                            {hasConversion && (
+                                            {hasConversion && product && (
                                                 <div className="text-[10px] text-muted-foreground">
                                                     Isi {product.conversionToUnit} {product.unit}
                                                 </div>

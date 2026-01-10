@@ -1,19 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useData } from '../context/DataContext';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import ProductSelectorDialog from '../components/ProductSelectorDialog';
-import { Play, Square, Plus, MonitorPlay, Coffee, Settings, Search, X, Trash2, Edit2, Link as LinkIcon, Check, Loader2, Eye, User } from 'lucide-react';
+import { Play, Square, Plus, MonitorPlay, Coffee, Settings, Search, X, Trash2, Edit2, Link as LinkIcon, Check, Loader2, Eye, User, Bluetooth } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { useNavigate } from 'react-router-dom';
+import { cn } from '../lib/utils';
 import { supabase } from '../supabase';
 import { useToast } from '../components/ui/use-toast';
 import CheckoutDialog from '../components/pos/CheckoutDialog';
+import { printerService } from '../services/printer';
+import { printReceiptBrowser } from '../lib/receiptHelper';
 
 // Helper Format Durasi
 const formatDuration = (ms) => {
@@ -516,14 +519,15 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product }) => {
                                 onChange={(e) => setDiscountAmount(parseFloat(e.target.value) || 0)}
                                 className="flex-1"
                             />
-                            <select
-                                value={discountType}
-                                onChange={(e) => setDiscountType(e.target.value)}
-                                className="h-10 px-3 border rounded-md bg-white text-sm"
-                            >
-                                <option value="percent">%</option>
-                                <option value="fixed">Rp</option>
-                            </select>
+                            <Select value={discountType} onValueChange={setDiscountType}>
+                                <SelectTrigger className="w-20 h-10">
+                                    <SelectValue placeholder="Tipe" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="percent">%</SelectItem>
+                                    <SelectItem value="fixed">Rp</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                         {discountValue > 0 && (
                             <div className="text-sm text-red-600 flex justify-between">
@@ -551,7 +555,7 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product }) => {
 };
 
 const RentalDashboard = () => {
-    const { products, currentStore, user, customers, refreshData } = useData();
+    const { products, currentStore, user, customers, refreshData, processSale } = useData();
     const navigate = useNavigate();
     const { toast } = useToast();
 
@@ -584,30 +588,53 @@ const RentalDashboard = () => {
     const [stopSessionData, setStopSessionData] = useState(null);
     const [isStopConfirmOpen, setIsStopConfirmOpen] = useState(false);
 
+    // Printer
+    const [printerStatus, setPrinterStatus] = useState({ connected: false, name: null });
+
     // New States for Fixed Billing
     const [billingMode, setBillingMode] = useState('open'); // 'open' | 'fixed'
     const [fixedDuration, setFixedDuration] = useState(1); // Hours
 
     // Fetch Rental Units
-    useEffect(() => {
+    const fetchUnits = useCallback(async () => {
         if (!currentStore?.id) return;
+        setIsLoadingUnits(true);
+        const { data, error } = await supabase
+            .from('rental_units')
+            .select('*')
+            .eq('store_id', currentStore.id);
 
-        const fetchUnits = async () => {
-            const { data, error } = await supabase
-                .from('rental_units')
-                .select('*')
-                .eq('store_id', currentStore.id);
+        if (error) {
+            console.error("Error fetching rental units:", error);
+        } else {
+            const items = data || [];
+            items.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+            setUnits(items);
+        }
+        setIsLoadingUnits(false);
+    }, [currentStore?.id]);
 
-            if (error) {
-                console.error("Error fetching rental units:", error);
-            } else {
-                const items = data || [];
-                items.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
-                setUnits(items);
+    // --- PRINTER AUTO-CONNECT ---
+    useEffect(() => {
+        const initPrinter = async () => {
+            // Check if supported first
+            if (navigator.bluetooth && navigator.bluetooth.getDevices) {
+                if (!printerService.isConnected()) {
+                    console.log("Attempting printer auto-connect...");
+                    const result = await printerService.autoConnect();
+                    if (result.success) {
+                        toast({
+                            title: "Printer Terhubung",
+                            description: `Terhubung otomatis ke ${result.name}`,
+                        });
+                    }
+                }
             }
-            setIsLoadingUnits(false);
         };
+        initPrinter();
+    }, [toast]);
 
+    useEffect(() => {
         fetchUnits();
 
         const channel = supabase
@@ -625,30 +652,29 @@ const RentalDashboard = () => {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [currentStore?.id]);
+    }, [fetchUnits, currentStore?.id]);
 
     // Fetch Active Sessions (Persistence)
-    useEffect(() => {
+    const fetchSessions = useCallback(async () => {
         if (!currentStore?.id) return;
+        const { data, error } = await supabase
+            .from('rental_sessions')
+            .select('*')
+            .eq('store_id', currentStore.id)
+            .eq('status', 'active');
 
-        const fetchSessions = async () => {
-            const { data, error } = await supabase
-                .from('rental_sessions')
-                .select('*')
-                .eq('store_id', currentStore.id)
-                .eq('status', 'active');
+        if (error) {
+            console.error("Error fetching sessions:", error);
+        } else {
+            const sessionsMap = {};
+            (data || []).forEach(row => {
+                sessionsMap[row.unit_id] = row;
+            });
+            setSessions(sessionsMap);
+        }
+    }, [currentStore?.id]);
 
-            if (error) {
-                console.error("Error fetching sessions:", error);
-            } else {
-                const sessionsMap = {};
-                (data || []).forEach(row => {
-                    sessionsMap[row.unit_id] = row;
-                });
-                setSessions(sessionsMap);
-            }
-        };
-
+    useEffect(() => {
         fetchSessions();
 
         const channel = supabase
@@ -663,10 +689,19 @@ const RentalDashboard = () => {
             })
             .subscribe();
 
+        // Sync Printer Status
+        const checkPrinter = setInterval(() => {
+            setPrinterStatus({
+                connected: printerService.isConnected(),
+                name: printerService.getDeviceName()
+            });
+        }, 2000);
+
         return () => {
             supabase.removeChannel(channel);
+            clearInterval(checkPrinter);
         };
-    }, [currentStore?.id]);
+    }, [fetchSessions, currentStore?.id]);
 
     // Handlers
     const handleRemoveItem = async (session, index) => {
@@ -805,6 +840,39 @@ const RentalDashboard = () => {
         setIsStopConfirmOpen(false);
     };
 
+    const handlePrintReceipt = useCallback(async () => {
+        if (!lastTransaction) return;
+        const config = {
+            ...currentStore,
+            ...(currentStore?.settings || {})
+        };
+
+        if (printerService.isConnected()) {
+            const res = await printerService.printReceipt(lastTransaction, config);
+            if (res.success) return;
+        }
+
+        printReceiptBrowser(lastTransaction, config);
+    }, [lastTransaction, currentStore]);
+
+    const handleConnectPrinter = async () => {
+        if (!navigator.bluetooth) {
+            toast({
+                title: "Bluetooth Tidak Didukung",
+                description: "Gunakan Chrome pada Android/Desktop.",
+                variant: "destructive"
+            });
+            return;
+        }
+        const res = await printerService.connect();
+        setPrinterStatus({ connected: res.success, name: res.name });
+        if (res.success) {
+            toast({ title: "Printer Terhubung", description: `Berhasil tersambung ke ${res.name}` });
+        } else {
+            toast({ title: "Koneksi Gagal", description: res.error, variant: "destructive" });
+        }
+    };
+
     const handleProcessPayment = async ({ paymentMethod, cashAmount, change, transactionDate }) => {
         if (!paymentSession) return;
 
@@ -828,53 +896,23 @@ const RentalDashboard = () => {
 
             // 2. Transaction Data
             const transactionData = {
-                store_id: currentStore.id,
-                date: transactionDate ? transactionDate.toISOString() : new Date().toISOString(),
-                user_id: user?.id || user?.uid || 'system',
-                cashier: user?.name || user?.email || 'Admin',
-                customer_name: paymentSession.customer_name || 'Guest',
                 items: paymentSession.items,
                 total: paymentSession.total,
                 subtotal: paymentSession.subtotal || paymentSession.total,
                 discount: paymentSession.discount || 0,
-                payment_method: paymentMethod,
-                amount_paid: cashAmount,
+                paymentMethod: paymentMethod,
+                cashAmount: cashAmount,
                 change: change > 0 ? change : 0,
                 type: 'rental',
                 rental_session_id: paymentSession.id,
-                points_earned: pointsEarned,
-                status: 'completed'
+                customerId: paymentSession.customer_id || null,
+                pointsEarned: pointsEarned,
+                date: transactionDate ? transactionDate.toISOString() : new Date().toISOString()
             };
 
-            const { data: transData, error: transError } = await supabase
-                .from('transactions')
-                .insert([transactionData])
-                .select();
+            const result = await processSale(transactionData);
 
-            if (transError) throw transError;
-
-            // 3. Update Customer Points
-            if (paymentSession.customer_id && (pointsEarned > 0 || paymentSession.total > 0)) {
-                try {
-                    const { data: cust, error: custFetchError } = await supabase
-                        .from('customers')
-                        .select('loyalty_points, total_spent')
-                        .eq('id', paymentSession.customer_id)
-                        .single();
-
-                    if (!custFetchError) {
-                        await supabase
-                            .from('customers')
-                            .update({
-                                loyalty_points: (cust.loyalty_points || 0) + pointsEarned,
-                                total_spent: (cust.total_spent || 0) + paymentSession.total
-                            })
-                            .eq('id', paymentSession.customer_id);
-                    }
-                } catch (err) {
-                    console.error("Failed to update points:", err);
-                }
-            }
+            if (!result.success) throw new Error(result.error);
 
             // 4. Delete Rental Session
             const { error: deleteError } = await supabase
@@ -884,10 +922,22 @@ const RentalDashboard = () => {
 
             if (deleteError) throw deleteError;
 
-            // 5. Update States
-            setLastTransaction(transData[0]);
+            // 5. Update States & Manual UI Cleanup
+            setLastTransaction(result.transaction);
             setPaymentSuccess(true);
-            refreshData(); // Refresh global data for reports
+
+            // Immediately clear the session from local state for instant feedback
+            if (paymentSession?.unit_id) {
+                setSessions(prev => {
+                    const next = { ...prev };
+                    delete next[paymentSession.unit_id];
+                    return next;
+                });
+            }
+
+            // Trigger re-fetches
+            fetchSessions();
+            refreshData();
 
             toast({ title: "Pembayaran Berhasil", description: "Transaksi rental tersimpan." });
         } catch (error) {
@@ -961,7 +1011,23 @@ const RentalDashboard = () => {
                     <h1 className="text-3xl font-bold tracking-tight">Rental</h1>
                     <p className="text-muted-foreground">Kelola sesi rental dan unit layanan.</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                    <Button
+                        variant={printerStatus.connected ? "outline" : "ghost"}
+                        size="sm"
+                        className={cn(
+                            "h-10 gap-2 transition-all",
+                            printerStatus.connected
+                                ? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                                : "text-muted-foreground border border-dashed"
+                        )}
+                        onClick={handleConnectPrinter}
+                    >
+                        <Bluetooth size={16} className={printerStatus.connected ? "text-green-600" : ""} />
+                        <span className="text-xs font-medium">
+                            {printerStatus.connected ? (printerStatus.name || 'Printer On') : 'Connect Printer'}
+                        </span>
+                    </Button>
                     <Button variant="outline" onClick={() => navigate('/products/add', { state: { pricingType: 'hourly', type: 'service' } })}>
                         <Plus className="w-4 h-4 mr-2" />
                         Buat Tarif Baru
@@ -1214,13 +1280,13 @@ const RentalDashboard = () => {
                 total={paymentSession?.total || 0}
                 onProcessPayment={handleProcessPayment}
                 paymentSuccess={paymentSuccess}
-                onPrintReceipt={() => window.print()} // Simple print fallback
+                onPrintReceipt={handlePrintReceipt}
                 onCloseSuccess={() => {
                     setIsCheckoutOpen(false);
                     setPaymentSession(null);
                     setPaymentSuccess(false);
                 }}
-                store={currentStore}
+                store={{ ...currentStore, ...(currentStore?.settings || {}) }}
                 user={user}
                 lastTransaction={lastTransaction}
             />

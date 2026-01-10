@@ -103,7 +103,8 @@ const ProfitLoss = () => {
                     .eq('store_id', currentStore.id)
                     .gte('date', startDateStr)
                     .lte('date', endDateStr)
-                    .order('date', { ascending: false });
+                    .order('date', { ascending: false })
+                    .limit(100);
 
                 if (transError) throw transError;
                 setTransactions(transData || []);
@@ -118,7 +119,16 @@ const ProfitLoss = () => {
                 if (!statsError && reportStats) {
                     setStats(prev => ({
                         ...prev,
-                        ...reportStats
+                        totalSales: reportStats.total_sales || 0,
+                        totalCOGS: reportStats.total_cogs || 0,
+                        totalExpenses: reportStats.total_expenses || 0,
+                        otherIncome: reportStats.other_income || 0,
+                        netProfit: reportStats.net_profit || 0,
+                        totalTransactions: reportStats.total_transactions || 0,
+                        totalItems: reportStats.total_items || 0,
+                        totalTax: reportStats.total_tax || 0,
+                        totalDiscount: reportStats.total_discount || 0,
+                        totalAssets: reportStats.total_assets || 0
                     }));
                 }
             } catch (error) {

@@ -221,19 +221,17 @@ const POS = () => {
     const handlePrintReceipt = useCallback(async () => {
         if (!lastTransaction) return;
 
+        const config = {
+            ...currentStore,
+            ...(currentStore?.settings || {})
+        };
+
         if (printerService.isConnected()) {
-            const res = await printerService.printReceipt(lastTransaction, {
-                name: currentStore?.name,
-                address: currentStore?.address,
-                phone: currentStore?.phone,
-                receiptFooter: currentStore?.receiptFooter,
-                logo: currentStore?.logo,
-                receiptHeader: currentStore?.receiptHeader
-            });
+            const res = await printerService.printReceipt(lastTransaction, config);
             if (res.success) return;
         }
 
-        printReceiptBrowser(lastTransaction, currentStore);
+        printReceiptBrowser(lastTransaction, config);
     }, [lastTransaction, currentStore]);
 
     const processPayment = async (paymentDetails) => {
@@ -257,7 +255,8 @@ const POS = () => {
                 discount: item.discount || 0,
                 total: (item.price - (item.discount || 0)) * item.qty,
                 category: item.category || [],
-                type: item.type || 'goods'
+                type: item.type || 'goods',
+                buyPrice: item.buyPrice || 0
             })),
             subtotal: totals.subtotal,
             tax: totals.tax,

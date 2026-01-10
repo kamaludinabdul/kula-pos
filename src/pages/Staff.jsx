@@ -50,10 +50,24 @@ const Staff = () => {
 
         const fetchInitialData = async () => {
             const { data: users } = await supabase.from('profiles').select('*').eq('store_id', activeStoreId);
-            if (users) setStaffList(users);
+            if (users) {
+                // Profiles just need id, name, email, role, etc. which are usually already mostly camelCase except for snake case cols like store_id
+                // But let's map standard ones if needed or keep as is if we don't access snake_case specifically
+                // Looking at usage: staff.name, staff.email, staff.role. These are fine.
+                // But let's map store_id just in case.
+                setStaffList(users.map(u => ({ ...u, storeId: u.store_id, petCareAccess: u.pet_care_access })));
+            }
 
             const { data: shifts } = await supabase.from('shifts').select('*').eq('store_id', activeStoreId).eq('status', 'active');
-            if (shifts) setActiveShifts(shifts);
+            if (shifts) {
+                setActiveShifts(shifts.map(s => ({
+                    ...s,
+                    startTime: s.start_time,
+                    initialCash: s.initial_cash,
+                    cashierName: s.cashier_name,
+                    storeId: s.store_id
+                })));
+            }
         };
 
         fetchInitialData();
@@ -66,14 +80,19 @@ const Staff = () => {
                 filter: `store_id=eq.${activeStoreId}`
             }, (payload) => {
                 if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                    const mappedProfile = {
+                        ...payload.new,
+                        storeId: payload.new.store_id,
+                        petCareAccess: payload.new.pet_care_access
+                    };
                     setStaffList(prev => {
                         const idx = prev.findIndex(u => u.id === payload.new.id);
                         if (idx >= 0) {
                             const next = [...prev];
-                            next[idx] = payload.new;
+                            next[idx] = mappedProfile;
                             return next;
                         }
-                        return [...prev, payload.new];
+                        return [...prev, mappedProfile];
                     });
                 } else if (payload.eventType === 'DELETE') {
                     setStaffList(prev => prev.filter(u => u.id !== payload.old.id));
@@ -90,14 +109,21 @@ const Staff = () => {
             }, (payload) => {
                 const { eventType, new: newShift, old: oldShift } = payload;
                 if ((eventType === 'INSERT' || eventType === 'UPDATE') && newShift.status === 'active') {
+                    const mappedShift = {
+                        ...newShift,
+                        startTime: newShift.start_time,
+                        initialCash: newShift.initial_cash,
+                        cashierName: newShift.cashier_name,
+                        storeId: newShift.store_id
+                    };
                     setActiveShifts(prev => {
                         const idx = prev.findIndex(s => s.id === newShift.id);
                         if (idx >= 0) {
                             const next = [...prev];
-                            next[idx] = newShift;
+                            next[idx] = mappedShift;
                             return next;
                         }
-                        return [...prev, newShift];
+                        return [...prev, mappedShift];
                     });
                 } else {
                     // If DELETE or status changed to closed
@@ -129,7 +155,7 @@ const Staff = () => {
         if (staff.status) {
             return staff.status === 'online' ? 'login' : 'logout';
         }
-        const isActive = activeShifts.some(shift => shift.cashier_id === staff.id);
+        const isActive = activeShifts.some(shift => (shift.cashierId || shift.cashier_id) === staff.id);
         return isActive ? 'login' : 'logout';
     };
 

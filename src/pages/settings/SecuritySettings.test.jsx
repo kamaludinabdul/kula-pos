@@ -67,7 +67,7 @@ describe('SecuritySettings', () => {
         expect(durationInput).toHaveValue(30);
     });
 
-    it('saves settings to firestore', async () => {
+    it('saves settings to database', async () => {
         render(<SecuritySettings />);
 
         // Enable

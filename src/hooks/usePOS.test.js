@@ -39,9 +39,7 @@ vi.mock('../utils/smartCashier', () => ({
     getSmartRecommendations: () => []
 }));
 
-vi.mock('../firebase', () => ({
-    db: {}
-}));
+
 
 describe('usePOS Hook', () => {
     it('should initialize with empty cart', () => {

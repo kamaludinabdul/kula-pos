@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { calculateAssociations, getSmartRecommendations } from '../utils/smartCashier';
+import { calculateCartTotals } from '../lib/cartLogic';
 
 export const usePOS = () => {
     const { products, transactions, currentStore } = useData();
@@ -221,58 +222,54 @@ export const usePOS = () => {
         const storeTaxType = currentStore?.taxType || 'exclusive';
 
         let discountAmount = 0;
+        let effectiveDiscountType = discountType;
 
         // If a promo is actively applied, use its DYNAMIC potential discount
         if (appliedPromoId) {
             const activePromo = activePromotions.find(p => p.id === appliedPromoId);
             if (activePromo && activePromo.isApplicable) {
+                // Determine discount type based on promo for consistent math
+                // If promo is fixed amount (bundle or fixed), handle as amount
+                // If promo is percentage, we could pass it as percentage but potentialDiscount is already calculated as AMOUNT.
+                // Safest to treat ALL promo discounts as 'amount' override.
+                effectiveDiscountType = 'amount';
                 discountAmount = activePromo.potentialDiscount;
             } else {
-                // If promo is no longer applicable (e.g. removed items), fallback to 0 or manual?
-                // For now, 0, but maybe we should keep manual discount if promo fails? 
-                // Let's assume manual discount (discountValue) is OVERRIDDEN by promo if active.
-                // If promo becomes invalid, we default to 0.
+                // Fallback handled by cartLogic if we assume 0 or manual?
+                // Logic: If promo applied but invalid, current UI ignores manual discount.
             }
         }
         // Fallback to manual discount if NO promo is applied
         else {
             if (discountType === 'percentage') {
-                discountAmount = rawTotal * (discountValue / 100);
+                effectiveDiscountType = 'percentage';
+                discountAmount = discountValue; // Pass raw percentage value (e.g. 10)
             } else {
+                effectiveDiscountType = 'amount';
                 discountAmount = discountValue;
             }
         }
 
-        if (discountAmount > rawTotal) discountAmount = rawTotal;
-
-        const totalAfterDiscount = rawTotal - discountAmount;
-        let tax = 0;
-        let subtotal = 0;
-        let serviceCharge = 0;
-        let finalTotal = 0;
-
-        if (storeTaxType === 'inclusive') {
-            tax = totalAfterDiscount - (totalAfterDiscount / (1 + (storeTaxRate / 100)));
-            subtotal = totalAfterDiscount - tax;
-            serviceCharge = totalAfterDiscount * (storeServiceChargeRate / 100);
-            finalTotal = totalAfterDiscount + serviceCharge;
-        } else {
-            subtotal = totalAfterDiscount;
-            tax = subtotal * (storeTaxRate / 100);
-            serviceCharge = subtotal * (storeServiceChargeRate / 100);
-            finalTotal = subtotal + tax + serviceCharge;
-        }
+        // Delegate pure calculation
+        const result = calculateCartTotals(
+            cart,
+            effectiveDiscountType,
+            discountAmount,
+            storeTaxRate,
+            storeServiceChargeRate,
+            storeTaxType
+        );
 
         return {
-            rawTotal,
-            subtotal,
-            tax,
-            serviceCharge,
-            discountAmount,
-            finalTotal
+            rawTotal: result.subtotal, // cartLogic returns 'subtotal' as the sum of items
+            subtotal: result.taxBase, // This aligns with "after discount"
+            tax: result.taxAmount,
+            serviceCharge: result.serviceCharge,
+            discountAmount: result.discountAmount,
+            finalTotal: result.finalTotal
         };
 
-    }, [rawTotal, currentStore, discountType, discountValue, appliedPromoId, activePromotions]);
+    }, [cart, currentStore, discountType, discountValue, appliedPromoId, activePromotions]);
 
     // --- Smart Recommendations ---
     const associations = useMemo(() => {

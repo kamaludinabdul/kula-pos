@@ -168,11 +168,9 @@ const CartPanel = ({
                                             <span className="font-medium">{c.name}</span>
                                             <span className="text-[10px] text-muted-foreground">{c.phone}</span>
                                         </div>
-                                        {(c.loyaltyPoints > 0 || c.points > 0) && (
-                                            <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-amber-100 text-amber-700 hover:bg-amber-100">
-                                                {c.loyaltyPoints || c.points || 0} Pts
-                                            </Badge>
-                                        )}
+                                        <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-amber-100 text-amber-700 hover:bg-amber-100 whitespace-nowrap">
+                                            {c.loyaltyPoints || c.points || 0} Pts
+                                        </Badge>
                                     </div>
                                 ))}
                             </div>

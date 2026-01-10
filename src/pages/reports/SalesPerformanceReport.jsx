@@ -101,7 +101,17 @@ const SalesPerformanceReport = () => {
                     .lte('date', endDate.toISOString());
 
                 if (error) throw error;
-                setTargetTransactions(data || []);
+
+                // Map to camelCase for consistency
+                const mappedData = (data || []).map(t => ({
+                    ...t,
+                    salesPersonId: t.sales_person_id,
+                    cashierId: t.cashier_id,
+                    paymentMethod: t.payment_method,
+                    customerName: t.customer_name
+                }));
+
+                setTargetTransactions(mappedData);
             } catch (error) {
                 console.error("Error fetching target data:", error);
             } finally {
@@ -147,7 +157,7 @@ const SalesPerformanceReport = () => {
         let result = filteredTargets.map(target => {
             // Filter transactions for this target's period and user using FETCHED targetTransactions
             // Note: targetTransactions are ALREADY filtered by month/year via query, so just filter by user
-            const usersTransactions = targetTransactions.filter(t => (t.sales_person_id === target.userId) || (t.cashier_id === target.userId));
+            const usersTransactions = targetTransactions.filter(t => (t.salesPersonId === target.userId) || (t.cashierId === target.userId));
 
             let currentQty = 0;
             usersTransactions.forEach(t => {
