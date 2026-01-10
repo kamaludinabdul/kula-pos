@@ -86,7 +86,6 @@ exports.updateUserPassword = functions.https.onCall(async (data, context) => {
         }
 
         // 3. Perform Update
-        // 3. Perform Update
         try {
             await admin.auth().updateUser(targetUserId, {
                 password: newPassword,

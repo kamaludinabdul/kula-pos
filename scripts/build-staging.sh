@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Build script for staging deployment
 echo "🔨 Building for STAGING environment..."

@@ -4,7 +4,7 @@ import FormattedNumberInput from '../components/ui/FormattedNumberInput';
 import { ArrowLeft, Upload, Save, X, Plus, Image as ImageIcon, ScanBarcode, Trash2 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { supabase } from '../supabase';
-import { compressImage } from '../utils/supabaseImage';
+import { compressImage } from '../utils/imageCompressor';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -17,7 +17,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuIte
 import { ChevronDown } from 'lucide-react';
 import BarcodeScannerDialog from '../components/pos/BarcodeScannerDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
-// import { compressImage } from '../utils/imageCompressor'; // Removed duplicate
+
 
 const PRODUCT_TYPES = ['Default', 'Addon', 'Multisatuan', 'Varian', 'IMEI', 'Paket', 'Bahan Baku'];
 
@@ -413,7 +413,9 @@ const ProductForm = () => {
                             <CardContent className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="name">Nama Produk <span className="text-destructive">*</span></Label>
+                                        <div className="flex items-center h-6">
+                                            <Label htmlFor="name">Nama Produk <span className="text-destructive">*</span></Label>
+                                        </div>
                                         <Input
                                             id="name"
                                             name="name"
@@ -424,7 +426,9 @@ const ProductForm = () => {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="code">Kode Produk (SKU)</Label>
+                                        <div className="flex items-center h-6">
+                                            <Label htmlFor="code">Kode Produk (SKU)</Label>
+                                        </div>
                                         <div className="flex gap-2">
                                             <Input
                                                 id="code"
@@ -448,7 +452,9 @@ const ProductForm = () => {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label>Kategori</Label>
+                                        <div className="flex items-center h-6">
+                                            <Label>Kategori</Label>
+                                        </div>
                                         <div className="flex gap-2">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -511,7 +517,9 @@ const ProductForm = () => {
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="stockType">Jenis Stok</Label>
+                                        <div className="flex items-center h-6">
+                                            <Label htmlFor="stockType">Jenis Stok</Label>
+                                        </div>
                                         <Select
                                             value={formData.stockType}
                                             onValueChange={(val) => handleSelectChange('stockType', val)}
@@ -537,7 +545,9 @@ const ProductForm = () => {
                             <CardContent className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="pricingType">Model Harga</Label>
+                                        <div className="flex items-center h-6">
+                                            <Label htmlFor="pricingType">Model Harga</Label>
+                                        </div>
                                         <Select
                                             value={formData.pricingType || 'fixed'}
                                             onValueChange={(val) => setFormData(prev => ({ ...prev, pricingType: val, unit: val === 'hourly' ? 'Jam' : prev.unit }))}
@@ -554,7 +564,9 @@ const ProductForm = () => {
 
                                     {formData.pricingType !== 'hourly' && (
                                         <div className="space-y-2">
-                                            <Label htmlFor="buyPrice">Harga Beli</Label>
+                                            <div className="flex items-center h-6">
+                                                <Label htmlFor="buyPrice">Harga Beli</Label>
+                                            </div>
                                             <div className="relative">
                                                 <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">Rp</span>
                                                 <Input
@@ -570,7 +582,9 @@ const ProductForm = () => {
                                         </div>
                                     )}
                                     <div className="space-y-2">
-                                        <Label htmlFor="sellPrice">{formData.pricingType === 'hourly' ? 'Tarif Per Jam' : 'Harga Jual'} <span className="text-destructive">*</span></Label>
+                                        <div className="flex items-center h-6">
+                                            <Label htmlFor="sellPrice">{formData.pricingType === 'hourly' ? 'Tarif Per Jam' : 'Harga Jual'} <span className="text-destructive">*</span></Label>
+                                        </div>
                                         <div className="relative">
                                             <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">Rp</span>
                                             <Input
@@ -766,12 +780,12 @@ const ProductForm = () => {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <div className="flex items-center gap-4">
-                                            <Label htmlFor="stock">
+                                        <div className="flex items-center justify-between h-6">
+                                            <Label htmlFor="stock" className="flex items-center">
                                                 Stok Saat Ini
                                                 {isEditMode && (
-                                                    <span className="ml-2 text-xs text-muted-foreground font-normal">
-                                                        (Tidak dapat diubah)
+                                                    <span className="ml-2 text-[10px] text-muted-foreground font-normal bg-muted px-1.5 py-0.5 rounded border border-border">
+                                                        Read-only
                                                     </span>
                                                 )}
                                             </Label>
@@ -781,12 +795,12 @@ const ProductForm = () => {
                                                     checked={formData.isUnlimited}
                                                     onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isUnlimited: checked }))}
                                                 />
-                                                <label
+                                                <Label
                                                     htmlFor="isUnlimited"
-                                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                                    className="text-xs font-medium cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
                                                 >
                                                     Unlimited
-                                                </label>
+                                                </Label>
                                             </div>
                                         </div>
                                         <Input
@@ -813,7 +827,9 @@ const ProductForm = () => {
                                         )}
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="minStock">Minimum Stok (Alert)</Label>
+                                        <div className="flex items-center h-6">
+                                            <Label htmlFor="minStock">Minimum Stok (Alert)</Label>
+                                        </div>
                                         <Input
                                             id="minStock"
                                             name="minStock"
@@ -831,7 +847,9 @@ const ProductForm = () => {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label htmlFor="unit">Satuan Stok (Dasar)</Label>
+                                            <div className="flex items-center h-6">
+                                                <Label htmlFor="unit">Satuan Stok (Dasar)</Label>
+                                            </div>
                                             <Input
                                                 id="unit"
                                                 name="unit"
@@ -851,7 +869,9 @@ const ProductForm = () => {
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="space-y-2">
-                                                <Label htmlFor="purchaseUnit">Satuan Beli (PO)</Label>
+                                                <div className="flex items-center h-6">
+                                                    <Label htmlFor="purchaseUnit">Satuan Beli (PO)</Label>
+                                                </div>
                                                 <Input
                                                     id="purchaseUnit"
                                                     name="purchaseUnit"
@@ -861,7 +881,9 @@ const ProductForm = () => {
                                                 />
                                             </div>
                                             <div className="space-y-2">
-                                                <Label htmlFor="conversionToUnit">Isi per Satuan Beli</Label>
+                                                <div className="flex items-center h-6">
+                                                    <Label htmlFor="conversionToUnit">Isi per Satuan Beli</Label>
+                                                </div>
                                                 <div className="flex items-center gap-2">
                                                     <Input
                                                         id="conversionToUnit"
@@ -894,7 +916,9 @@ const ProductForm = () => {
                             <CardContent className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="weight">Berat (Gram)</Label>
+                                        <div className="flex items-center h-6">
+                                            <Label htmlFor="weight">Berat (Gram)</Label>
+                                        </div>
                                         <Input
                                             id="weight"
                                             name="weight"
@@ -906,7 +930,9 @@ const ProductForm = () => {
                                     </div>
                                     {/* Discount moved to Pricing Section */}
                                     <div className="space-y-2">
-                                        <Label htmlFor="shelf">Letak Rak</Label>
+                                        <div className="flex items-center h-6">
+                                            <Label htmlFor="shelf">Letak Rak</Label>
+                                        </div>
                                         <Input
                                             id="shelf"
                                             name="shelf"
