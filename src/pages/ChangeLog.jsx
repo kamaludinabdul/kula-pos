@@ -2,7 +2,7 @@ import React from 'react';
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { GitCommit, Tag, Calendar } from 'lucide-react';
-import { version } from '../../package.json';
+const APP_VERSION = "0.8.17";
 
 // This data would ideally come from a database or a markdown file
 // For now, we'll maintain it here as a structured constant
@@ -311,7 +311,7 @@ const ChangeLog = () => {
                 <h1 className="text-3xl font-bold tracking-tight">Changelog</h1>
                 <p className="text-muted-foreground">
                     Riwayat pembaruan dan perubahan sistem KULA.
-                    Versi saat ini: <span className="font-semibold text-foreground">v{version}</span>
+                    Versi saat ini: <span className="font-semibold text-foreground">v{APP_VERSION}</span>
                 </p>
             </div>
 

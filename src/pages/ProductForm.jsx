@@ -4,7 +4,7 @@ import FormattedNumberInput from '../components/ui/FormattedNumberInput';
 import { ArrowLeft, Upload, Save, X, Plus, Image as ImageIcon, ScanBarcode, Trash2 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { supabase } from '../supabase';
-import { getOptimizedImage } from '../utils/supabaseImage';
+import { compressImage } from '../utils/supabaseImage';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -17,7 +17,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuIte
 import { ChevronDown } from 'lucide-react';
 import BarcodeScannerDialog from '../components/pos/BarcodeScannerDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
-import { compressImage } from '../utils/imageCompressor';
+// import { compressImage } from '../utils/imageCompressor'; // Removed duplicate
 
 const PRODUCT_TYPES = ['Default', 'Addon', 'Multisatuan', 'Varian', 'IMEI', 'Paket', 'Bahan Baku'];
 
@@ -225,7 +225,7 @@ const ProductForm = () => {
                 const fileName = `${activeStoreId}/${Date.now()}.${fileExt}`;
                 const filePath = fileName;
 
-                const { data: uploadData, error: uploadError } = await supabase.storage
+                const { error: uploadError } = await supabase.storage
                     .from('product-images')
                     .upload(filePath, blob, {
                         contentType: blob.type,

@@ -33,10 +33,7 @@ const POS = () => {
         refreshTransactions: _, isOnline, fetchUsersByStore
     } = useData();
 
-    // Prevent crash if currentStore is not yet loaded (though PrivateRoute should handle this)
-    if (!currentStore && !products) {
-        return <div className="h-screen flex items-center justify-center">Memuat Data Toko...</div>;
-    }
+
 
     const { currentShift, startShift, endShift, updateShiftStats, getShiftSummary } = useShift();
     const navigate = useNavigate();
@@ -379,6 +376,11 @@ const POS = () => {
             });
         }
     }, [isEndShiftOpen, getShiftSummary]);
+
+    // Prevent crash if currentStore is not yet loaded (though PrivateRoute should handle this)
+    if (!currentStore && !products) {
+        return <div className="h-screen flex items-center justify-center">Memuat Data Toko...</div>;
+    }
 
     return (
         <div className="flex flex-col h-screen bg-slate-100 overflow-hidden">

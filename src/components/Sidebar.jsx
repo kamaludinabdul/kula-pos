@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
-import { version } from '../../package.json';
+const APP_VERSION = '0.8.17';
 import { checkPlanAccess, hasFeatureAccess } from '../utils/plans';
 import UpgradeAlert from './UpgradeAlert';
 
@@ -554,7 +554,7 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
             !isExpanded && "text-[10px] pt-2"
           )}>
             <NavLink to="/changelog" className="hover:text-indigo-600 hover:underline transition-colors block p-1">
-              v{version}
+              v{APP_VERSION}
             </NavLink>
           </div>
         </div>

@@ -42,6 +42,10 @@ export const AuthProvider = ({ children }) => {
             profile.permissions = normalized[profile.role];
         }
 
+        if (profile) {
+            profile.storeId = profile.store_id;
+        }
+
         return profile;
     }, []);
 
@@ -223,11 +227,17 @@ export const AuthProvider = ({ children }) => {
         if (error) return { success: false, message: error.message };
 
         // Record login history (custom table in Supabase) - Fire and forget
-        supabase.from('audit_logs').insert({
-            user_id: data.user.id,
-            action: 'login_success',
-            metadata: { user_agent: navigator.userAgent }
-        }).catch(err => console.error("Audit log failed:", err)); // Non-blocking
+        (async () => {
+            try {
+                await supabase.from('audit_logs').insert({
+                    user_id: data.user.id,
+                    action: 'login_success',
+                    metadata: { user_agent: navigator.userAgent }
+                });
+            } catch (err) {
+                console.error("Audit log failed:", err);
+            }
+        })();
 
 
         return { success: true };
@@ -254,8 +264,13 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
         if (user) {
-            supabase.from('audit_logs').insert({ user_id: user.id, action: 'logout' })
-                .catch(err => console.error("Logout audit failed:", err));
+            (async () => {
+                try {
+                    await supabase.from('audit_logs').insert({ user_id: user.id, action: 'logout' });
+                } catch (err) {
+                    console.error("Logout audit failed:", err);
+                }
+            })();
         }
         await supabase.auth.signOut();
 

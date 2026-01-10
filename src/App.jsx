@@ -75,79 +75,84 @@ const ChangeLog = lazy(() => import('./pages/ChangeLog'));
 
 // Loading Component
 const PageLoader = () => (
-  <div className="flex items-center justify-center h-screen bg-background">
+  <div className="flex items-center justify-center h-screen bg-white">
     <div className="flex flex-col items-center gap-2">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-      <p className="text-sm text-muted-foreground animate-pulse">Memuat aplikasi...</p>
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+      <p className="text-sm text-slate-500 animate-pulse">Memuat aplikasi...</p>
     </div>
   </div>
 );
 
 import { checkPlanAccess, hasFeatureAccess } from './utils/plans';
-import { version } from '../package.json';
+// Use a constant to avoid potential issues with JSON import in some environments
+const APP_VERSION = '0.8.17';
 
 const PrivateRoute = ({ children, feature, plan, permission }) => {
   const authContext = useAuth();
   const dataContext = useData();
   const location = useLocation();
 
-  // Handle null context (shouldn't happen but defensive coding)
   if (!authContext || !dataContext) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return <PageLoader />;
   }
 
   const { user, loading } = authContext;
   const { currentStore, loading: dataLoading, storesLoading } = dataContext;
 
+  // 1. Initial Loading State
   if (loading || dataLoading || storesLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-white text-black z-50">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mb-4"></div>
-        <p>Memuat Data...</p>
+        <p className="font-medium">Memuat Data...</p>
       </div>
     );
   }
 
+  // 2. Unauthenticated
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Super Admin / Owner bypass
-  if (user.role === 'super_admin' || user.role === 'owner') return children;
+  // 3. Super Admin / Owner bypass (Case-insensitive check)
+  const role = user.role?.toLowerCase();
+  if (role === 'super_admin' || role === 'owner') return children;
 
-  // Check feature permission
+  // 4. Feature and Plan Access
   if (feature) {
-    // If currentStore not loaded yet, send to stores page (only for non-owners)
+    // If no active store selected, force to stores page
     if (!currentStore) {
       return <Navigate to="/stores" replace />;
     }
 
-    // 1. Check Plan Access (only for non-owners)
-    const currentPlan = currentStore.plan || 'free';
-    const dynamicPlans = dataContext.plans;
+    const currentPlan = (currentStore.plan || 'free').toLowerCase();
+    const dynamicPlans = dataContext.plans || {};
 
-    if (!checkPlanAccess(currentPlan, plan) && !hasFeatureAccess(currentPlan, feature, dynamicPlans)) {
+    // Check Plan & Feature Access
+    const hasPlanAccess = checkPlanAccess(currentPlan, plan);
+    const hasFeatAccess = hasFeatureAccess(currentPlan, feature, dynamicPlans);
+
+    if (!hasPlanAccess && !hasFeatAccess) {
+      console.warn(`Access denied for ${feature} (Plan: ${currentPlan})`);
       return <Navigate to="/dashboard" replace />;
     }
 
-    // 2. Check Permissions
+    // 5. Granular Permissions Check
     const rolePermissions = currentStore.permissions?.[user.role] || [];
     const permissionKey = permission || feature;
 
-    // Direct match
-    if (rolePermissions.includes(permissionKey)) return children;
+    // Direct match or sub-permission match
+    const hasPermission = rolePermissions.includes(permissionKey) ||
+      rolePermissions.some(p => p.startsWith(`${permissionKey}.`));
 
-    // Sub-permission match
-    if (rolePermissions.some(p => p.startsWith(`${permissionKey}.`))) return children;
+    // Parent permission match (e.g. 'products' grants 'products.list')
+    const hasParentPermission = permissionKey.includes('.') &&
+      rolePermissions.includes(permissionKey.split('.')[0]);
 
-    // Parent permission match
-    if (permissionKey.includes('.')) {
-      const parentFeature = permissionKey.split('.')[0];
-      if (rolePermissions.includes(parentFeature)) return children;
+    if (!hasPermission && !hasParentPermission) {
+      console.warn(`Permission denied for ${permissionKey}`);
+      return <Navigate to="/" replace />;
     }
-
-    // Default: no permission
-    return <Navigate to="/" replace />;
   }
 
   return children;
@@ -159,7 +164,8 @@ const RootRedirect = () => {
 
   if (!user) return <Navigate to="/login" />;
 
-  if (user.role === 'super_admin') {
+  const role = user.role?.toLowerCase();
+  if (role === 'super_admin') {
     return <Navigate to="/stores" replace />;
   }
 
@@ -189,7 +195,7 @@ const VersionChecker = () => {
 
   return (
     <div className="fixed bottom-1 left-1 z-50 bg-black/50 text-white text-[10px] px-1 rounded pointer-events-none group hover:pointer-events-auto transition-all">
-      v{version}
+      v{APP_VERSION}
       <button
         onClick={handleUpdate}
         className="hidden group-hover:inline-block ml-2 bg-blue-500 hover:bg-blue-600 px-1 rounded cursor-pointer pointer-events-auto"

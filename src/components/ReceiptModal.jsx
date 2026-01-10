@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { X, Printer, Download } from 'lucide-react';
 import html2canvas from 'html2canvas';
-import { version } from '../../package.json';
+const APP_VERSION = "0.8.17";
 import { printerService } from '../services/printer';
 import { formatDate } from '../lib/utils';
 import { getOptimizedImage } from '../utils/supabaseImage';
@@ -215,7 +215,7 @@ const ReceiptModal = ({ isOpen, onClose, transaction, store }) => {
 
                         <div className="border-t border-dashed border-gray-300 mt-4 pt-3 text-center text-[10px] text-slate-400">
                             <p>{store?.receiptFooter || "Terima Kasih"}</p>
-                            <p className="mt-2 text-[8px] text-slate-300">KULA v{version}</p>
+                            <p className="mt-2 text-[8px] text-slate-300">KULA v{APP_VERSION}</p>
                         </div>
                     </div>
                 </div>

@@ -213,10 +213,13 @@ export const DataProvider = ({ children }) => {
                         p_store_id: activeStoreId
                     });
 
-                    if (!snapshotError && snapshot) {
-                        if (snapshot.categories) setCategories(snapshot.categories);
-                        // Optional: update current store if needed
-                        // if (snapshot.store) setCurrentStore(snapshot.store);
+                    if (snapshotError) {
+                        console.warn("Initial snapshot RPC error:", snapshotError);
+                    } else if (snapshot) {
+                        console.log("Initial snapshot loaded successfully");
+                        if (snapshot.categories && Array.isArray(snapshot.categories)) {
+                            setCategories(snapshot.categories);
+                        }
                     }
                 } catch (e) {
                     console.warn("Initial snapshot RPC failed, falling back to standard fetch:", e);
@@ -267,6 +270,9 @@ export const DataProvider = ({ children }) => {
                             storeId: p.store_id,
                             isDeleted: p.is_deleted,
                             createdAt: p.created_at,
+                            pricingType: p.pricing_type,
+                            pricingTiers: p.pricing_tiers,
+                            isBundlingEnabled: p.is_bundling_enabled,
                             price: p.sell_price,
                             category: p.categories?.name || null
                         }));
@@ -329,6 +335,7 @@ export const DataProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, activeStoreId, fetchStockMovements]);
 
     useEffect(() => {
@@ -414,9 +421,11 @@ export const DataProvider = ({ children }) => {
                         createdAt: s.created_at,
                         permissions: normalizePermissions(s.settings?.permissions)
                     })));
+                } else if (error) {
+                    console.error("Store fetch query error:", error);
                 }
             } catch (err) {
-                console.error("Store fetch error:", err);
+                console.error("Store fetch exception:", err);
             } finally {
                 setStoresLoading(false);
             }
@@ -424,7 +433,7 @@ export const DataProvider = ({ children }) => {
 
         fetchStores();
 
-        const channel = supabase.channel('stores-realtime')
+        supabase.channel('stores-realtime')
             .on('postgres_changes', {
                 event: '*',
                 schema: 'public',
@@ -467,7 +476,7 @@ export const DataProvider = ({ children }) => {
     useEffect(() => {
         if (!user || !activeStoreId) return;
 
-        const channel = supabase.channel('products-realtime')
+        const ch = supabase.channel('products-realtime')
             .on('postgres_changes', {
                 event: '*',
                 schema: 'public',
@@ -505,7 +514,7 @@ export const DataProvider = ({ children }) => {
             .subscribe();
 
         return () => {
-            supabase.removeChannel(channel);
+            supabase.removeChannel(ch);
         };
     }, [user, activeStoreId]);
     useEffect(() => {
@@ -684,7 +693,10 @@ export const DataProvider = ({ children }) => {
                 discount_type: product.discountType || 'percent',
                 is_unlimited: product.isUnlimited || false,
                 category_id: product.categoryId || product.category_id || null,
-                image: product.image,
+                image_url: product.image || product.imageUrl || null,
+                pricing_type: product.pricingType || 'standard',
+                pricing_tiers: product.pricingTiers || [],
+                is_bundling_enabled: product.isBundlingEnabled || false,
                 is_deleted: false
             };
 
@@ -727,7 +739,7 @@ export const DataProvider = ({ children }) => {
             return { success: true };
         } catch (error) {
             console.error("Error adding product:", error);
-            return { success: false, error };
+            return { success: false, error: error.message || "Gagal menambahkan produk" };
         }
     };
 
@@ -751,7 +763,10 @@ export const DataProvider = ({ children }) => {
                 conversion_to_unit: rawData.conversionToUnit ?? rawData.conversion_to_unit,
                 weight: rawData.weight,
                 rack_location: rawData.rackLocation ?? rawData.rack_location,
-                image: rawData.image,
+                image_url: rawData.image || rawData.imageUrl,
+                pricing_type: rawData.pricingType || rawData.pricing_type,
+                pricing_tiers: rawData.pricingTiers || rawData.pricing_tiers,
+                is_bundling_enabled: rawData.isBundlingEnabled || rawData.is_bundling_enabled,
                 category_id: rawData.categoryId ?? rawData.category_id
             };
 
@@ -792,7 +807,7 @@ export const DataProvider = ({ children }) => {
             return { success: true };
         } catch (error) {
             console.error("Error updating product:", error);
-            return { success: false, error };
+            return { success: false, error: error.message || "Gagal memperbarui produk" };
         }
     };
 
@@ -1155,8 +1170,7 @@ export const DataProvider = ({ children }) => {
 
             return {
                 success: true,
-                message: `Reset ${customersWithPoints.length} customers' points`,
-                adjustments: results
+                message: `Reset loyalty points for current store customers`
             };
         } catch (error) {
             console.error("Error resetting expired points:", error);

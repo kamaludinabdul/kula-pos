@@ -10,7 +10,7 @@ import { SmartDatePicker } from '../../components/SmartDatePicker';
 import { supabase } from '../../supabase';
 
 const ItemSales = () => {
-    const { products, currentStore } = useData(); // Removed transactions
+    const { currentStore } = useData(); // Removed transactions, products
     // Initial state: Today
     const [datePickerDate, setDatePickerDate] = useState(() => {
         const { startDate, endDate } = getDateRange('today');

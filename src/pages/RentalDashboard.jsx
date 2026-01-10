@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
+import ProductSelectorDialog from '../components/ProductSelectorDialog';
 import { Play, Square, Plus, MonitorPlay, Coffee, Settings, Search, X, Trash2, Edit2, Link as LinkIcon, Check, Loader2, Eye, User } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
@@ -312,7 +313,7 @@ const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products }) => {
                                 <p className="text-center text-muted-foreground py-8">Belum ada unit disimpan.</p>
                             ) : (
                                 units.map(unit => {
-                                    const product = products.find(p => p.id === unit.linkedProductId);
+                                    const product = products.find(p => p.id === unit.linked_product_id);
                                     return (
                                         <div key={unit.id} className="flex justify-between items-center p-2 border-b last:border-0 hover:bg-slate-50">
                                             <div>
@@ -338,133 +339,6 @@ const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products }) => {
             </DialogContent>
         </Dialog>
     );
-};
-
-// --- DIALOG SELECTOR PRODUK F&B ---
-const ProductSelectorDialog = ({ isOpen, onClose, onSelect, products }) => {
-    const [search, setSearch] = useState('');
-    const [quantities, setQuantities] = useState({}); // Local state untuk qty setiap produk di list
-
-    const filteredProducts = useMemo(() => {
-        return products.filter(p =>
-            p.pricingType !== 'hourly' &&
-            !p.isDeleted &&
-            p.name.toLowerCase().includes(search.toLowerCase())
-        ).slice(0, 20);
-    }, [products, search]);
-
-    const handleQtyChange = (productId, delta) => {
-        setQuantities(prev => {
-            const current = prev[productId] || 1;
-            const newVal = Math.max(1, current + delta);
-            return { ...prev, [productId]: newVal };
-        });
-    };
-
-    const handleAddClick = (product) => {
-        const qty = quantities[product.id] || 1;
-        onSelect(product, qty);
-        // Reset qty visual ke 1 setelah add
-        setQuantities(prev => ({ ...prev, [product.id]: 1 }));
-    };
-
-    if (!isOpen) return null;
-
-    return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-md h-[80vh] flex flex-col p-4 gap-4">
-                <DialogHeader>
-                    <DialogTitle>Tambah Menu F&B</DialogTitle>
-                </DialogHeader>
-
-                {/* Search Bar */}
-                <div className="relative">
-                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Cari makanan & minuman..."
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        className="pl-9"
-                        autoFocus
-                    />
-                    {search && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-1 top-1 h-8 w-8"
-                            onClick={() => setSearch('')}
-                        >
-                            <X className="w-3 h-3" />
-                        </Button>
-                    )}
-                </div>
-
-                <ScrollArea className="flex-1 -mx-4 px-4 my-2">
-                    <div className="space-y-3">
-                        {filteredProducts.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">
-                                Tidak ada menu ditemukan.
-                            </div>
-                        ) : (
-                            filteredProducts.map(product => {
-                                const qty = quantities[product.id] || 1;
-                                return (
-                                    <div
-                                        key={product.id}
-                                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg hover:bg-slate-50 gap-3"
-                                    >
-                                        <div className="flex-1">
-                                            <div className="font-medium">{product.name}</div>
-                                            <div className="text-xs text-muted-foreground">{product.category}</div>
-                                            <div className="font-semibold text-indigo-600 mt-1">
-                                                Rp {parseInt(product.sellPrice).toLocaleString('id-ID')}
-                                            </div>
-                                        </div>
-
-                                        {/* Qty & Add Button */}
-                                        <div className="flex items-center gap-3 bg-white p-1 rounded-md border shadow-sm">
-                                            <div className="flex items-center">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-7 w-7 rounded-sm"
-                                                    onClick={() => handleQtyChange(product.id, -1)}
-                                                >
-                                                    -
-                                                </Button>
-                                                <div className="w-8 text-center text-sm font-medium">{qty}</div>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-7 w-7 rounded-sm"
-                                                    onClick={() => handleQtyChange(product.id, 1)}
-                                                >
-                                                    +
-                                                </Button>
-                                            </div>
-                                            <div className="h-6 w-px bg-slate-200"></div>
-                                            <Button
-                                                size="sm"
-                                                className="h-7 px-3 bg-indigo-600 hover:bg-indigo-700 text-white"
-                                                onClick={() => handleAddClick(product)}
-                                            >
-                                                Tambah
-                                            </Button>
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
-                </ScrollArea>
-
-                <DialogFooter className="bg-slate-50 -mx-4 -mb-4 p-4 border-t">
-                    <Button variant="outline" onClick={onClose} className="w-full">Selesai / Tutup</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-
 };
 
 // --- DIALOG DETAIL SESI (F&B LIST) ---
@@ -528,15 +402,18 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product }) => {
 
     const [priceInput, setPriceInput] = useState(() => {
         if (!session) return 0;
-
-        // Use Agreed Total if available (Fixed Bundling)
-        if (session.agreed_total !== undefined && session.agreed_total !== null) {
-            return session.agreed_total;
-        }
-
         const elapsed = Date.now() - new Date(session.start_time).getTime();
         const hrs = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
-        const basePrice = product ? parseInt(product.sellPrice) : (session.product_price || 0);
+        const basePrice = product ? Number(product.sellPrice) : Number(session.product_price || 0);
+
+        // If 'fixed' mode and NOT overtime, use agreed total
+        if (session.billing_mode === 'fixed' && session.agreed_total !== null && session.agreed_total !== undefined) {
+            const targetDuration = parseFloat(session.target_duration || 0);
+            if (hrs <= targetDuration) {
+                return session.agreed_total;
+            }
+            return hrs * basePrice;
+        }
         return hrs * basePrice;
     });
 
@@ -571,7 +448,7 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product }) => {
         }
 
         // Fallback to normal calculation
-        const basePrice = product ? parseInt(product.sellPrice) : (session.product_price || 0);
+        const basePrice = product ? Number(product.sellPrice) : Number(session.product_price || 0);
         setPriceInput(val * basePrice);
     };
 
@@ -612,7 +489,7 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product }) => {
                         <div className="space-y-2">
                             <Label>Rate / Jam</Label>
                             <div className="h-10 px-3 py-2 bg-slate-100 rounded text-sm flex items-center">
-                                Rp {parseInt(product?.sellPrice || session.product_price || 0).toLocaleString()}
+                                Rp {Number(product?.sellPrice || session.product_price || 0).toLocaleString()}
                             </div>
                         </div>
                     </div>
@@ -803,6 +680,16 @@ const RentalDashboard = () => {
                 .eq('id', session.id);
 
             if (error) throw error;
+
+            // Optimistic Update
+            setSessions(prev => ({
+                ...prev,
+                [session.unit_id]: {
+                    ...session,
+                    orders: newOrders
+                }
+            }));
+
             toast({ title: "Item Dihapus", description: "Item berhasil dihapus dari pesanan." });
         } catch (error) {
             console.error("Failed to remove item:", error);
@@ -860,6 +747,9 @@ const RentalDashboard = () => {
                     target_duration: billingMode === 'fixed' ? finalDuration : null,
                     target_end_time: billingMode === 'fixed' ? new Date(Date.now() + (finalDuration * 60 * 60 * 1000)).toISOString() : null,
                     agreed_total: billingMode === 'fixed' ? agreedTotal : null,
+                    product_id: product.id,
+                    product_price: Number(product.sellPrice || 0),
+                    unit_name: selectedUnit.name,
                     orders: []
                 }]);
 
@@ -879,7 +769,7 @@ const RentalDashboard = () => {
     };
 
     const handleStopConfirmed = (finalDuration, finalPrice, discountValue = 0) => {
-        const session = stopSessionData;
+        const session = sessions[stopSessionData.unit_id];
 
         // Buat Item Rental
         const rentalItem = {
@@ -1018,7 +908,7 @@ const RentalDashboard = () => {
         const newOrder = {
             id: product.id,
             name: product.name,
-            price: parseInt(product.sellPrice),
+            price: Number(product.sellPrice || 0),
             qty: qty
         };
 
@@ -1042,6 +932,16 @@ const RentalDashboard = () => {
                 .eq('id', session.id);
 
             if (error) throw error;
+
+            // Optimistic Update
+            setSessions(prev => ({
+                ...prev,
+                [currentSessionId]: {
+                    ...session,
+                    orders: updatedOrders
+                }
+            }));
+
             toast({
                 title: "Menu Ditambahkan",
                 description: `${qty}x ${product.name} disimpan.`,
@@ -1101,7 +1001,7 @@ const RentalDashboard = () => {
                                 onOrder={handleOrderClick}
                                 onRemoveItem={handleRemoveItem}
                                 onViewDetails={(s) => {
-                                    setDetailSession(s);
+                                    setDetailSession(s); // Keep track of WHICH session is open
                                     setIsDetailOpen(true);
                                 }}
                             />
@@ -1114,7 +1014,7 @@ const RentalDashboard = () => {
             <RentalSessionDetailsDialog
                 isOpen={isDetailOpen}
                 onClose={() => setIsDetailOpen(false)}
-                session={detailSession}
+                session={detailSession ? sessions[detailSession.unit_id] : null} // Use LIVE data from sessions map
                 onRemoveItem={handleRemoveItem}
             />
 
@@ -1122,7 +1022,7 @@ const RentalDashboard = () => {
                 key={stopSessionData?.id || 'idle'}
                 isOpen={isStopConfirmOpen}
                 onClose={() => setIsStopConfirmOpen(false)}
-                session={stopSessionData}
+                session={stopSessionData ? sessions[stopSessionData.unit_id] : null}
                 product={products.find(p => p.id === (units.find(u => u.id === stopSessionData?.unit_id)?.linked_product_id))}
                 onConfirm={handleStopConfirmed}
             />
@@ -1247,7 +1147,7 @@ const RentalDashboard = () => {
 
                                 {/* Bundling Info Preview */}
                                 {(() => {
-                                    const prod = products.find(p => p.id === selectedUnit?.linkedProductId);
+                                    const prod = products.find(p => p.id === selectedUnit?.linked_product_id);
                                     if (prod && prod.isBundlingEnabled) {
                                         const dur = parseFloat(fixedDuration);
                                         const tier = prod.pricingTiers?.find(t => parseFloat(t.duration) === dur);
