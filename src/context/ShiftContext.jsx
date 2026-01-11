@@ -199,7 +199,7 @@ export const ShiftProvider = ({ children }) => {
         }
     };
 
-    const addCashMovement = async (type, amount, reason, category = 'General') => {
+    const addCashMovement = async (type, amount, reason, category = 'General', expenseGroup = 'operational') => {
         if (!currentShift || !activeStoreId) return { success: false, error: 'No active shift' };
         try {
             const movementData = {
@@ -209,6 +209,7 @@ export const ShiftProvider = ({ children }) => {
                 amount: Number(amount),
                 reason,
                 category,
+                expense_group: expenseGroup,
                 date: new Date().toISOString(),
                 cashier: currentShift.cashier_name
             };

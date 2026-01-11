@@ -49,17 +49,56 @@ const CashFlow = () => {
         if (!currentStore) return;
         setLoading(true);
         try {
-            const { data, error } = await supabase
+            // 1. Fetch from Cash Flow (Back Office)
+            const cashFlowQuery = supabase
                 .from('cash_flow')
                 .select('*')
                 .eq('store_id', currentStore.id)
                 .order('date', { ascending: false })
                 .order('created_at', { ascending: false });
 
-            if (error) throw error;
+            // 2. Fetch from Shift Movements (POS Petty Cash - Out only)
+            const shiftQuery = supabase
+                .from('shift_movements')
+                .select('*')
+                .eq('store_id', currentStore.id)
+                .eq('type', 'out'); // Only expenses from POS
 
-            // Client-side filtering and Mapping
-            const mappedData = data.filter(item => {
+            const [cashRes, shiftRes] = await Promise.all([cashFlowQuery, shiftQuery]);
+
+            if (cashRes.error) throw cashRes.error;
+            if (shiftRes.error) throw shiftRes.error;
+
+            const cashData = cashRes.data || [];
+            const shiftData = shiftRes.data || [];
+
+            // Combine and Map Data
+            const allTransactions = [
+                ...cashData.map(item => ({
+                    ...item,
+                    source: 'Back Office',
+                    storeId: item.store_id,
+                    performedBy: item.performed_by,
+                    createdAt: item.created_at,
+                    expenseGroup: item.expense_group // Ensure snake_case mapping if needed
+                })),
+                ...shiftData.map(item => ({
+                    id: item.id,
+                    storeId: item.store_id,
+                    type: item.type,
+                    category: item.category || 'Operasional', // Default if null
+                    amount: item.amount,
+                    description: item.reason || 'Pengeluaran Kasir', // Map 'reason' to 'description'
+                    date: item.date,
+                    performedBy: item.cashier,
+                    createdAt: item.created_at,
+                    expenseGroup: item.expense_group || 'operational', // uses the new column
+                    source: 'Kasir (POS)'
+                }))
+            ];
+
+            // Client-side filtering
+            const filteredData = allTransactions.filter(item => {
                 const itemDate = new Date(item.date);
                 if (!datePickerDate?.from) return true;
                 const start = new Date(datePickerDate.from);
@@ -68,15 +107,12 @@ const CashFlow = () => {
                 end.setHours(23, 59, 59, 999);
 
                 return itemDate >= start && itemDate <= end;
-            }).map(item => ({
-                ...item,
-                storeId: item.store_id,
-                performedBy: item.performed_by,
-                createdAt: item.created_at,
-                expenseGroup: item.expense_group
-            }));
+            });
 
-            setTransactions(mappedData);
+            // Sort by Date Descending
+            filteredData.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            setTransactions(filteredData);
         } catch (error) {
             console.error("Error fetching cash flow:", error);
         } finally {
@@ -455,6 +491,7 @@ const CashFlow = () => {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Tanggal</TableHead>
+                                <TableHead>Sumber</TableHead>
                                 <TableHead>Kategori</TableHead>
                                 <TableHead>Keterangan</TableHead>
                                 <TableHead>Oleh</TableHead>
@@ -479,6 +516,11 @@ const CashFlow = () => {
                                             <div className="flex flex-col">
                                                 <span className="font-medium">{format(new Date(t.date), 'dd MMM yyyy', { locale: id })}</span>
                                             </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10">
+                                                {t.source || 'Back Office'}
+                                            </span>
                                         </TableCell>
                                         <TableCell>
                                             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${t.type === 'in' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'

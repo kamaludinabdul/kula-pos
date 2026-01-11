@@ -11,6 +11,7 @@ const CashManagementDialog = ({ isOpen, onClose }) => {
     const [type, setType] = useState('out'); // 'in' or 'out'
     const [amount, setAmount] = useState('');
     const [reason, setReason] = useState('');
+    const [expenseGroup, setExpenseGroup] = useState('operational');
     const [category, setCategory] = useState('Operasional');
     const [loading, setLoading] = useState(false);
 
@@ -21,7 +22,7 @@ const CashManagementDialog = ({ isOpen, onClose }) => {
         }
 
         setLoading(true);
-        const result = await addCashMovement(type, amount, reason, category);
+        const result = await addCashMovement(type, amount, reason, category, expenseGroup);
         setLoading(false);
 
         if (result.success) {
@@ -29,6 +30,7 @@ const CashManagementDialog = ({ isOpen, onClose }) => {
             setAmount('');
             setReason('');
             setCategory('Operasional');
+            setExpenseGroup('operational');
             onClose();
         } else {
             alert('Gagal mencatat kas: ' + result.error);
@@ -84,6 +86,42 @@ const CashManagementDialog = ({ isOpen, onClose }) => {
                             </SelectContent>
                         </Select>
                     </div>
+
+                    {type === 'out' && (
+                        <div className="space-y-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                            <Label className="text-xs font-semibold text-slate-700">Jenis Pengeluaran</Label>
+                            <div className="flex flex-col gap-2 mt-1">
+                                <div className="flex items-center space-x-2">
+                                    <input
+                                        type="radio"
+                                        id="pos_operational"
+                                        name="expenseGroup"
+                                        value="operational"
+                                        checked={expenseGroup === 'operational'}
+                                        onChange={(e) => setExpenseGroup(e.target.value)}
+                                        className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                                    />
+                                    <label htmlFor="pos_operational" className="text-sm font-medium leading-none cursor-pointer">
+                                        Biaya Operasional <span className="text-[10px] text-slate-500 block sm:inline">(Mengurangi Profit)</span>
+                                    </label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <input
+                                        type="radio"
+                                        id="pos_non_operational"
+                                        name="expenseGroup"
+                                        value="non_operational"
+                                        checked={expenseGroup === 'non_operational'}
+                                        onChange={(e) => setExpenseGroup(e.target.value)}
+                                        className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                                    />
+                                    <label htmlFor="pos_non_operational" className="text-sm font-medium leading-none cursor-pointer">
+                                        Belanja Aset/Modal <span className="text-[10px] text-slate-500 block sm:inline">(Aset Tetap)</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="reason" className="text-right">
                             Keterangan

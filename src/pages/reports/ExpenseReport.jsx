@@ -25,12 +25,19 @@ const ExpenseReport = () => {
     const fetchExpenses = React.useCallback(async () => {
         setLoading(true);
         try {
-            let queryBuilder = supabase
+            // 1. Fetch from Shift Movements (POS Petty Cash)
+            let shiftQuery = supabase
                 .from('shift_movements')
                 .select('*')
                 .eq('store_id', currentStore.id)
-                .eq('type', 'out')
-                .order('date', { ascending: false });
+                .eq('type', 'out');
+
+            // 2. Fetch from Cash Flow (Back Office Expenses)
+            let cashFlowQuery = supabase
+                .from('cash_flow')
+                .select('*')
+                .eq('store_id', currentStore.id)
+                .eq('type', 'out');
 
             if (datePickerDate?.from) {
                 const startDate = datePickerDate.from;
@@ -38,18 +45,47 @@ const ExpenseReport = () => {
                 const queryEndDate = new Date(endDate);
                 queryEndDate.setHours(23, 59, 59, 999);
 
-                queryBuilder = queryBuilder
+                shiftQuery = shiftQuery
+                    .gte('date', startDate.toISOString())
+                    .lte('date', queryEndDate.toISOString());
+
+                cashFlowQuery = cashFlowQuery
                     .gte('date', startDate.toISOString())
                     .lte('date', queryEndDate.toISOString());
             }
 
-            const { data, error } = await queryBuilder;
-            if (error) throw error;
+            const [shiftRes, cashFlowRes] = await Promise.all([shiftQuery, cashFlowQuery]);
 
-            setExpenses(data || []);
+            if (shiftRes.error) throw shiftRes.error;
+            if (cashFlowRes.error) throw cashFlowRes.error;
+
+            // Merge and Format Data
+            const shiftExpenses = (shiftRes.data || []).map(item => ({
+                id: item.id,
+                date: item.date,
+                category: item.category || 'Operasional',
+                reason: item.reason || 'Kasir (Shift)',
+                amount: item.amount,
+                source: 'Kasir (POS)',
+                cashier: item.cashier
+            }));
+
+            const backOfficeExpenses = (cashFlowRes.data || []).map(item => ({
+                id: item.id,
+                date: item.date, // Note: cash_flow date might be YYYY-MM-DD
+                category: item.category || 'Umum',
+                reason: item.description || 'Pengeluaran Arus Kas',
+                amount: item.amount,
+                source: 'Back Office',
+                cashier: item.performed_by
+            }));
+
+            const mergedData = [...shiftExpenses, ...backOfficeExpenses].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            setExpenses(mergedData);
 
             // Calculate Total
-            const total = (data || []).reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+            const total = mergedData.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
             setTotalExpense(total);
 
         } catch (error) {
@@ -137,9 +173,10 @@ const ExpenseReport = () => {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Waktu</TableHead>
+                                    <TableHead>Sumber</TableHead>
                                     <TableHead>Kategori</TableHead>
                                     <TableHead>Keterangan</TableHead>
-                                    <TableHead>Kasir</TableHead>
+                                    <TableHead>Oleh</TableHead>
                                     <TableHead className="text-right">Jumlah</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -170,6 +207,9 @@ const ExpenseReport = () => {
                                                         {new Date(exp.date).toLocaleTimeString()}
                                                     </div>
                                                 </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline">{exp.source}</Badge>
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant="secondary">
