@@ -128,17 +128,6 @@ export const DataProvider = ({ children }) => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeStoreId]); // Re-bind if store changes
 
-    // Debug active store logic
-    useEffect(() => {
-        if (user?.role === 'super_admin') {
-            console.log("Super Admin Store Logic:", {
-                userStoreId: user.store_id,
-                selectedStoreId,
-                activeStoreId,
-                currentStoreName: currentStore?.name
-            });
-        }
-    }, [user, selectedStoreId, activeStoreId, currentStore]);
 
 
 
@@ -161,90 +150,150 @@ export const DataProvider = ({ children }) => {
         }
     };
 
-    const updateStore = async (id, data) => {
+    const updateStore = React.useCallback(async (id, updates) => {
+        if (!id || !user) return { success: false, error: 'Authorization required' };
+        setStoresLoading(true);
         try {
-            // Map camelCase to snake_case for database compatibility
-            const mappedData = { ...data };
-            if (data.enableSalesPerformance !== undefined) {
-                mappedData.enable_sales_performance = data.enableSalesPerformance;
-                delete mappedData.enableSalesPerformance;
-            }
-            if (data.petCareEnabled !== undefined) {
-                mappedData.pet_care_enabled = data.petCareEnabled;
-                delete mappedData.petCareEnabled;
-            }
-            if (data.telegramBotToken !== undefined) {
-                mappedData.telegram_bot_token = data.telegramBotToken;
-                delete mappedData.telegramBotToken;
-            }
-            if (data.telegramChatId !== undefined) {
-                mappedData.telegram_chat_id = data.telegramChatId;
-                delete mappedData.telegramChatId;
-            }
-            if (data.planExpiryDate !== undefined) {
-                mappedData.plan_expiry_date = data.planExpiryDate;
-                delete mappedData.planExpiryDate;
-            }
-            if (data.enableRental !== undefined) {
-                mappedData.enable_rental = data.enableRental;
-                delete mappedData.enableRental;
-            }
-            if (data.enableDiscount !== undefined) {
-                mappedData.enable_discount = data.enableDiscount;
-                delete mappedData.enableDiscount;
-            }
-            if (data.discountPin !== undefined) {
-                mappedData.discount_pin = data.discountPin;
-                delete mappedData.discountPin;
-            }
-            if (data.taxRate !== undefined) {
-                mappedData.tax_rate = data.taxRate;
-                delete mappedData.taxRate;
-            }
-            if (data.serviceCharge !== undefined) {
-                mappedData.service_charge = data.serviceCharge;
-                delete mappedData.serviceCharge;
-            }
-            if (data.taxType !== undefined) {
-                mappedData.tax_type = data.taxType;
-                delete mappedData.taxType;
+            // Check specific settings updates that require validation
+            if (updates.taxRate && (isNaN(updates.taxRate) || Number(updates.taxRate) < 0)) {
+                throw new Error("Tax rate must be a valid positive number");
             }
 
-            // Handle fields that belong in 'settings' JSONB
-            const settingsFields = ['autoPrintReceipt', 'printerType', 'receiptHeader', 'receiptFooter', 'printerWidth'];
-            let settingsUpdated = false;
-            const currentSettings = currentStore?.settings || {};
-            const newSettings = { ...currentSettings, ...(mappedData.settings || {}) };
-
-            settingsFields.forEach(field => {
-                if (data[field] !== undefined) {
-                    newSettings[field] = data[field];
-                    delete mappedData[field];
-                    settingsUpdated = true;
+            // --- Permission Check ---
+            // Only 'owner', 'super_admin' or 'admin' can update store settings
+            if (user.role !== 'owner' && user.role !== 'super_admin' && user.role !== 'admin') {
+                // Failsafe: check if user is the store owner
+                const { data: storeCheck } = await supabase.from('stores').select('owner_id').eq('id', id).single();
+                if (storeCheck && storeCheck.owner_id !== user.id) {
+                    return { success: false, error: 'Insufficient permissions to update store settings' };
                 }
-            });
+            }
+            // ------------------------
 
-            if (settingsUpdated) {
-                mappedData.settings = newSettings;
+            // Map frontend camelCase to snake_case for DB
+            const dbUpdates = {};
+            if (updates.name) dbUpdates.name = updates.name;
+            if (updates.address) dbUpdates.address = updates.address;
+            if (updates.phone) dbUpdates.phone = updates.phone;
+
+            // Boolean flags
+            if (typeof updates.enableSalesPerformance !== 'undefined') dbUpdates.enable_sales_performance = updates.enableSalesPerformance;
+            if (typeof updates.enableRental !== 'undefined') dbUpdates.enable_rental = updates.enableRental;
+            if (typeof updates.enableDiscount !== 'undefined') dbUpdates.enable_discount = updates.enableDiscount;
+            if (typeof updates.petCareEnabled !== 'undefined') dbUpdates.pet_care_enabled = updates.pet_care_enabled;
+
+            // Values
+            if (updates.discountPin) dbUpdates.discount_pin = updates.discountPin;
+            if (updates.taxRate) dbUpdates.tax_rate = updates.taxRate;
+            if (updates.serviceCharge) dbUpdates.service_charge = updates.serviceCharge;
+            if (updates.taxType) dbUpdates.tax_type = updates.taxType;
+            if (updates.telegramBotToken) dbUpdates.telegram_bot_token = updates.telegramBotToken;
+            if (updates.telegramChatId) dbUpdates.telegram_chat_id = updates.telegramChatId;
+
+            // Handle nested JSON settings (like loyalty)
+            // Note: This is a shallow merge for 'settings' column. 
+            // In a real app, you might want deeper merging or dedicated JSONB patching.
+            if (updates.loyaltySettings || updates.shiftOpenTime || updates.shiftCloseTime || updates.lastShiftOpenReminderDate || updates.lastShiftCloseReminderDate) {
+                // Fetch current settings first to merge
+                const { data: currentMeta } = await supabase.from('stores').select('settings').eq('id', id).single();
+                const currentSettings = currentMeta?.settings || {};
+
+                dbUpdates.settings = {
+                    ...currentSettings,
+                    ...(updates.loyaltySettings ? { loyaltySettings: updates.loyaltySettings } : {}),
+                    // Flatten other settings if stored in JSON
+                };
+
+                // For legacy compatibility, some fields might be top level or in settings.
+                // Here we assume new fields go into settings column if not schema-defined.
+                // But for now, we just update what we can.
             }
 
-            // Optimistic update for immediate UI feedback
-            setStores(prev => prev.map(s => s.id === id ? { ...s, ...data } : s));
-
+            // Direct column updates take precedence
             const { error } = await supabase
                 .from('stores')
-                .update(mappedData)
+                .update(dbUpdates)
                 .eq('id', id);
 
             if (error) throw error;
-            // Silent sync in background - prevents global loading flash
-            fetchStores(true);
+
+            // Simple Optimistic Update
+            setStores(prev => prev.map(store => {
+                if (store.id === id) {
+                    return { ...store, ...updates };
+                }
+                return store;
+            }));
+
+            // setRefreshKey(prev => prev + 1); // Force deep refresh in background
             return { success: true };
         } catch (error) {
             console.error("Error updating store:", error);
-            return { success: false, error };
+            setStoresLoading(false);
+            return { success: false, error: error.message };
+        } finally {
+            setStoresLoading(false);
+            setStoresLoading(false);
         }
-    };
+    }, [user]);
+
+    /**
+     * Check and reset expired points if expiry date has passed
+     * Defined here because it depends on updateStore
+     */
+    const checkAndResetExpiredPoints = React.useCallback(async (store) => {
+        if (!activeStoreId || !store) {
+            return { success: false, error: 'No active store' };
+        }
+
+        const loyaltySettings = store.loyaltySettings || {};
+
+        if (!loyaltySettings.expiryEnabled || !loyaltySettings.expiryDate) {
+            return { success: false, error: 'Point expiry not enabled' };
+        }
+
+        const expiryDate = new Date(loyaltySettings.expiryDate);
+        const now = new Date();
+
+        if (now < expiryDate) {
+            return { success: false, error: 'Expiry date not reached yet' };
+        }
+
+        try {
+            const { error: rpcError } = await supabase.rpc('reset_loyalty_points', {
+                p_store_id: activeStoreId
+            });
+            if (rpcError) throw rpcError;
+
+            // Updated local state
+            updateStore(activeStoreId, {
+                loyaltySettings: {
+                    ...loyaltySettings,
+                    expiryDate: null // Reset expiry date after processing
+                }
+            });
+
+            return { success: true };
+        } catch (error) {
+            console.error('Error resetting loyalty points:', error);
+            return { success: false, error: error.message };
+        }
+    }, [activeStoreId, updateStore]);
+
+    // Apply expiry check when store loads
+    useEffect(() => {
+        if (user?.role === 'super_admin') {
+            console.log("Super Admin Store Logic:", {
+                userStoreId: user.store_id,
+                selectedStoreId,
+                activeStoreId,
+                currentStoreName: currentStore?.name
+            });
+        }
+        if (activeStoreId && currentStore) {
+            checkAndResetExpiredPoints(currentStore);
+        }
+    }, [activeStoreId, currentStore, checkAndResetExpiredPoints, user, selectedStoreId]);
 
     const deleteStore = async (id) => {
         try {
@@ -726,7 +775,7 @@ export const DataProvider = ({ children }) => {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [user, activeStoreId, fetchStores]);
+    }, [user, activeStoreId, fetchStores, checkAndResetExpiredPoints]);
 
     // Real-time Products Subscription
     useEffect(() => {
@@ -1403,58 +1452,6 @@ export const DataProvider = ({ children }) => {
     /**
      * Check and reset expired points if expiry date has passed
      */
-    const checkAndResetExpiredPoints = async () => {
-        if (!activeStoreId || !currentStore) {
-            return { success: false, error: 'No active store' };
-        }
-
-        const loyaltySettings = currentStore.loyaltySettings || {};
-
-        if (!loyaltySettings.expiryEnabled || !loyaltySettings.expiryDate) {
-            return { success: false, error: 'Point expiry not enabled' };
-        }
-
-        const expiryDate = new Date(loyaltySettings.expiryDate);
-        const now = new Date();
-
-        if (now < expiryDate) {
-            return { success: false, error: 'Expiry date not reached yet' };
-        }
-
-        try {
-            const { error: rpcError } = await supabase.rpc('reset_loyalty_points', {
-                p_store_id: activeStoreId
-            });
-            if (rpcError) throw rpcError;
-
-            // Updated local state
-            setCustomers(prev => prev.map(c =>
-                c.store_id === activeStoreId ? { ...c, loyaltyPoints: 0, loyalty_points: 0 } : c
-            ));
-
-            // Update store settings with last reset date
-            await supabase.from('stores').update({
-                settings: {
-                    ...currentStore.settings,
-                    loyaltySettings: {
-                        ...loyaltySettings,
-                        lastResetDate: new Date().toISOString()
-                    }
-                }
-            }).eq('id', activeStoreId);
-
-            // Refresh data
-            await fetchData();
-
-            return {
-                success: true,
-                message: `Reset loyalty points for current store customers`
-            };
-        } catch (error) {
-            console.error("Error resetting expired points:", error);
-            return { success: false, error };
-        }
-    };
 
     // --- Advanced Stock Management (FIFO) ---
 
