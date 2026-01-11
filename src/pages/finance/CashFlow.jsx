@@ -23,6 +23,7 @@ const CashFlow = () => {
     const { user } = useAuth();
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [datePickerDate, setDatePickerDate] = useState(() => {
         const { startDate, endDate } = getDateRange('today');
@@ -92,8 +93,16 @@ const CashFlow = () => {
             alert("Data toko atau user belum dimuat. Silakan refresh.");
             return;
         }
-        if (!formData.amount || !formData.category) return;
+        if (!formData.amount || formData.amount <= 0) {
+            alert("Jumlah harus lebih dari 0");
+            return;
+        }
+        if (!formData.category) {
+            alert("Silakan pilih kategori");
+            return;
+        }
 
+        setIsSaving(true);
         try {
             const { error } = await supabase.from('cash_flow').insert({
                 store_id: currentStore.id,
@@ -103,7 +112,7 @@ const CashFlow = () => {
                 amount: Number(formData.amount),
                 description: formData.description,
                 date: formData.date,
-                performed_by: user.name
+                performed_by: user.name || 'Staff'
             });
 
             if (error) throw error;
@@ -119,7 +128,9 @@ const CashFlow = () => {
             fetchTransactions();
         } catch (error) {
             console.error("Error adding transaction:", error);
-            alert("Gagal menyimpan data");
+            alert("Gagal menyimpan data: " + (error.message || "Unknown error"));
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -327,8 +338,15 @@ const CashFlow = () => {
                                 </div>
                             </div>
                             <DialogFooter>
-                                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Batal</Button>
-                                <Button onClick={handleAddTransaction}>Simpan</Button>
+                                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={isSaving}>
+                                    Batal
+                                </Button>
+                                <Button
+                                    onClick={handleAddTransaction}
+                                    disabled={isSaving || !formData.amount || !formData.category}
+                                >
+                                    {isSaving ? 'Menyimpan...' : 'Simpan'}
+                                </Button>
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>

@@ -9,7 +9,55 @@ import { PLANS } from '../utils/plans';
 
 const DataContext = createContext(null);
 
+// Helper to safely fetch and log errors
+// We use an object signature { tableName, setterFn, queryBuilder, processFn }
+// to make it more resilient to minification parameter-shifting.
+const safeFetchSupabase = async (options) => {
+    const { supabase, activeStoreId, tableName, setterFn, queryBuilder, processFn } = options || {};
+
+    if (!supabase || !tableName || !setterFn) {
+        console.error("safeFetchSupabase: missing required options", { tableName, hasSetter: !!setterFn });
+        return [];
+    }
+
+    try {
+        let query = supabase.from(tableName).select('*').eq('store_id', activeStoreId);
+
+        // Robust check: only call if it exists and is a function
+        if (queryBuilder && typeof queryBuilder === 'function') {
+            query = queryBuilder(query);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        // Robust check: ensure data is an array before processing
+        let processed = data;
+        if (Array.isArray(data)) {
+            if (typeof processFn === 'function') {
+                processed = processFn(data);
+            }
+        } else {
+            console.warn(`safeFetchSupabase: Data for ${tableName} is not an array:`, data);
+            processed = [];
+        }
+
+        if (typeof setterFn === 'function') {
+            setterFn(processed || []);
+        }
+        return processed || [];
+    } catch (e) {
+        console.error(`Failed to fetch ${tableName}:`, e);
+        return [];
+    }
+};
+
 export const DataProvider = ({ children }) => {
+    // Debug log to verify if the latest code is running
+    useEffect(() => {
+        console.log("DataContext: v0.8.20-robust-fetch (" + new Date().toLocaleTimeString() + ")");
+    }, []);
+
     const { user, checkPermission } = useAuth();
     const [categories, setCategories] = useState([]);
     const [products, setProducts] = useState([]);
@@ -137,6 +185,30 @@ export const DataProvider = ({ children }) => {
                 mappedData.plan_expiry_date = data.planExpiryDate;
                 delete mappedData.planExpiryDate;
             }
+            if (data.enableRental !== undefined) {
+                mappedData.enable_rental = data.enableRental;
+                delete mappedData.enableRental;
+            }
+            if (data.enableDiscount !== undefined) {
+                mappedData.enable_discount = data.enableDiscount;
+                delete mappedData.enableDiscount;
+            }
+            if (data.discountPin !== undefined) {
+                mappedData.discount_pin = data.discountPin;
+                delete mappedData.discountPin;
+            }
+            if (data.taxRate !== undefined) {
+                mappedData.tax_rate = data.taxRate;
+                delete mappedData.taxRate;
+            }
+            if (data.serviceCharge !== undefined) {
+                mappedData.service_charge = data.serviceCharge;
+                delete mappedData.serviceCharge;
+            }
+            if (data.taxType !== undefined) {
+                mappedData.tax_type = data.taxType;
+                delete mappedData.taxType;
+            }
 
             // Handle fields that belong in 'settings' JSONB
             const settingsFields = ['autoPrintReceipt', 'printerType', 'receiptHeader', 'receiptFooter', 'printerWidth'];
@@ -156,13 +228,17 @@ export const DataProvider = ({ children }) => {
                 mappedData.settings = newSettings;
             }
 
+            // Optimistic update for immediate UI feedback
+            setStores(prev => prev.map(s => s.id === id ? { ...s, ...data } : s));
+
             const { error } = await supabase
                 .from('stores')
                 .update(mappedData)
                 .eq('id', id);
 
             if (error) throw error;
-            fetchData();
+            // Silent sync in background - prevents global loading flash
+            fetchStores(true);
             return { success: true };
         } catch (error) {
             console.error("Error updating store:", error);
@@ -193,16 +269,47 @@ export const DataProvider = ({ children }) => {
         }
 
         try {
+            // Get current settings to merge
+            const currentStoreObj = stores.find(s => s.id === activeStoreId);
+            const currentSettings = currentStoreObj?.settings || {};
+
+            // Prepare merged settings
+            const mergedSettings = {
+                ...currentSettings,
+                ...settings
+            };
+
+            // Prepare top-level fields if any (some settings are also columns)
+            const updatePayload = { settings: mergedSettings };
+            if (settings.enableSalesPerformance !== undefined) {
+                updatePayload.enable_sales_performance = settings.enableSalesPerformance;
+            }
+
+            // Optimistic update
+            setStores(prev => prev.map(s => s.id === activeStoreId ? {
+                ...s,
+                settings: mergedSettings,
+                // Map top-level fields too
+                enableSalesPerformance: settings.enableSalesPerformance !== undefined ? settings.enableSalesPerformance : s.enableSalesPerformance,
+                loyaltySettings: mergedSettings.loyaltySettings,
+                autoPrintReceipt: mergedSettings.autoPrintReceipt
+            } : s));
+
             const { error } = await supabase
                 .from('stores')
-                .update({ settings })
+                .update(updatePayload)
                 .eq('id', activeStoreId);
 
             if (error) throw error;
-            fetchData();
+
+            // Silent background sync
+            fetchStores(true);
+
             return { success: true };
         } catch (error) {
             console.error("Error updating store settings:", error);
+            // Revert on error if needed, but fetchStores will handle it
+            fetchStores(true);
             return { success: false, error };
         }
     };
@@ -220,6 +327,13 @@ export const DataProvider = ({ children }) => {
                 .limit(500);
 
             if (error) throw error;
+
+            // Robust check: ensure data is an array
+            if (!Array.isArray(data)) {
+                setStockMovements([]);
+                return [];
+            }
+
             const mappedData = data.map(m => ({
                 ...m,
                 storeId: m.store_id,
@@ -273,21 +387,7 @@ export const DataProvider = ({ children }) => {
                     console.warn("Initial snapshot RPC failed, falling back to standard fetch:", e);
                 }
 
-                // Helper to safely fetch and log errors
-                const safeFetchSupabase = async (tableName, setterFn, queryBuilder = (q) => q, processFn = (d) => d) => {
-                    try {
-                        let query = supabase.from(tableName).select('*').eq('store_id', activeStoreId);
-                        query = queryBuilder(query);
-                        const { data, error } = await query;
-                        if (error) throw error;
-                        const processed = processFn(data);
-                        setterFn(processed);
-                        return processed;
-                    } catch (e) {
-                        console.error(`Failed to fetch ${tableName}:`, e);
-                        return [];
-                    }
-                };
+                // (safeFetchSupabase moved to top level)
 
                 // --- PHASE 2: CRITICAL DATA (Unblocks UI) ---
                 // Fetch Products (Categories potentially arrived in snapshot)
@@ -343,34 +443,61 @@ export const DataProvider = ({ children }) => {
                 // --- PHASE 2: BACKGROUND DATA (Silent Load) ---
                 // Fetch secondary data like history, customers, reports
                 Promise.all([
-                    safeFetchSupabase('transactions', setTransactions, (q) => q.order('date', { ascending: false }).limit(50)),
-                    safeFetchSupabase('customers', setCustomers, (q) => q.limit(2000), (data) => {
-                        return data.map(c => ({
+                    safeFetchSupabase({
+                        supabase, activeStoreId,
+                        tableName: 'transactions',
+                        setterFn: setTransactions,
+                        queryBuilder: (q) => q.order('date', { ascending: false }).limit(500),
+                        processFn: (data) => data.map(t => ({
+                            ...t,
+                            customerId: t.customer_id,
+                            customerName: t.customer_name,
+                            pointsEarned: t.points_earned,
+                            voidedAt: t.voided_at,
+                            shiftId: t.shift_id,
+                            amountPaid: t.amount_paid
+                        }))
+                    }),
+                    safeFetchSupabase({
+                        supabase, activeStoreId,
+                        tableName: 'customers',
+                        setterFn: setCustomers,
+                        queryBuilder: (q) => q.limit(2000),
+                        processFn: (data) => data.map(c => ({
                             ...c,
                             loyaltyPoints: c.loyalty_points || 0,
                             totalSpent: c.total_spent || 0,
                             totalLifetimePoints: c.total_lifetime_points || 0
-                        }));
+                        }))
                     }),
-                    safeFetchSupabase('sales_targets', setSalesTargets, null, (data) => {
-                        return data.map(t => ({
+                    safeFetchSupabase({
+                        supabase, activeStoreId,
+                        tableName: 'sales_targets',
+                        setterFn: setSalesTargets,
+                        processFn: (data) => data.map(t => ({
                             ...t,
-                            // Map snake_case to camelCase
                             storeId: t.store_id,
                             targetAmount: t.target_amount,
                             startDate: t.start_date,
                             endDate: t.end_date
-                        }));
+                        }))
                     }),
-                    safeFetchSupabase('suppliers', setSuppliers, null, (data) => {
-                        return data.map(s => ({
+                    safeFetchSupabase({
+                        supabase, activeStoreId,
+                        tableName: 'suppliers',
+                        setterFn: setSuppliers,
+                        processFn: (data) => data.map(s => ({
                             ...s,
                             contactPerson: s.contact_person,
                             storeId: s.store_id
-                        }));
+                        }))
                     }),
-                    safeFetchSupabase('promotions', setPromotions, (q) => q.eq('is_active', true), (data) => {
-                        return data.map(p => ({
+                    safeFetchSupabase({
+                        supabase, activeStoreId,
+                        tableName: 'promotions',
+                        setterFn: setPromotions,
+                        queryBuilder: (q) => q.eq('is_active', true),
+                        processFn: (data) => data.map(p => ({
                             ...p,
                             storeId: p.store_id,
                             discountValue: p.discount_value,
@@ -382,17 +509,21 @@ export const DataProvider = ({ children }) => {
                             usageLimit: p.usage_limit,
                             currentUsage: p.current_usage,
                             allowMultiples: p.allow_multiples
-                        }));
+                        }))
                     }),
-                    safeFetchSupabase('purchase_orders', setPurchaseOrders, (q) => q.order('date', { ascending: false }).limit(100), (data) => {
-                        return data.map(po => ({
+                    safeFetchSupabase({
+                        supabase, activeStoreId,
+                        tableName: 'purchase_orders',
+                        setterFn: setPurchaseOrders,
+                        queryBuilder: (q) => q.order('date', { ascending: false }).limit(100),
+                        processFn: (data) => data.map(po => ({
                             ...po,
                             storeId: po.store_id,
                             supplierId: po.supplier_id,
                             supplierName: po.supplier_name,
                             totalAmount: po.total_amount,
                             createdAt: po.created_at
-                        }));
+                        }))
                     }),
                     fetchStockMovements()
                 ]).catch(err => console.error("Background fetch error:", err));
@@ -484,55 +615,66 @@ export const DataProvider = ({ children }) => {
         }
     };
 
-    // Real-time Store Subscription
-    useEffect(() => {
+    const fetchStores = useCallback(async (isSilent = false) => {
         if (!user) {
             setStores([]);
             setStoresLoading(false);
             return;
         }
-
-        const fetchStores = async () => {
-            setStoresLoading(true);
-            try {
-                let query = supabase.from('stores').select('*');
-                if (user.role !== 'super_admin' && activeStoreId) {
-                    query = query.eq('id', activeStoreId);
-                }
-                const { data, error } = await query;
-                if (!error && data) {
-                    console.log("[DataContext] Fetched stores:", data.length);
-                    if (data.length > 0) console.log("[DataContext] First store logo length:", data[0].logo ? data[0].logo.length : 'NULL');
-
-                    setStores(data.map(s => ({
-                        ...s,
-                        // Map snake_case to camelCase for frontend compatibility
-                        planExpiryDate: s.plan_expiry_date,
-                        enableSalesPerformance: s.enable_sales_performance,
-                        petCareEnabled: s.pet_care_enabled,
-                        telegramBotToken: s.telegram_bot_token,
-                        telegramChatId: s.telegram_chat_id,
-                        ownerName: s.owner_name,
-                        ownerId: s.owner_id,
-                        createdAt: s.created_at,
-                        // Extract settings for easier access
-                        loyaltySettings: s.settings?.loyaltySettings,
-                        autoPrintReceipt: s.settings?.autoPrintReceipt,
-                        permissions: normalizePermissions(s.settings?.permissions)
-                    })));
-                } else if (error) {
-                    console.error("Store fetch query error:", error);
-                }
-            } catch (err) {
-                console.error("Store fetch exception:", err);
-            } finally {
-                setStoresLoading(false);
+        if (!isSilent) setStoresLoading(true);
+        try {
+            let query = supabase.from('stores').select('*');
+            if (user.role !== 'super_admin' && activeStoreId) {
+                query = query.eq('id', activeStoreId);
             }
-        };
+            const { data, error } = await query;
+            if (!error && data) {
+                setStores(data.map(s => ({
+                    ...s,
+                    // Map snake_case to camelCase for frontend compatibility
+                    planExpiryDate: s.plan_expiry_date,
+                    enableSalesPerformance: s.enable_sales_performance,
+                    enableRental: s.enable_rental,
+                    enableDiscount: s.enable_discount,
+                    discountPin: s.discount_pin,
+                    taxRate: s.tax_rate,
+                    serviceCharge: s.service_charge,
+                    taxType: s.tax_type,
+                    petCareEnabled: s.pet_care_enabled,
+                    telegramBotToken: s.telegram_bot_token,
+                    telegramChatId: s.telegram_chat_id,
+                    ownerName: s.owner_name,
+                    ownerId: s.owner_id,
+                    createdAt: s.created_at,
+                    // Extract settings for easier access
+                    loyaltySettings: s.settings?.loyaltySettings,
+                    autoPrintReceipt: s.settings?.autoPrintReceipt,
+                    printerType: s.settings?.printerType,
+                    printerWidth: s.settings?.printerWidth,
+                    receiptHeader: s.settings?.receiptHeader,
+                    receiptFooter: s.settings?.receiptFooter,
+                    permissions: normalizePermissions(s.settings?.permissions)
+                })));
+            } else if (error) {
+                console.error("Store fetch query error:", error);
+            }
+        } catch (err) {
+            console.error("Store fetch exception:", err);
+        } finally {
+            if (!isSilent) setStoresLoading(false);
+        }
+    }, [user, activeStoreId]);
+
+    // Real-time Store Subscription
+    useEffect(() => {
+        if (!user) return;
 
         fetchStores();
 
-        supabase.channel('stores-realtime')
+        // Check for point expiry automatically
+        checkAndResetExpiredPoints();
+
+        const channel = supabase.channel('stores-realtime')
             .on('postgres_changes', {
                 event: '*',
                 schema: 'public',
@@ -548,12 +690,24 @@ export const DataProvider = ({ children }) => {
                             // Map snake_case to camelCase for frontend compatibility
                             planExpiryDate: newRow.plan_expiry_date,
                             enableSalesPerformance: newRow.enable_sales_performance,
+                            enableRental: newRow.enable_rental,
+                            enableDiscount: newRow.enable_discount,
+                            discountPin: newRow.discount_pin,
+                            taxRate: newRow.tax_rate,
+                            serviceCharge: newRow.service_charge,
+                            taxType: newRow.tax_type,
                             petCareEnabled: newRow.pet_care_enabled,
                             telegramBotToken: newRow.telegram_bot_token,
                             telegramChatId: newRow.telegram_chat_id,
                             ownerName: newRow.owner_name,
                             ownerId: newRow.owner_id,
                             createdAt: newRow.created_at,
+                            loyaltySettings: newRow.settings?.loyaltySettings,
+                            autoPrintReceipt: newRow.settings?.autoPrintReceipt,
+                            printerType: newRow.settings?.printerType,
+                            printerWidth: newRow.settings?.printerWidth,
+                            receiptHeader: newRow.settings?.receiptHeader,
+                            receiptFooter: newRow.settings?.receiptFooter,
                             permissions: normalizePermissions(newRow.settings?.permissions)
                         };
                         if (index >= 0) {
@@ -569,7 +723,10 @@ export const DataProvider = ({ children }) => {
             })
             .subscribe();
 
-    }, [user, activeStoreId]);
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user, activeStoreId, fetchStores]);
 
     // Real-time Products Subscription
     useEffect(() => {
@@ -796,6 +953,8 @@ export const DataProvider = ({ children }) => {
                 pricing_type: product.pricingType || 'standard',
                 pricing_tiers: product.pricingTiers || [],
                 is_bundling_enabled: product.isBundlingEnabled || false,
+                rack_location: product.shelf || product.rackLocation || null,
+                weight: product.weight || 0,
                 is_deleted: false
             };
 
@@ -861,7 +1020,7 @@ export const DataProvider = ({ children }) => {
                 purchase_unit: rawData.purchaseUnit ?? rawData.purchase_unit,
                 conversion_to_unit: rawData.conversionToUnit ?? rawData.conversion_to_unit,
                 weight: rawData.weight,
-                rack_location: rawData.rackLocation ?? rawData.rack_location,
+                rack_location: (rawData.shelf || rawData.rackLocation) ?? rawData.rack_location,
                 image_url: rawData.image || rawData.imageUrl,
                 pricing_type: rawData.pricingType || rawData.pricing_type,
                 pricing_tiers: rawData.pricingTiers || rawData.pricing_tiers,
@@ -906,7 +1065,10 @@ export const DataProvider = ({ children }) => {
             return { success: true };
         } catch (error) {
             console.error("Error updating product:", error);
-            return { success: false, error: error.message || "Gagal memperbarui produk" };
+            if (error.code === '42703') {
+                return { success: false, error: "Database schema mismatch: missing columns. Please run the fix-product-schema.sql script." };
+            }
+            return { success: false, error: error.message || "Gagal memperbarui produk", details: error };
         }
     };
 
@@ -1246,7 +1408,7 @@ export const DataProvider = ({ children }) => {
             return { success: false, error: 'No active store' };
         }
 
-        const loyaltySettings = currentStore.loyalty_settings || currentStore.loyaltySettings || {};
+        const loyaltySettings = currentStore.loyaltySettings || {};
 
         if (!loyaltySettings.expiryEnabled || !loyaltySettings.expiryDate) {
             return { success: false, error: 'Point expiry not enabled' };

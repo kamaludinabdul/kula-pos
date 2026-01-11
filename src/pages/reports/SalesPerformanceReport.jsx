@@ -105,7 +105,7 @@ const SalesPerformanceReport = () => {
                 // Map to camelCase for consistency
                 const mappedData = (data || []).map(t => ({
                     ...t,
-                    salesPersonId: t.sales_person_id,
+                    salesPersonId: t.cashier_id,
                     cashierId: t.cashier_id,
                     paymentMethod: t.payment_method,
                     customerName: t.customer_name

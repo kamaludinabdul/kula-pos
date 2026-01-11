@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Trash2,
     Ticket,
@@ -47,13 +47,31 @@ const CartPanel = ({
     onSelectSalesPerson,
     availablePromos,
     onApplyPromo,
-    onCollapse
+    onCollapse,
+    loyaltySettings
 }) => {
     // --- Restored Local State ---
     const [isCustomerOpen, setIsCustomerOpen] = useState(false);
     const [customerSearch, setCustomerSearch] = useState('');
     const [editingItem, setEditingItem] = useState(null);
     const [showDiscountInput, setShowDiscountInput] = useState(false);
+    const customerRef = useRef(null);
+
+    // Click outside handler for dropdown
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (customerRef.current && !customerRef.current.contains(event.target)) {
+                setIsCustomerOpen(false);
+            }
+        };
+
+        if (isCustomerOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isCustomerOpen]);
 
     // Filter customers for dropdown
     const filteredCustomers = customers?.filter(c =>
@@ -121,62 +139,64 @@ const CartPanel = ({
                 )}
 
                 {/* Customer Dropdown */}
-                <div className="relative">
-                    <Button
-                        variant="outline"
-                        className="w-full justify-between h-auto py-2 px-3 text-left font-normal bg-white"
-                        onClick={() => setIsCustomerOpen(!isCustomerOpen)}
-                    >
-                        <div className="flex items-center gap-2 overflow-hidden">
-                            <User size={16} className="text-muted-foreground shrink-0" />
-                            <div className="flex flex-col truncate">
-                                <span className="text-[10px] uppercase text-muted-foreground font-bold">Pelanggan</span>
-                                <span className="text-xs font-semibold truncate">
-                                    {selectedCustomer ? selectedCustomer.name : "Umum (Non-Member)"}
-                                </span>
-                            </div>
-                        </div>
-                        <ChevronDown size={14} className="opacity-50" />
-                    </Button>
-
-                    {isCustomerOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-xl shadow-lg z-50 p-2 animate-in zoom-in-95 duration-200">
-                            <div className="relative mb-2">
-                                <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                                <Input
-                                    className="h-8 pl-8 text-xs"
-                                    placeholder="Cari nama/HP..."
-                                    value={customerSearch}
-                                    onChange={(e) => setCustomerSearch(e.target.value)}
-                                    autoFocus
-                                />
-                            </div>
-                            <div className="max-h-48 overflow-y-auto space-y-1">
-                                <div
-                                    className="px-2 py-1.5 hover:bg-slate-100 rounded text-xs cursor-pointer text-slate-600"
-                                    onClick={() => { onSelectCustomer(null); setIsCustomerOpen(false); }}
-                                >
-                                    Umum (Non-Member)
+                {loyaltySettings?.isActive && (
+                    <div className="relative" ref={customerRef}>
+                        <Button
+                            variant="outline"
+                            className="w-full justify-between h-auto py-2 px-3 text-left font-normal bg-white"
+                            onClick={() => setIsCustomerOpen(!isCustomerOpen)}
+                        >
+                            <div className="flex items-center gap-2 overflow-hidden">
+                                <User size={16} className="text-muted-foreground shrink-0" />
+                                <div className="flex flex-col truncate">
+                                    <span className="text-[10px] uppercase text-muted-foreground font-bold">Pelanggan</span>
+                                    <span className="text-xs font-semibold truncate">
+                                        {selectedCustomer ? selectedCustomer.name : "Umum (Non-Member)"}
+                                    </span>
                                 </div>
-                                {filteredCustomers.map(c => (
-                                    <div
-                                        key={c.id}
-                                        className="px-2 py-1.5 hover:bg-slate-100 rounded text-xs cursor-pointer flex justify-between items-center"
-                                        onClick={() => { onSelectCustomer(c); setIsCustomerOpen(false); }}
-                                    >
-                                        <div className="flex flex-col">
-                                            <span className="font-medium">{c.name}</span>
-                                            <span className="text-[10px] text-muted-foreground">{c.phone}</span>
-                                        </div>
-                                        <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-amber-100 text-amber-700 hover:bg-amber-100 whitespace-nowrap">
-                                            {c.loyaltyPoints || c.points || 0} Pts
-                                        </Badge>
-                                    </div>
-                                ))}
                             </div>
-                        </div>
-                    )}
-                </div>
+                            <ChevronDown size={14} className="opacity-50" />
+                        </Button>
+
+                        {isCustomerOpen && (
+                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-xl shadow-lg z-50 p-2 animate-in zoom-in-95 duration-200">
+                                <div className="relative mb-2">
+                                    <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                                    <Input
+                                        className="h-8 pl-8 text-xs"
+                                        placeholder="Cari nama/HP..."
+                                        value={customerSearch}
+                                        onChange={(e) => setCustomerSearch(e.target.value)}
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="max-h-48 overflow-y-auto space-y-1">
+                                    <div
+                                        className="px-2 py-1.5 hover:bg-slate-100 rounded text-xs cursor-pointer text-slate-600"
+                                        onClick={() => { onSelectCustomer(null); setIsCustomerOpen(false); }}
+                                    >
+                                        Umum (Non-Member)
+                                    </div>
+                                    {filteredCustomers.map(c => (
+                                        <div
+                                            key={c.id}
+                                            className="px-2 py-1.5 hover:bg-slate-100 rounded text-xs cursor-pointer flex justify-between items-center"
+                                            onClick={() => { onSelectCustomer(c); setIsCustomerOpen(false); }}
+                                        >
+                                            <div className="flex flex-col">
+                                                <span className="font-medium">{c.name}</span>
+                                                <span className="text-[10px] text-muted-foreground">{c.phone}</span>
+                                            </div>
+                                            <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-amber-100 text-amber-700 hover:bg-amber-100 whitespace-nowrap">
+                                                {c.loyaltyPoints || c.points || 0} Pts
+                                            </Badge>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Cart Items */}

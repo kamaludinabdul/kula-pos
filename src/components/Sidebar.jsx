@@ -139,7 +139,7 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', feature: 'dashboard' },
     { icon: Receipt, label: 'Transaksi', path: '/transactions', feature: 'transactions' },
     { icon: ShoppingCart, label: 'Kasir (POS)', path: '/pos', feature: 'pos' },
-    { icon: Gamepad2, label: 'Rental', path: '/rental', feature: 'rental', permission: 'pos', requiredPlan: 'pro' },
+    { icon: Gamepad2, label: 'Rental', path: '/rental', feature: 'rental', permission: 'pos', requiredPlan: 'pro', checkSetting: 'enableRental' },
     { icon: Ticket, label: 'Promosi', path: '/promotions', feature: 'products.list' }, // Moved to top level
   ];
 

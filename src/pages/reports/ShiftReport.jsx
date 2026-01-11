@@ -225,7 +225,7 @@ const ShiftReport = () => {
                                             <TableCell className="text-red-600">- Rp {(shift.total_cash_out || 0).toLocaleString()}</TableCell>
                                             <TableCell>
                                                 {shift.final_cash !== undefined
-                                                    ? `Rp {shift.final_cash.toLocaleString()}`
+                                                    ? `Rp ${shift.final_cash.toLocaleString()}`
                                                     : '-'}
                                             </TableCell>
                                             <TableCell>

@@ -455,6 +455,7 @@ const POS = () => {
                         salesPerson={salesPerson}
                         onSelectSalesPerson={setSalesPerson}
                         enableSalesPerformance={currentStore?.enableSalesPerformance}
+                        loyaltySettings={currentStore?.loyaltySettings}
 
                         promotions={promotions}
                         availablePromos={availablePromos}

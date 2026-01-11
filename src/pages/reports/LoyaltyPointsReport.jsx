@@ -101,11 +101,19 @@ const LoyaltyPointsReport = () => {
         let data = [];
 
         filteredTrans.forEach(t => {
+            // Filter: Only include transactions with a customer AND points earned
+            // We also handle legacy/migration data where pointsEarned might be 0 but we want to show it if there's a customer?
+            // User requested: "hanya memunculkan yang ad pelanggan dan dapat poin saja"
+            if (!t.customerId || !(t.pointsEarned > 0)) return;
+
+            // Lookup customer name if the transaction record doesn't have it (denormalization insurance)
+            const cName = t.customerName || customers.find(c => c.id === t.customerId)?.name || 'Pelanggan';
+
             // 1. Original Transaction Record
             data.push({
                 id: t.id,
                 date: t.date,
-                customerName: t.customerName || 'Unknown',
+                customerName: cName,
                 customerId: t.customerId,
                 total: t.total,
                 pointsEarned: t.pointsEarned,
@@ -119,10 +127,9 @@ const LoyaltyPointsReport = () => {
                     id: `${t.id}-void`,
                     // Use voidedAt if available, otherwise fallback to transaction date (slight delay)
                     date: t.voidedAt || t.date,
-                    customerName: t.customerName || 'Unknown',
+                    customerName: cName,
                     customerId: t.customerId,
-                    total: 0, // No spending impact on this specific line (handled in total calc usually) or show neg?
-                    // User wants to see deduction. Total spent reversal is a concept, but points is a number.
+                    total: 0,
                     pointsEarned: -t.pointsEarned,
                     status: 'system_deduction',
                     type: 'deduction'

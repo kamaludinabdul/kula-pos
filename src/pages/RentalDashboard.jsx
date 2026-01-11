@@ -255,89 +255,134 @@ const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products }) => {
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                    <DialogTitle>Kelola Unit / Meja</DialogTitle>
-                    <DialogDescription>Tambahkan unit fisik dan pilih tarifnya. <br /><span className="text-xs text-muted-foreground">Pastikan klik tombol <strong>"+ Tambah"</strong> untuk menyimpan unit.</span></DialogDescription>
+            <DialogContent className="max-w-3xl border-none shadow-2xl overflow-hidden">
+                <DialogHeader className="pb-4">
+                    <DialogTitle className="text-2xl font-bold text-slate-800">Kelola Unit / Meja</DialogTitle>
+                    <DialogDescription className="text-slate-500">
+                        Tambahkan unit fisik dan pilih tarifnya. <br />
+                        <span className="text-xs font-medium text-slate-400">Pastikan klik tombol <strong className="text-indigo-600 font-bold">"+ Tambah"</strong> untuk menyimpan unit.</span>
+                    </DialogDescription>
                 </DialogHeader>
 
-                <div className="grid gap-4 py-4">
-                    {/* Form Tambah */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end bg-slate-50 p-4 rounded-lg border">
-                        <div className="space-y-2">
-                            <Label>Nama Unit / Meja</Label>
-                            <Input
-                                placeholder="Contoh: Meja 01"
-                                value={name}
-                                onChange={e => setName(e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Tautkan Tarif (Produk)</Label>
-                            <Select value={linkedProductId} onValueChange={setLinkedProductId} disabled={hourlyProducts.length === 0}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder={hourlyProducts.length === 0 ? "Belum ada tarif tersedia" : "Pilih Tarif..."} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {hourlyProducts.length === 0 ? (
-                                        <div className="p-2 text-sm text-center text-muted-foreground">
-                                            Buat produk tipe "Rental" dulu.
-                                        </div>
+                <div className="grid gap-6 py-2">
+                    {/* Form Tambah - Refined to match image */}
+                    <div className="bg-slate-50/50 p-6 rounded-xl border border-slate-100 shadow-sm transition-all">
+                        <div className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr_auto] gap-x-6 gap-y-4 items-center">
+                            <div className="space-y-2.5">
+                                <Label className="text-sm font-bold text-slate-800">Nama Unit / Meja</Label>
+                                <Input
+                                    placeholder="Contoh: Meja 01"
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
+                                    className="h-14 border-slate-200 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50/50 rounded-xl transition-all text-base placeholder:text-slate-400"
+                                />
+                            </div>
+                            <div className="space-y-2.5">
+                                <Label className="text-sm font-bold text-slate-800">Tautkan Tarif (Produk)</Label>
+                                <Select value={linkedProductId} onValueChange={setLinkedProductId} disabled={hourlyProducts.length === 0}>
+                                    <SelectTrigger className="h-14 border-slate-200 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50/50 rounded-xl transition-all bg-white text-base">
+                                        <SelectValue placeholder={hourlyProducts.length === 0 ? "Belum ada tarif..." : "Pilih Tarif..."} />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl border-slate-200">
+                                        {hourlyProducts.length === 0 ? (
+                                            <div className="p-4 text-sm text-center text-muted-foreground italic">
+                                                Belum ada produk tipe "Rental" tersedia.
+                                            </div>
+                                        ) : (
+                                            hourlyProducts.map(p => (
+                                                <SelectItem key={p.id} value={p.id} className="cursor-pointer focus:bg-indigo-50 py-3">
+                                                    <span className="font-medium text-slate-700">{p.name}</span>
+                                                    <span className="ml-2 text-indigo-600 font-bold">- Rp {parseInt(p.sellPrice || 0).toLocaleString()}/jam</span>
+                                                </SelectItem>
+                                            ))
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                                {hourlyProducts.length === 0 && (
+                                    <p className="text-[10px] text-red-500 font-bold mt-1 leading-tight">
+                                        *Belum ada produk tipe "Rental/Durasi".
+                                    </p>
+                                )}
+                            </div>
+                            <div className="md:pt-0">
+                                <Button
+                                    onClick={handleAddUnit}
+                                    disabled={!name || !linkedProductId || isSubmitting}
+                                    className="h-14 px-10 w-full md:w-auto bg-[#A5AFFB] hover:bg-[#8D96E0] text-white font-bold rounded-xl shadow-[0_4px_14px_0_rgba(165,175,251,0.39)] transition-all active:scale-95 disabled:opacity-50 text-base"
+                                >
+                                    {isSubmitting ? (
+                                        <Loader2 className="w-5 h-5 animate-spin" />
                                     ) : (
-                                        hourlyProducts.map(p => (
-                                            <SelectItem key={p.id} value={p.id}>
-                                                {p.name} - Rp {parseInt(p.sellPrice || 0).toLocaleString()}/jam
-                                            </SelectItem>
-                                        ))
+                                        <>
+                                            <Plus className="w-6 h-6 mr-2" />
+                                            Tambah
+                                        </>
                                     )}
-                                </SelectContent>
-                            </Select>
-                            {hourlyProducts.length === 0 && (
-                                <p className="text-[10px] text-red-500">
-                                    *Belum ada produk tipe "Rental/Durasi".
-                                </p>
-                            )}
+                                </Button>
+                            </div>
                         </div>
-                        <Button onClick={handleAddUnit} disabled={!name || !linkedProductId || isSubmitting}>
-                            {isSubmitting ? "Menyimpan..." : (
-                                <>
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    Tambah
-                                </>
-                            )}
-                        </Button>
                     </div>
 
                     {/* List Unit */}
-                    <div className="space-y-2 mt-4">
-                        <Label>Daftar Unit Tersedia</Label>
-                        <ScrollArea className="h-[200px] border rounded-md p-2">
+                    <div className="space-y-4 mt-4">
+                        <div className="flex items-center justify-between px-2">
+                            <Label className="text-base font-bold text-slate-800">Daftar Unit Tersedia</Label>
+                            <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-100 font-bold px-2.5">
+                                {units.length} Unit
+                            </Badge>
+                        </div>
+                        <ScrollArea className="h-[280px] border border-slate-100 rounded-xl p-3 bg-white/50 shadow-inner">
                             {units.length === 0 ? (
-                                <p className="text-center text-muted-foreground py-8">Belum ada unit disimpan.</p>
+                                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground opacity-60">
+                                    <MonitorPlay className="w-12 h-12 mb-3 text-slate-300" />
+                                    <p className="font-medium">Belum ada unit disimpan.</p>
+                                </div>
                             ) : (
-                                units.map(unit => {
-                                    const product = products.find(p => p.id === unit.linked_product_id);
-                                    return (
-                                        <div key={unit.id} className="flex justify-between items-center p-2 border-b last:border-0 hover:bg-slate-50">
-                                            <div>
-                                                <div className="font-medium">{unit.name}</div>
-                                                <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                                    <LinkIcon className="w-3 h-3" />
-                                                    {product?.name || <span className="text-red-500">Produk dihapus</span>}
+                                <div className="grid gap-2">
+                                    {units.map(unit => {
+                                        const product = products.find(p => p.id === unit.linked_product_id);
+                                        return (
+                                            <div key={unit.id} className="flex justify-between items-center p-4 bg-white border border-slate-50 hover:border-indigo-100 rounded-xl transition-all group shadow-sm hover:shadow-md">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors font-bold">
+                                                        {unit.name.substring(0, 2).toUpperCase()}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold text-slate-800 text-base">{unit.name}</div>
+                                                        <div className="text-sm text-indigo-600 font-medium flex items-center gap-1.5">
+                                                            <LinkIcon className="w-3.5 h-3.5" />
+                                                            {product ? (
+                                                                <>
+                                                                    {product.name}
+                                                                    <span className="text-slate-400 font-normal">・</span>
+                                                                    Rp {parseInt(product.sellPrice || 0).toLocaleString()}/jam
+                                                                </>
+                                                            ) : (
+                                                                <span className="text-red-500 italic">Produk tidak valid</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                                    onClick={() => handleDeleteUnit(unit.id)}
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                </Button>
                                             </div>
-                                            <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeleteUnit(unit.id)}>
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    );
-                                })
+                                        );
+                                    })}
+                                </div>
                             )}
                         </ScrollArea>
                     </div>
                 </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={onClose}>Tutup</Button>
+                <DialogFooter className="bg-slate-50/50 p-6 -mx-6 -mb-6 mt-4 flex items-center justify-center">
+                    <Button variant="outline" onClick={onClose} className="rounded-xl px-12 h-12 font-bold text-slate-600 border-slate-200 hover:bg-white hover:border-slate-300 transition-all">
+                        Tutup
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

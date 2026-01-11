@@ -11,7 +11,7 @@ import AlertDialog from '../../components/AlertDialog';
 import { supabase } from '../../supabase';
 
 const GeneralSettings = () => {
-    const { recalculateProductStats, currentStore } = useData();
+    const { recalculateProductStats, currentStore, updateStore } = useData();
     const { toast } = useToast();
     const [isRecalculating, setIsRecalculating] = useState(false);
     const [isReseting, setIsReseting] = useState(false);
@@ -73,15 +73,13 @@ const GeneralSettings = () => {
         if (!currentStore?.id) return;
         setIsSavingRental(true);
         try {
-            const { error } = await supabase
-                .from('stores')
-                .update({
-                    enableRental: checked
-                })
-                .eq('id', currentStore.id);
+            const result = await updateStore(currentStore.id, {
+                enableRental: checked
+            });
 
-            if (error) throw error;
-            // Also update local state
+            if (!result.success) throw result.error;
+
+            // Local state for immediate reflect in UI switch
             setEnableRental(checked);
 
             toast({
@@ -95,7 +93,7 @@ const GeneralSettings = () => {
             toast({
                 variant: "destructive",
                 title: "Gagal",
-                description: "Gagal menyimpan pengaturan.",
+                description: "Gagal menyimpan pengaturan: " + (error.message || "Unknown error"),
             });
         } finally {
             setIsSavingRental(false);
