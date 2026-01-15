@@ -138,7 +138,8 @@ const PrivateRoute = ({ children, feature, plan, permission }) => {
     }
 
     // 5. Granular Permissions Check
-    const rolePermissions = currentStore.permissions?.[user.role] || [];
+    // FIX: Use user.permissions which is properly hydrated by AuthContext (supports legacy fallbacks)
+    const rolePermissions = user.permissions || [];
     const permissionKey = permission || feature;
 
     // Direct match or sub-permission match
@@ -267,27 +268,27 @@ const App = () => {
                       </PrivateRoute>
                     } />
                     <Route path="/products" element={
-                      <PrivateRoute feature="products.list">
+                      <PrivateRoute feature="products.read">
                         <Products />
                       </PrivateRoute>
                     } />
                     <Route path="/products/add" element={
-                      <PrivateRoute feature="products.manage">
+                      <PrivateRoute feature="products.create">
                         <ProductForm />
                       </PrivateRoute>
                     } />
                     <Route path="/products/edit/:id" element={
-                      <PrivateRoute feature="products.manage">
+                      <PrivateRoute feature="products.update">
                         <ProductForm />
                       </PrivateRoute>
                     } />
                     <Route path="/categories" element={
-                      <PrivateRoute feature="products.categories">
+                      <PrivateRoute feature="categories.read">
                         <Categories />
                       </PrivateRoute>
                     } />
                     <Route path="/suppliers" element={
-                      <PrivateRoute feature="products.suppliers">
+                      <PrivateRoute feature="suppliers.read">
                         <Suppliers />
                       </PrivateRoute>
                     } />
@@ -343,22 +344,22 @@ const App = () => {
 
                     {/* Promotions */}
                     <Route path="/promotions" element={
-                      <PrivateRoute feature="products.list">
+                      <PrivateRoute feature="products.read">
                         <PromotionsList />
                       </PrivateRoute>
                     } />
                     <Route path="/promotions/new" element={
-                      <PrivateRoute feature="products.list">
+                      <PrivateRoute feature="products.read">
                         <PromotionForm />
                       </PrivateRoute>
                     } />
                     <Route path="/promotions/edit/:id" element={
-                      <PrivateRoute feature="products.list">
+                      <PrivateRoute feature="products.read">
                         <PromotionForm />
                       </PrivateRoute>
                     } />
                     <Route path="/customers" element={
-                      <PrivateRoute feature="products.manage" plan="pro">
+                      <PrivateRoute feature="customers.read" plan="pro">
                         <Customers />
                       </PrivateRoute>
                     } />

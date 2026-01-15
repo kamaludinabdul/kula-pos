@@ -8,7 +8,8 @@ import {
     Wallet,
     Menu,
     Wifi,
-    WifiOff
+    WifiOff,
+    ChevronLeft
 } from 'lucide-react';
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
@@ -31,6 +32,15 @@ const POSHeader = ({
     return (
         <header className="px-4 py-3 bg-white border-b border-border flex items-center justify-between shrink-0 sticky top-0 z-30">
             <div className="flex items-center gap-3">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 mr-1 text-slate-500 hover:text-slate-700"
+                    onClick={() => onNavigate('/dashboard')}
+                    title="Kembali ke Dashboard"
+                >
+                    <ChevronLeft size={20} />
+                </Button>
                 <div className="bg-primary/10 p-1.5 rounded-lg flex items-center gap-2">
                     <img src="/logo.png" alt="App Logo" className="h-6 w-auto object-contain" />
                     {currentStore?.logo && (

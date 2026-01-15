@@ -137,9 +137,9 @@ const DashboardCharts = ({ currentStore }) => {
     }
 
     const formatCurrency = (val) => {
-        if (val >= 1000000) return `Rp ${(val / 1000000).toFixed(1)} jt`;
-        if (val >= 1000) return `Rp ${(val / 1000).toFixed(0)} rb`;
-        return `Rp ${val} `;
+        if (val >= 1000000) return `${(val / 1000000).toFixed(1)} jt`;
+        if (val >= 1000) return `${(val / 1000).toFixed(0)} rb`;
+        return `${val}`;
     };
 
     const CustomTooltip = ({ active, payload, label }) => {
@@ -201,7 +201,7 @@ const DashboardCharts = ({ currentStore }) => {
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                     <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: '#94a3b8' }} />
-                                    <YAxis fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8' }} />
+                                    <YAxis width={60} fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8' }} />
                                     <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
                                     <Bar dataKey="totalRevenue" fill="url(#colorRevenue)" radius={[6, 6, 0, 0]} name="Total Omset" barSize={32} />
                                 </BarChart>
@@ -227,7 +227,7 @@ const DashboardCharts = ({ currentStore }) => {
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                     <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: '#94a3b8' }} />
-                                    <YAxis fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8' }} />
+                                    <YAxis width={60} fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8' }} />
                                     <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
                                     <Bar dataKey="avgDailyProfit" fill="url(#colorProfit)" radius={[6, 6, 0, 0]} name="Laba Rata-rata" barSize={32} />
                                 </BarChart>
@@ -253,7 +253,7 @@ const DashboardCharts = ({ currentStore }) => {
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                     <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: '#94a3b8' }} />
-                                    <YAxis fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8' }} />
+                                    <YAxis width={60} fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8' }} />
                                     <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
                                     <Bar dataKey="avgDailyRevenue" fill="url(#colorDailyRev)" radius={[6, 6, 0, 0]} name="Omset Rata-rata" barSize={32} />
                                 </BarChart>
@@ -279,7 +279,7 @@ const DashboardCharts = ({ currentStore }) => {
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                     <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: '#94a3b8' }} />
-                                    <YAxis fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8' }} />
+                                    <YAxis width={60} fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8' }} />
                                     <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
                                     <Bar dataKey="totalOpEx" fill="url(#colorExpense)" radius={[6, 6, 0, 0]} name="Pengeluaran Ops" barSize={32} />
                                 </BarChart>

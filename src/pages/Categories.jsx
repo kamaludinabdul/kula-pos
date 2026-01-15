@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { Plus, Edit2, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -11,6 +12,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import AlertDialog from '../components/AlertDialog';
 
 const Categories = () => {
+    const { checkPermission } = useAuth();
     const { categories, products, addCategory, updateCategory, deleteCategory } = useData();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState(null);
@@ -156,10 +158,12 @@ const Categories = () => {
                         <Trash2 className="mr-2 h-4 w-4" />
                         Bersihkan Duplikat
                     </Button> */}
-                    <Button onClick={() => handleOpenModal()}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Tambah Kategori
-                    </Button>
+                    {checkPermission('categories.create') && (
+                        <Button onClick={() => handleOpenModal()}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Tambah Kategori
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -204,17 +208,21 @@ const Categories = () => {
                                     <TableCell>{getProductCount(category.name)} produk</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
-                                            <Button variant="ghost" size="icon" onClick={() => handleOpenModal(category)}>
-                                                <Edit2 className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleDelete(category)}
-                                                className="text-destructive hover:text-destructive"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                            {checkPermission('categories.update') && (
+                                                <Button variant="ghost" size="icon" onClick={() => handleOpenModal(category)}>
+                                                    <Edit2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                            {checkPermission('categories.delete') && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => handleDelete(category)}
+                                                    className="text-destructive hover:text-destructive"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>

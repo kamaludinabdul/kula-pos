@@ -102,6 +102,23 @@ const POS = () => {
     // Printer
     const [printerStatus, setPrinterStatus] = useState({ connected: false, name: null });
 
+    // Auto-connect printer
+    useEffect(() => {
+        const initPrinter = async () => {
+            if (printerService.isConnected()) {
+                setPrinterStatus({ connected: true, name: printerService.getDeviceName() });
+            } else {
+                const res = await printerService.autoConnect();
+                if (res.success) {
+                    setPrinterStatus({ connected: true, name: res.name });
+                    // Optional: notify user or just let the icon update
+                    console.log('Printer auto-connected:', res.name);
+                }
+            }
+        };
+        initPrinter();
+    }, []);
+
     // Store Settings
     const storeSettings = currentStore?.settings || {};
 

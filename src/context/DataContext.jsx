@@ -872,7 +872,7 @@ export const DataProvider = ({ children }) => {
                     ...userData,
                     store_id: activeStoreId,
                     created_at: new Date().toISOString()
-                });
+                }, { onConflict: 'email', ignoreDuplicates: false });
 
             if (error) throw error;
             return { success: true };

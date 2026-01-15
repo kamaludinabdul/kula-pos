@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../supabase';
-import { normalizePermissions } from '../utils/permissions';
+import { normalizePermissions, getPermissionsForRole } from '../utils/permissions';
 
 const AuthContext = createContext(null);
 
@@ -19,9 +19,17 @@ export const AuthProvider = ({ children }) => {
     const lastResetTime = useRef(0);
     const fetchRequestId = useRef(0);
     const currentChannel = useRef(null);
+    const profileChannelRef = useRef(null);
+    const sessionStartTimeRef = useRef(new Date().toISOString());
+    const userRef = useRef(user);
+
+    useEffect(() => {
+        userRef.current = user;
+    }, [user]);
 
     // --- Profile Fetching Helper ---
     const fetchUserProfile = useCallback(async (userId) => {
+        // ... (fetch logic)
         const { data: profile, error } = await supabase
             .from('profiles')
             .select(`
@@ -36,10 +44,19 @@ export const AuthProvider = ({ children }) => {
             return null;
         }
 
-        // Hydrate permissions
-        const normalized = normalizePermissions(profile.permissions ? { [profile.role]: profile.permissions } : null);
+        // Hydrate permissions with FALLBACK for legacy users
+        let effectivePermissions = profile.permissions;
+        if (!effectivePermissions || effectivePermissions.length === 0) {
+            // If user has no permissions saved, use the default for their role
+            effectivePermissions = getPermissionsForRole(profile.role);
+        }
+
+        const normalized = normalizePermissions(effectivePermissions ? { [profile.role]: effectivePermissions } : null);
         if (normalized[profile.role]) {
             profile.permissions = normalized[profile.role];
+        } else {
+            // Fallback if normalize failed or returns different shape
+            profile.permissions = effectivePermissions || [];
         }
 
         if (profile) {
@@ -49,68 +66,119 @@ export const AuthProvider = ({ children }) => {
         return profile;
     }, []);
 
+    const logout = useCallback(async () => {
+        const currentUser = userRef.current;
+        if (currentUser) {
+            try {
+                // record logs BEFORE signing out to ensure valid session
+                await supabase.from('audit_logs').insert({ user_id: currentUser.id, action: 'logout' });
+                // Set status to Offline
+                await supabase.from('profiles').update({ status: 'offline' }).eq('id', currentUser.id);
+            } catch (err) {
+                console.error("Logout audit failed:", err);
+            }
+        }
+        await supabase.auth.signOut();
+
+        setUser(null);
+    }, []);
+
+    // --- Profile Loading Logic ---
+    const loadUserSession = useCallback(async (userId, requestId) => {
+        try {
+            const profile = await fetchUserProfile(userId);
+
+            // Only update if this is still the latest request and component is mounted (we can't check isMounted directly here cleanly without ref, but fetchRequestId helps)
+            if (requestId !== fetchRequestId.current) return;
+
+            if (profile) {
+                setUser(profile);
+                if (profile.stores?.settings) {
+                    setStoreSettings(profile.stores.settings);
+                }
+
+                // Handle Store Channel (Realtime)
+                if (profile.store_id) {
+                    // --- FORCE LOGOUT CHECK (Initial) ---
+                    if (profile.last_force_logout_at) {
+                        const forceTime = new Date(profile.last_force_logout_at).getTime();
+                        const sessionTime = new Date(sessionStartTimeRef.current).getTime();
+                        if (forceTime > sessionTime) {
+                            console.warn("Initial force logout check triggered.");
+                            alert("Sesi Anda telah dihentikan oleh Admin.");
+                            await logout();
+                            return;
+                        }
+                    }
+
+                    // Cleanup previous
+                    if (currentChannel.current) {
+                        supabase.removeChannel(currentChannel.current);
+                    }
+
+                    const channel = supabase
+                        .channel(`store-${profile.store_id}`)
+                        .on('postgres_changes', {
+                            event: 'UPDATE',
+                            schema: 'public',
+                            table: 'stores',
+                            filter: `id=eq.${profile.store_id}`
+                        }, payload => {
+                            setStoreSettings(payload.new.settings);
+                        })
+                        .subscribe();
+
+                    currentChannel.current = channel;
+                }
+
+                // Handle Profile Changes (Force Logout Realtime)
+                if (profileChannelRef.current) supabase.removeChannel(profileChannelRef.current);
+
+                profileChannelRef.current = supabase
+                    .channel(`profile-${profile.id}`)
+                    .on('postgres_changes', {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'profiles',
+                        filter: `id=eq.${profile.id}`
+                    }, async (payload) => {
+                        // Check for force logout
+                        if (payload.new.last_force_logout_at) {
+                            const forceTime = new Date(payload.new.last_force_logout_at).getTime();
+                            const sessionTime = new Date(sessionStartTimeRef.current).getTime();
+                            if (forceTime > sessionTime) {
+                                alert("Sesi Anda telah dihentikan oleh Admin.");
+                                await logout();
+                            }
+                        }
+
+                        // Update local state if needed (optional)
+                        setUser(prev => ({ ...prev, ...payload.new }));
+                    })
+                    .subscribe();
+            }
+        } catch (error) {
+            // Ignore AbortError - don't logout user
+            if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+                console.warn("Profile fetch aborted, ignoring.");
+                return;
+            }
+            console.error("Error loading profile:", error);
+        }
+    }, [fetchUserProfile, logout]);
+
     // --- Listen to Auth State ---
     useEffect(() => {
         let isMounted = true;
 
-        const handleProfileLoad = async (userId) => {
-            const requestId = ++fetchRequestId.current;
-            try {
-                const profile = await fetchUserProfile(userId);
-
-                // Only update if this is still the latest request and component is mounted
-                if (!isMounted || requestId !== fetchRequestId.current) return;
-
-                if (profile) {
-                    setUser(profile);
-                    if (profile.stores?.settings) {
-                        setStoreSettings(profile.stores.settings);
-                    }
-
-                    // Handle Store Channel (Realtime)
-                    if (profile.store_id) {
-                        // Cleanup previous
-                        if (currentChannel.current) {
-                            supabase.removeChannel(currentChannel.current);
-                        }
-
-                        const channel = supabase
-                            .channel(`store-${profile.store_id}`)
-                            .on('postgres_changes', {
-                                event: 'UPDATE',
-                                schema: 'public',
-                                table: 'stores',
-                                filter: `id=eq.${profile.store_id}`
-                            }, payload => {
-                                if (isMounted) setStoreSettings(payload.new.settings);
-                            })
-                            .subscribe();
-
-                        currentChannel.current = channel;
-                    }
-                }
-            } catch (error) {
-                // Ignore AbortError - don't logout user
-                if (error.name === 'AbortError' || error.message?.includes('aborted')) {
-                    console.warn("Profile fetch aborted, ignoring.");
-                    return;
-                }
-                console.error("Error loading profile:", error);
-            } finally {
-                if (isMounted && requestId === fetchRequestId.current) {
-                    setLoading(false);
-                }
-            }
-        };
-
-        // Immediately check session on mount
         const checkInitialSession = async () => {
+            const requestId = ++fetchRequestId.current;
             try {
                 const { data: { session }, error } = await supabase.auth.getSession();
                 if (error) throw error;
 
                 if (session?.user) {
-                    await handleProfileLoad(session.user.id);
+                    await loadUserSession(session.user.id, requestId);
                 } else {
                     if (isMounted) setLoading(false);
                 }
@@ -119,7 +187,10 @@ export const AuthProvider = ({ children }) => {
                     return; // Ignore
                 }
                 console.error("Error checking initial session:", error);
-                if (isMounted) setLoading(false);
+            } finally {
+                if (isMounted && requestId === fetchRequestId.current) {
+                    setLoading(false);
+                }
             }
         };
 
@@ -130,7 +201,9 @@ export const AuthProvider = ({ children }) => {
 
             if (session?.user) {
                 // Load or refresh profile
-                handleProfileLoad(session.user.id);
+                const requestId = ++fetchRequestId.current;
+                await loadUserSession(session.user.id, requestId);
+                if (isMounted) setLoading(false);
             } else {
                 // Clear state on logout
                 setUser(null);
@@ -152,8 +225,11 @@ export const AuthProvider = ({ children }) => {
             if (currentChannel.current) {
                 supabase.removeChannel(currentChannel.current);
             }
+            if (profileChannelRef.current) {
+                supabase.removeChannel(profileChannelRef.current);
+            }
         };
-    }, [fetchUserProfile]);
+    }, [loadUserSession]);
 
     // --- Lock Screen Logic ---
     const lockScreen = useCallback(() => {
@@ -224,7 +300,13 @@ export const AuthProvider = ({ children }) => {
     // --- Auth Actions ---
     const login = async (email, password) => {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) return { success: false, message: error.message };
+        if (error) {
+            console.error("Login Error:", error);
+            let message = error.message;
+            if (message === 'Invalid login credentials') message = 'Email atau password salah';
+            if (message === 'Email not confirmed') message = 'Email belum dikonfirmasi. Silakan cek inbox Anda.';
+            return { success: false, message };
+        }
 
         // Record login history (custom table in Supabase) - Fire and forget
         (async () => {
@@ -234,11 +316,19 @@ export const AuthProvider = ({ children }) => {
                     action: 'login_success',
                     metadata: { user_agent: navigator.userAgent }
                 });
+
+                // Set status to Online
+                await supabase.from('profiles').update({ status: 'online' }).eq('id', data.user.id);
             } catch (err) {
                 console.error("Audit log failed:", err);
             }
         })();
 
+        // Explicitly load profile to ensure state is ready before navigation
+        if (data.user) {
+            const requestId = ++fetchRequestId.current;
+            await loadUserSession(data.user.id, requestId);
+        }
 
         return { success: true };
     };
@@ -262,20 +352,6 @@ export const AuthProvider = ({ children }) => {
         return { success: true };
     };
 
-    const logout = async () => {
-        if (user) {
-            (async () => {
-                try {
-                    await supabase.from('audit_logs').insert({ user_id: user.id, action: 'logout' });
-                } catch (err) {
-                    console.error("Logout audit failed:", err);
-                }
-            })();
-        }
-        await supabase.auth.signOut();
-
-        setUser(null);
-    };
 
     const updateStaffPassword = async (staffId, newPassword) => {
         try {
@@ -300,7 +376,17 @@ export const AuthProvider = ({ children }) => {
     const checkPermission = useCallback((permission) => {
         if (!user) return false;
         if (user.role === 'super_admin' || user.role === 'owner') return true;
-        return (user.permissions || []).includes(permission);
+
+        // Admin usually has all access unless we want to granularly restrict them too. 
+        // For now, let's say Admin is also super powerful unless we strictly enforce the schema defaults which we assigned.
+        // But our ROLE_PRESETS giv Admin almost everything. So checking 'includes' is fine.
+
+        const perms = user.permissions || [];
+        // Check exact match OR if permission is a parent of held permission (e.g. asking for 'dashboard' but has 'dashboard.view')
+        // Actually, usually it's: "Does user have permission X?"
+        // If X is 'transactions.refund', we need exact match.
+        // If X is 'dashboard', we accept 'dashboard.view'.
+        return perms.includes(permission) || perms.some(p => p.startsWith(permission + '.'));
     }, [user]);
 
     return (

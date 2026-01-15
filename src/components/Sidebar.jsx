@@ -54,7 +54,7 @@ const NavItem = ({ item, isActive, onClick, className, isExpanded, isLocked }) =
 );
 
 const Sidebar = ({ isExpanded, setIsExpanded }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, checkPermission } = useAuth();
   const { currentStore, plans: contextPlans } = useData();
   const navigate = useNavigate();
   const location = useLocation();
@@ -65,7 +65,6 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-
   // Upgrade Alert State
   const [showUpgradeAlert, setShowUpgradeAlert] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState('');
@@ -74,51 +73,19 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
     setIsExpanded(!isExpanded);
   };
 
+  // We use checkPermission from AuthContext now, but we can wrap it if needed for special logic
+  // The Sidebar uses `hasPermission` locally. Let's alias it or repurpose it.
   const hasPermission = (feature) => {
-    if (!user) return false;
+    // Pet Care bypass preserved if needed? User previously removed it.
+    // We'll rely on checkPermission(feature) which handles:
+    // 1. Super Admin / Owner -> True
+    // 2. User permissions array (exact or parent match)
 
-    // Failsafe: Grandfather 'smart_insights' for Admin
-    if ((user.role === 'owner' || user.role === 'super_admin') && feature === 'smart_insights') return true;
-
-
-    // Pet Care Special Check - REMOVED BYPASS
-    // if (feature === 'petCare' || feature.startsWith('petCare.')) {
-    //   return currentStore?.petCareEnabled !== false;
-    // }
-
-    const normalizedRole = user.role?.toLowerCase();
-    if (normalizedRole === 'super_admin') return true;
-
-    if (!currentStore) {
-      return normalizedRole === 'owner' || normalizedRole === 'super_admin';
-    }
-
-    const rolePermissions = currentStore.permissions?.[user.role] || [];
-
-    if (!rolePermissions || rolePermissions.length === 0) {
-      return normalizedRole === 'owner' || normalizedRole === 'super_admin';
-    }
-
-    // Direct match
-    if (rolePermissions.includes(feature)) return true;
-
-    // Check if user has any sub-permission of this feature (for parent visibility)
-    // e.g. if user has 'products.stock', they should see 'products' group if we had one,
-    // but here we mainly use it for logic.
-    if (rolePermissions.some(p => p.startsWith(feature + '.'))) return true;
-
-    // Check ancestors (Deep inheritance)
-    // e.g. feature is 'products.stock.opname'
-    // user has 'products' OR 'products.stock' -> ALLOW
-    const parts = feature.split('.');
-    for (let i = 1; i < parts.length; i++) {
-      const parent = parts.slice(0, i).join('.');
-      if (rolePermissions.includes(parent)) {
-        return true;
-      }
-    }
-
-    return false;
+    // However, Sidebar sometimes passes 'products' and expects true if user has 'products.list'.
+    // createPermission in AuthContext does: includes(feature) || perms.some(p => p.startsWith(feature + '.'))
+    // So if feature is 'products', and user has 'products.list', startsWith('products.') is True.
+    // So AuthContext checkPermission is sufficient!
+    return checkPermission(feature);
   };
 
   const handleItemClick = (e, requiredPlan, feature) => {
@@ -140,18 +107,18 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
     { icon: Receipt, label: 'Transaksi', path: '/transactions', feature: 'transactions' },
     { icon: ShoppingCart, label: 'Kasir (POS)', path: '/pos', feature: 'pos' },
     { icon: Gamepad2, label: 'Rental', path: '/rental', feature: 'rental', permission: 'pos', requiredPlan: 'pro', checkSetting: 'enableRental' },
-    { icon: Ticket, label: 'Promosi', path: '/promotions', feature: 'products.list' }, // Moved to top level
+    { icon: Ticket, label: 'Promosi', path: '/promotions', feature: 'products.read' }, // Moved to top level
   ];
 
   const databaseItems = [
-    { icon: Package, label: 'Produk', path: '/products', feature: 'products.list' },
-    { icon: Layers, label: 'Kategori', path: '/categories', feature: 'products.categories' },
-    // { icon: Ticket, label: 'Promosi', path: '/promotions', feature: 'products.list' }, // Moved
-    { icon: Factory, label: 'Supplier', path: '/suppliers', feature: 'products.suppliers' },
+    { icon: Package, label: 'Produk', path: '/products', feature: 'products.read' },
+    { icon: Layers, label: 'Kategori', path: '/categories', feature: 'categories.read' },
+    // { icon: Ticket, label: 'Promosi', path: '/promotions', feature: 'products.read' }, // Moved
+    { icon: Factory, label: 'Supplier', path: '/suppliers', feature: 'suppliers.read' },
     { icon: FileText, label: 'Purchase Order', path: '/purchase-orders', feature: 'products.purchase_orders' },
     { icon: Database, label: 'Stok', path: '/stock-management', feature: 'products.stock' },
     { icon: ClipboardCheck, label: 'Stock Opname', path: '/stock-opname', feature: 'products.stock_opname', requiredPlan: 'pro' },
-    { icon: Users, label: 'Pelanggan', path: '/customers', feature: 'products.customers', requiredPlan: 'pro' },
+    { icon: Users, label: 'Pelanggan', path: '/customers', feature: 'customers.read', requiredPlan: 'pro' },
   ];
 
   const salesItems = [
@@ -297,24 +264,7 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
             // Optional Setting Check (e.g. for Rental)
             if (item.checkSetting && !currentStore?.[item.checkSetting]) return null;
 
-            if (item.path === '/pos') {
-              return (
-                <a
-                  key={item.path}
-                  href={item.path}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors w-full text-left",
-                    !isExpanded && "justify-center px-2"
-                  )}
-                  title={!isExpanded ? item.label : undefined}
-                >
-                  <item.icon size={20} className="shrink-0" />
-                  {isExpanded && <span>{item.label}</span>}
-                </a>
-              );
-            }
+
 
             return renderNavItem(item);
           })}

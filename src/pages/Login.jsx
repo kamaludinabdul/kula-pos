@@ -30,7 +30,7 @@ const Login = () => {
 
         let finalEmail = email.trim();
         if (finalEmail && !finalEmail.includes('@')) {
-            finalEmail = `${finalEmail.replace(/\s+/g, '')}@kula.id`;
+            finalEmail = `${finalEmail.toLowerCase().replace(/\s+/g, '')}@kula.id`;
         }
 
         const result = await login(finalEmail, password);

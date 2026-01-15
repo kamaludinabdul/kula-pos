@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 import { getOptimizedImage } from '../utils/supabaseImage';
 
 import { Search, Plus, Upload, Trash2, Edit, MoreVertical, FileDown, ArrowUpDown, ArrowUp, ArrowDown, Printer } from 'lucide-react';
@@ -38,6 +39,7 @@ import {
 
 const Products = () => {
     const navigate = useNavigate();
+    const { checkPermission } = useAuth();
     const { products, deleteProduct, bulkAddProducts, categories } = useData();
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -431,63 +433,71 @@ const Products = () => {
                                 <Printer className="mr-2 h-4 w-4" />
                                 Cetak Barcode ({selectedProducts.length})
                             </Button>
-                            <Button
-                                variant="destructive"
-                                onClick={handleBulkDelete}
-                            >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete ({selectedProducts.length})
-                            </Button>
+                            {checkPermission('products.delete') && (
+                                <Button
+                                    variant="destructive"
+                                    onClick={handleBulkDelete}
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete ({selectedProducts.length})
+                                </Button>
+                            )}
                         </>
                     )}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline">
-                                <FileDown className="mr-2 h-4 w-4" />
-                                Export
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                            <DropdownMenuItem onClick={handleExportCSV}>
-                                Export as CSV
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={handleExportExcel}>
-                                Export as Excel
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={handleDownloadTemplate} className="border-t mt-1 pt-1 text-indigo-600">
-                                Download Import Template
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                    <div className="relative">
-                        <input
-                            type="file"
-                            accept=".csv"
-                            onChange={handleImportCSV}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        />
-                        <Button variant="outline">
-                            <Upload className="mr-2 h-4 w-4" />
-                            Import CSV
-                        </Button>
-                    </div>
-                    <div className="relative">
-                        <input
-                            type="file"
-                            accept=".xlsx, .xls"
-                            onChange={handleImportExcel}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        />
-                        <Button variant="outline" className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200">
-                            <Upload className="mr-2 h-4 w-4" />
-                            Import Excel
-                        </Button>
-                    </div>
+                    {checkPermission('products.import_export') && (
+                        <>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline">
+                                        <FileDown className="mr-2 h-4 w-4" />
+                                        Export
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuItem onClick={handleExportCSV}>
+                                        Export as CSV
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={handleExportExcel}>
+                                        Export as Excel
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={handleDownloadTemplate} className="border-t mt-1 pt-1 text-indigo-600">
+                                        Download Import Template
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            <div className="relative">
+                                <input
+                                    type="file"
+                                    accept=".csv"
+                                    onChange={handleImportCSV}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                />
+                                <Button variant="outline">
+                                    <Upload className="mr-2 h-4 w-4" />
+                                    Import CSV
+                                </Button>
+                            </div>
+                            <div className="relative">
+                                <input
+                                    type="file"
+                                    accept=".xlsx, .xls"
+                                    onChange={handleImportExcel}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                />
+                                <Button variant="outline" className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200">
+                                    <Upload className="mr-2 h-4 w-4" />
+                                    Import Excel
+                                </Button>
+                            </div>
+                        </>
+                    )}
 
-                    <Button onClick={() => navigate('/products/add')}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Product
-                    </Button>
+                    {checkPermission('products.create') && (
+                        <Button onClick={() => navigate('/products/add')}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Product
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -800,17 +810,21 @@ const Products = () => {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={() => handleEdit(product)}>
-                                                        <Edit className="mr-2 h-4 w-4" />
-                                                        Edit
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem
-                                                        onClick={() => handleDelete(product)}
-                                                        className="text-red-600"
-                                                    >
-                                                        <Trash2 className="mr-2 h-4 w-4" />
-                                                        Delete
-                                                    </DropdownMenuItem>
+                                                    {checkPermission('products.update') && (
+                                                        <DropdownMenuItem onClick={() => handleEdit(product)}>
+                                                            <Edit className="mr-2 h-4 w-4" />
+                                                            Edit
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    {checkPermission('products.delete') && (
+                                                        <DropdownMenuItem
+                                                            onClick={() => handleDelete(product)}
+                                                            className="text-red-600 focus:text-red-600"
+                                                        >
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            Delete
+                                                        </DropdownMenuItem>
+                                                    )}
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </TableCell>

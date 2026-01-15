@@ -7,6 +7,7 @@ const ProductGrid = ({ products, onAddToCart, isCartCollapsed }) => {
     // --- Progressive Loading State ---
     const [visibleCount, setVisibleCount] = useState(24); // Start with 24 items (~3-4 rows)
     const scrollContainerRef = useRef(null);
+    const observerTarget = useRef(null);
 
     // Reset visible count when filter/search changes (products array reference changes)
     useEffect(() => {
@@ -20,24 +21,42 @@ const ProductGrid = ({ products, onAddToCart, isCartCollapsed }) => {
         return () => clearTimeout(timer);
     }, [products]);
 
-    // Handle Scroll for Load More
-    const handleScroll = (e) => {
-        const { scrollTop, scrollHeight, clientHeight } = e.target;
-        // If user is near bottom (200px buffer), load more
-        if (scrollHeight - scrollTop - clientHeight < 200) {
-            setVisibleCount(prev => {
-                if (prev >= products.length) return prev;
-                return prev + 24; // Load next batch
-            });
+    // Intersection Observer for Infinite Scroll
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting) {
+                    setVisibleCount((prev) => {
+                        if (prev >= products.length) return prev;
+                        return prev + 24;
+                    });
+                }
+            },
+            {
+                root: scrollContainerRef.current,
+                threshold: 0.1,
+                rootMargin: "200px" // Load before hitting bottom
+            }
+        );
+
+        const currentObserverTarget = observerTarget.current;
+        if (currentObserverTarget) {
+            observer.observe(currentObserverTarget);
         }
-    };
+
+        return () => {
+            if (currentObserverTarget) {
+                observer.unobserve(currentObserverTarget);
+            }
+            observer.disconnect();
+        };
+    }, [products.length, visibleCount]); // Re-run when products or count changes to re-observe if element moves
 
     const visibleProducts = products.slice(0, visibleCount);
 
     return (
         <div
             ref={scrollContainerRef}
-            onScroll={handleScroll}
             className={`grid gap-2 p-1 overflow-y-auto h-full scrollbar-thin content-start bg-slate-100/50 pb-20 ${isCartCollapsed
                 ? 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10'
                 : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8'
@@ -102,7 +121,10 @@ const ProductGrid = ({ products, onAddToCart, isCartCollapsed }) => {
             })}
 
             {visibleCount < products.length && (
-                <div className="col-span-full py-4 text-center text-xs text-slate-400">
+                <div
+                    ref={observerTarget}
+                    className="col-span-full py-4 text-center text-xs text-slate-400"
+                >
                     Memuat produk lainnya... ({visibleCount} / {products.length})
                 </div>
             )}

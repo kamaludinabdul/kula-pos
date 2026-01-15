@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { Users, Plus, Edit2, Trash2, Shield, User, Circle, History, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useData } from '../context/DataContext';
@@ -15,14 +16,18 @@ import UpgradeAlert from '../components/UpgradeAlert';
 import Pagination from '../components/Pagination';
 import AlertDialog from '../components/AlertDialog';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { PERMISSION_SCHEMA, getPermissionsForRole, ROLE_PRESETS } from '../utils/permissions';
+import { ChevronDown, ChevronRight, Check } from 'lucide-react';
 
 const Staff = () => {
     const { user, updateStaffPassword } = useAuth();
-    const { activeStoreId, stores, addUser } = useData();
+    const { activeStoreId, addUser } = useData();
     const [staffList, setStaffList] = useState([]);
     const [activeShifts, setActiveShifts] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentStaff, setCurrentStaff] = useState({ name: '', email: '', role: 'staff', pin: '', photo: '' });
+    const [permissions, setPermissions] = useState([]);
+    const [showPermissions, setShowPermissions] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [showUpgradeAlert, setShowUpgradeAlert] = useState(false);
     const [upgradeDebugInfo, setUpgradeDebugInfo] = useState(null);
@@ -77,7 +82,7 @@ const Staff = () => {
                 event: '*',
                 schema: 'public',
                 table: 'profiles',
-                filter: `store_id=eq.${activeStoreId}`
+                filter: `store_id = eq.${activeStoreId} `
             }, (payload) => {
                 if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
                     const mappedProfile = {
@@ -105,7 +110,7 @@ const Staff = () => {
                 event: '*',
                 schema: 'public',
                 table: 'shifts',
-                filter: `store_id=eq.${activeStoreId}`
+                filter: `store_id = eq.${activeStoreId} `
             }, (payload) => {
                 const { eventType, new: newShift, old: oldShift } = payload;
                 if ((eventType === 'INSERT' || eventType === 'UPDATE') && newShift.status === 'active') {
@@ -159,10 +164,27 @@ const Staff = () => {
         return isActive ? 'login' : 'logout';
     };
 
+    // Helper to determine if current user can manage target staff
+    const canManageStaff = (targetStaff) => {
+        if (!user) return false;
+        if (user.role === 'super_admin') return true;
+        if (user.role === 'owner') return targetStaff.role !== 'owner'; // Owner manages all except other owners
+
+        // ADMIN POLICY: Can manage Staff, Sales, AND other Admins (but not Owner/SuperAdmin)
+        if (user.role === 'admin') {
+            return targetStaff.role !== 'owner' && targetStaff.role !== 'super_admin';
+        }
+
+        return false;
+    };
+
     const handleAddStaff = () => {
         setCurrentStaff({ name: '', email: '', role: 'staff', password: '', photo: '', petCareAccess: false });
+        // Set default permissions for new staff based on 'staff' role
+        setPermissions(getPermissionsForRole('staff'));
         setIsEditing(false);
         setShowPassword(false);
+        setShowPermissions(false); // Collapse by default
         setIsModalOpen(true);
     };
 
@@ -180,9 +202,41 @@ const Staff = () => {
         }
 
         setCurrentStaff(staffData);
+        // Load existing permissions OR fallback to defaults if empty (legacy)
+        if (staff.permissions && staff.permissions.length > 0) {
+            setPermissions(staff.permissions);
+        } else {
+            setPermissions(getPermissionsForRole(staff.role));
+        }
+
         setIsEditing(true);
         setShowPassword(false);
+        setShowPermissions(false);
         setIsModalOpen(true);
+    };
+
+    const handleForceLogout = (staff) => {
+        showConfirm(
+            'Paksa Logout',
+            `Apakah Anda yakin ingin memaksa logout ${staff.name}? Sesi mereka akan segera dihentikan.`,
+            async () => {
+                try {
+                    const { error } = await supabase
+                        .from('profiles')
+                        .update({
+                            last_force_logout_at: new Date().toISOString(),
+                            status: 'offline'
+                        })
+                        .eq('id', staff.id);
+
+                    if (error) throw error;
+                    showAlert("Sukses", "Perintah logout paksa telah dikirim.");
+                } catch (error) {
+                    console.error("Error forcing logout:", error);
+                    showAlert("Gagal", "Gagal melakukan force logout.");
+                }
+            }
+        );
     };
 
     const handleDeleteStaff = (id) => {
@@ -212,7 +266,7 @@ const Staff = () => {
                 .from('audit_logs')
                 .select('*')
                 .eq('user_id', staff.id)
-                .eq('store_id', activeStoreId)
+                .eq('user_id', staff.id)
                 .order('created_at', { ascending: false })
                 .limit(100);
 
@@ -237,6 +291,72 @@ const Staff = () => {
         }
     };
 
+    /**
+     * Registers a new user in Supabase Auth using a temporary client.
+     * This avoids logging out the current admin.
+     */
+    // Dummy storage to prevent "Multiple GoTrueClient" warnings
+    const dummyStorage = {
+        getItem: () => null,
+        setItem: () => { },
+        removeItem: () => { },
+    };
+
+    const registerUserToSupabase = async (email, password, name, role, storeId) => {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+        // Create a temporary client with NO persistence to isolate session
+        const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
+            auth: {
+                persistSession: false,
+                autoRefreshToken: false,
+                detectSessionInUrl: false,
+                storage: dummyStorage // Isolate storage completely
+            }
+        });
+
+        try {
+
+            const { data, error } = await tempClient.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        name: name || 'Staff Member',
+                        role: role || 'staff',
+                        store_name: 'No Store Name', // Legacy requirement potentially
+                        store_id: storeId, // CRITICAL: Required for profiles trigger
+                        // Mark as staff registration to potentially handle differently in triggers if needed
+                        is_staff_registration: true,
+                        permissions: permissions // Initialize granular permissions
+                    }
+                }
+            });
+
+            if (error) throw error;
+            return { success: true, user: data.user, session: data.session };
+        } catch (error) {
+            // If user already exists, try to LOGIN to get the ID (Recover Orphaned Account)
+            if (error.message && error.message.includes('already registered')) {
+                try {
+                    const { data: loginData, error: loginError } = await tempClient.auth.signInWithPassword({
+                        email,
+                        password
+                    });
+                    if (loginError) throw loginError;
+                    // Success! We recovered the existing user's ID
+                    return { success: true, user: loginData.user, session: loginData.session, recovered: true };
+                } catch (loginErr) { // eslint-disable-line no-unused-vars
+                    return { success: false, error: "Email sudah terdaftar tapi password salah. Gunakan password asli atau email baru." };
+                }
+            }
+
+            console.error("Auto-registration failed:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!activeStoreId) {
@@ -246,12 +366,25 @@ const Staff = () => {
 
         try {
             // Auto-generate email from username if needed
-            let finalEmail = currentStaff.email ? currentStaff.email.trim() : '';
+            let finalEmail = currentStaff.email ? currentStaff.email.trim().toLowerCase() : '';
             if (finalEmail && !finalEmail.includes('@')) {
-                finalEmail = `${finalEmail.toLowerCase().replace(/\s+/g, '')}@kula.id`;
+                finalEmail = `${finalEmail.replace(/\s+/g, '')}@kula.id`;
             }
 
             if (isEditing) {
+                // NOTE: Retroactive registration (converting manual staff to auth user) is disabled
+                // because we cannot force the Auth UUID to match the existing Profile UUID from client-side.
+                // Doing so causes FK violations or Duplicate Key errors.
+                // For now, we only update the local profile. To enable login, user must recreate staff.
+
+                /* 
+                // DISABLED: 
+                if (currentStaff.password && currentStaff.password.length >= 6) {
+                    const regResult = await registerUserToSupabase(finalEmail, currentStaff.password, currentStaff.name, currentStaff.role, activeStoreId);
+                    // ... error handling ...
+                } 
+                */
+
                 const { error } = await supabase
                     .from('profiles')
                     .update({
@@ -261,7 +394,8 @@ const Staff = () => {
                         password: currentStaff.password,
                         pin: currentStaff.password,
                         photo: currentStaff.photo || '',
-                        pet_care_access: currentStaff.petCareAccess || false
+                        pet_care_access: currentStaff.petCareAccess || false,
+                        permissions: permissions // Save granular permissions
                     })
                     .eq('id', currentStaff.id);
 
@@ -276,10 +410,22 @@ const Staff = () => {
                     }
                 }
             } else {
-                // Find store name for denormalization if needed
-                const currentStore = stores.find(s => s.id === activeStoreId);
+                // 1. Auto-Register in Supabase Auth (If password provided)
+                let authId = null;
+                if (currentStaff.password && currentStaff.password.length >= 6) {
+                    const regResult = await registerUserToSupabase(finalEmail, currentStaff.password, currentStaff.name, currentStaff.role, activeStoreId);
+                    if (regResult.success) {
+                        if (regResult.user) authId = regResult.user.id;
+                    } else {
+                        // Warn but proceed? Or block? 
+                        // Let's block to force consistent data
+                        showAlert("Gagal Registrasi Akun", "Gagal mendaftarkan akun login: " + regResult.error);
+                        return;
+                    }
+                }
 
                 const result = await addUser({
+                    id: authId, // Use the real Auth ID if available!
                     name: currentStaff.name,
                     email: finalEmail,
                     role: currentStaff.role,
@@ -288,7 +434,7 @@ const Staff = () => {
                     photo: currentStaff.photo || '',
                     pet_care_access: currentStaff.petCareAccess || false,
                     store_id: activeStoreId,
-                    store_name: currentStore ? currentStore.name : ''
+                    permissions: permissions // Save granular permissions
                 });
 
                 if (!result.success) {
@@ -381,7 +527,7 @@ const Staff = () => {
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
-                                                    <Circle className={`h-3 w-3 fill-current ${status === 'login' ? 'text-green-500' : 'text-gray-300'}`} />
+                                                    <Circle className={`h - 3 w - 3 fill - current ${status === 'login' ? 'text-green-500' : 'text-gray-300'} `} />
                                                     <span className={status === 'login' ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
                                                         {status === 'login' ? 'Sedang Login' : 'Logout'}
                                                     </span>
@@ -392,20 +538,29 @@ const Staff = () => {
                                                     <Button variant="ghost" size="sm" onClick={() => handleViewHistory(staff)} title="Riwayat Login">
                                                         <History className="h-4 w-4" />
                                                     </Button>
-                                                    {((staff.role !== 'admin' && staff.role !== 'owner') || user?.role === 'super_admin' || user?.role === 'owner') && (
-                                                        <Button variant="ghost" size="sm" onClick={() => handleEditStaff(staff)}>
-                                                            <Edit2 className="h-4 w-4" />
-                                                        </Button>
-                                                    )}
-                                                    {((staff.role !== 'admin' && staff.role !== 'owner') || user?.role === 'super_admin' || (user?.role === 'owner' && staff.role !== 'owner')) && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => handleDeleteStaff(staff.id)}
-                                                            className="text-destructive hover:text-destructive"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
+                                                    {canManageStaff(staff) && (
+                                                        <>
+                                                            <Button variant="ghost" size="sm" onClick={() => handleEditStaff(staff)}>
+                                                                <Edit2 className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => handleForceLogout(staff)}
+                                                                className="text-amber-600 hover:text-amber-700"
+                                                                title="Paksa Logout"
+                                                            >
+                                                                <Shield className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={() => handleDeleteStaff(staff.id)}
+                                                                className="text-destructive hover:text-destructive"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </>
                                                     )}
                                                 </div>
                                             </TableCell>
@@ -443,6 +598,28 @@ const Staff = () => {
                                 onChange={(e) => setCurrentStaff({ ...currentStaff, email: e.target.value })}
                                 placeholder="Contoh: 'kasir1' atau 'kasir1@email.com'"
                             />
+                            <p className="text-xs text-muted-foreground">
+                                Tips: Gunakan username saja (misal: <span className="font-semibold">budi</span>) untuk login instan tanpa verifikasi email.
+                            </p>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="staffPassword">Password / PIN Login {isEditing ? '(Opsional)' : ''}</Label>
+                            <div className="relative">
+                                <Input
+                                    id="staffPassword"
+                                    type={showPassword ? "text" : "password"}
+                                    value={currentStaff.password || ''}
+                                    onChange={(e) => setCurrentStaff({ ...currentStaff, password: e.target.value })}
+                                    placeholder={isEditing ? "(Biarkan kosong jika tidak diubah)" : "Minimal 6 karakter"}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                >
+                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                            </div>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="staffPhoto">Foto Profil</Label>
@@ -466,7 +643,12 @@ const Staff = () => {
                             <Label htmlFor="staffRole">Role / Peran</Label>
                             <Select
                                 value={currentStaff.role}
-                                onValueChange={(value) => setCurrentStaff({ ...currentStaff, role: value })}
+                                onValueChange={(value) => {
+                                    setCurrentStaff({ ...currentStaff, role: value });
+                                    // Auto-update permissions when role changes (if user hasn't explicitly customized yet? 
+                                    // Or just overwrite? UX decision: Overwrite to helpful defaults is safer.)
+                                    setPermissions(getPermissionsForRole(value));
+                                }}
                             >
                                 <SelectTrigger id="staffRole">
                                     <SelectValue />
@@ -478,30 +660,107 @@ const Staff = () => {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="staffPassword">Password</Label>
-                            <div className="relative">
-                                <Input
-                                    id="staffPassword"
-                                    type={showPassword ? "text" : "password"}
-                                    value={currentStaff.password}
-                                    onChange={(e) => setCurrentStaff({ ...currentStaff, password: e.target.value })}
-                                    required
-                                    placeholder="Masukkan password"
-                                    className="pr-10"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                >
-                                    {showPassword ? (
-                                        <EyeOff className="h-4 w-4" />
-                                    ) : (
-                                        <Eye className="h-4 w-4" />
-                                    )}
-                                </button>
-                            </div>
+
+                        {/* --- PERMISSION EDITOR --- */}
+                        <div className="border rounded-md p-3 bg-slate-50">
+                            <button
+                                type="button"
+                                onClick={() => setShowPermissions(!showPermissions)}
+                                className="flex items-center justify-between w-full text-sm font-medium text-slate-700"
+                            >
+                                <span>Kelola Hak Akses (Advanced)</span>
+                                {showPermissions ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                            </button>
+
+                            {showPermissions && (
+                                <div className="mt-3 space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                                    <div className="flex justify-between mb-2">
+                                        <div className="flex gap-2">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="text-xs h-6"
+                                                onClick={() => {
+                                                    const allIds = PERMISSION_SCHEMA.flatMap(g => g.children.map(c => c.id));
+                                                    setPermissions(allIds);
+                                                }}
+                                            >
+                                                Pilih Semua
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="text-xs h-6"
+                                                onClick={() => setPermissions([])}
+                                            >
+                                                Hapus Semua
+                                            </Button>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-xs h-6 text-muted-foreground"
+                                            onClick={() => setPermissions(getPermissionsForRole(currentStaff.role))}
+                                        >
+                                            Reset ke Default Role
+                                        </Button>
+                                    </div>
+                                    {PERMISSION_SCHEMA.map((group) => {
+                                        const groupChildrenIds = group.children.map(c => c.id);
+                                        const isAllChecked = groupChildrenIds.every(id => permissions.includes(id));
+                                        const isIndeterminate = groupChildrenIds.some(id => permissions.includes(id)) && !isAllChecked;
+
+                                        const toggleGroup = () => {
+                                            if (isAllChecked) {
+                                                // Uncheck all
+                                                setPermissions(prev => prev.filter(p => !groupChildrenIds.includes(p)));
+                                            } else {
+                                                // Check all (merge unique)
+                                                setPermissions(prev => [...new Set([...prev, ...groupChildrenIds])]);
+                                            }
+                                        };
+
+                                        return (
+                                            <div key={group.id} className="space-y-2">
+                                                <div className="flex items-center gap-2 bg-white p-2 rounded border shadow-sm">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                                                        checked={isAllChecked}
+                                                        ref={input => {
+                                                            if (input) input.indeterminate = isIndeterminate;
+                                                        }}
+                                                        onChange={toggleGroup}
+                                                    />
+                                                    <span className="font-semibold text-sm">{group.label}</span>
+                                                </div>
+                                                <div className="ml-6 space-y-1">
+                                                    {group.children.map(child => (
+                                                        <label key={child.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-100 p-1 rounded">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5"
+                                                                checked={permissions.includes(child.id)}
+                                                                onChange={(e) => {
+                                                                    if (e.target.checked) {
+                                                                        setPermissions(prev => [...prev, child.id]);
+                                                                    } else {
+                                                                        setPermissions(prev => prev.filter(p => p !== child.id));
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <span className="text-slate-600">{child.label}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex items-center space-x-2 pt-2">

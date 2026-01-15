@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Button } from '../components/ui/button';
@@ -13,6 +14,7 @@ import AlertDialog from '../components/AlertDialog';
 import CustomerTransactionHistory from '../components/CustomerTransactionHistory';
 
 const Customers = () => {
+    const { checkPermission } = useAuth();
     const { customers, transactions, addCustomer, updateCustomer, deleteCustomer } = useData();
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -161,10 +163,12 @@ const Customers = () => {
                     <h1 className="text-3xl font-bold tracking-tight">Pelanggan</h1>
                     <p className="text-muted-foreground">Kelola database pelanggan Anda</p>
                 </div>
-                <Button onClick={() => handleOpenModal()}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Tambah Pelanggan
-                </Button>
+                {checkPermission('customers.create') && (
+                    <Button onClick={() => handleOpenModal()}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Tambah Pelanggan
+                    </Button>
+                )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -271,21 +275,25 @@ const Customers = () => {
                                                 >
                                                     <History className="h-4 w-4" />
                                                 </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => handleOpenModal(customer)}
-                                                >
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                                                    onClick={() => handleDelete(customer)}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                                                {checkPermission('customers.update') && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleOpenModal(customer)}
+                                                    >
+                                                        <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                                {checkPermission('customers.delete') && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                        onClick={() => handleDelete(customer)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                )}
                                             </div>
                                         </TableCell>
                                     </TableRow>

@@ -6,9 +6,11 @@ import { printerService } from '../services/printer';
 import { formatDate } from '../lib/utils';
 import { getOptimizedImage } from '../utils/supabaseImage';
 
+import { useAuth } from '../context/AuthContext';
 import { printReceiptBrowser } from '../lib/receiptHelper';
 
 const ReceiptModal = ({ isOpen, onClose, transaction, store }) => {
+    const { checkPermission } = useAuth();
     const receiptRef = useRef(null);
     const [isPrinting, setIsPrinting] = useState(false);
 
@@ -221,14 +223,16 @@ const ReceiptModal = ({ isOpen, onClose, transaction, store }) => {
                 </div>
 
                 <div className="p-4 border-t flex gap-3 justify-end bg-white">
-                    <button
-                        onClick={handlePrint}
-                        disabled={isPrinting}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
-                    >
-                        <Printer size={16} />
-                        {isPrinting ? 'Mencetak...' : 'Cetak'}
-                    </button>
+                    {checkPermission('transactions.print') && (
+                        <button
+                            onClick={handlePrint}
+                            disabled={isPrinting}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        >
+                            <Printer size={16} />
+                            {isPrinting ? 'Mencetak...' : 'Cetak'}
+                        </button>
+                    )}
                     <button
                         onClick={handleDownload}
                         className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"

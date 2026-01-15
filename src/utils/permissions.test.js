@@ -1,57 +1,54 @@
 import { describe, it, expect } from 'vitest';
-import { normalizePermissions } from './permissions';
+import { getPermissionsForRole, ROLE_PRESETS } from './permissions';
 
-describe('normalizePermissions', () => {
-    it('should assign default admin permissions including void and refund', () => {
-        const permissions = null; // simulate fresh permission generation
-        const result = normalizePermissions(permissions);
+describe('Permissions System', () => {
+    describe('getPermissionsForRole', () => {
+        it('should return correct permissions for "admin"', () => {
+            const permissions = getPermissionsForRole('admin');
+            expect(permissions).toContain('transactions.refund');
+            expect(permissions).toContain('products.delete');
+            expect(permissions).toContain('settings.users');
+        });
 
-        expect(result.admin).toContain('transactions.void');
-        expect(result.admin).toContain('transactions.refund');
-        expect(result.super_admin).toContain('transactions.void');
+        it('should return correct permissions for "staff"', () => {
+            const permissions = getPermissionsForRole('staff');
+            expect(permissions).toContain('pos.access');
+            expect(permissions).toContain('products.read');
+            // Staff should NOT have these by default
+            expect(permissions).not.toContain('transactions.void');
+            expect(permissions).not.toContain('products.delete');
+        });
+
+        it('should return correct permissions for "sales"', () => {
+            const permissions = getPermissionsForRole('sales');
+            expect(permissions).toContain('reports.view');
+            expect(permissions).toContain('products.read');
+            // Sales should NOT have delete access
+            expect(permissions).not.toContain('products.delete');
+        });
+
+        it('should be case insensitive', () => {
+            const adminPerms = getPermissionsForRole('ADMIN');
+            const staffPerms = getPermissionsForRole('Staff');
+            expect(adminPerms).toEqual(ROLE_PRESETS.admin);
+            expect(staffPerms).toEqual(ROLE_PRESETS.staff);
+        });
+
+        it('should return empty array for unknown role', () => {
+            const permissions = getPermissionsForRole('unknown_role');
+            expect(permissions).toEqual([]);
+        });
     });
 
-    it('should assign valid defaults for staff (kasir) WITHOUT void/refund', () => {
-        const permissions = null;
-        const result = normalizePermissions(permissions);
+    describe('ROLE_PRESETS', () => {
+        it('should have defined presets for core roles', () => {
+            expect(ROLE_PRESETS).toHaveProperty('admin');
+            expect(ROLE_PRESETS).toHaveProperty('staff');
+            expect(ROLE_PRESETS).toHaveProperty('sales');
+        });
 
-        expect(result.staff).toContain('pos');
-        expect(result.staff).toContain('transactions');
-        expect(result.staff).not.toContain('transactions.void');
-        expect(result.staff).not.toContain('transactions.refund');
-    });
-
-    it('should preserve void/refund if manually added to a role', () => {
-        const input = {
-            staff: ['pos', 'transactions', 'transactions.void']
-        };
-        const result = normalizePermissions(input);
-
-        expect(result.staff).toContain('transactions.void');
-        // Should not magically add refund if we didn't ask for it
-        expect(result.staff).not.toContain('transactions.refund');
-    });
-
-    it('should correct admin permissions if they are missing void/refund (migration scenario)', () => {
-        // Simulate an old admin who has 'transactions' but misses granular rights
-        const input = {
-            admin: ['dashboard', 'transactions']
-        };
-        const result = normalizePermissions(input);
-
-        expect(result.admin).toContain('transactions.void');
-        expect(result.admin).toContain('transactions.refund');
-    });
-
-    it('should NOT give void/refund to staff even if they have transactions (migration scenario)', () => {
-        // Simulate an old staff who has 'transactions'
-        const input = {
-            staff: ['dashboard', 'transactions']
-        };
-        const result = normalizePermissions(input);
-
-        expect(result.staff).toContain('transactions');
-        expect(result.staff).not.toContain('transactions.void');
-        expect(result.staff).not.toContain('transactions.refund');
+        it('admin role should have significantly more permissions than staff', () => {
+            expect(ROLE_PRESETS.admin.length).toBeGreaterThan(ROLE_PRESETS.staff.length);
+        });
     });
 });

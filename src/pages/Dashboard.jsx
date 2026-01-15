@@ -42,24 +42,29 @@ const Dashboard = () => {
     const { user } = useAuth();
     const [selectedTransaction, setSelectedTransaction] = useState(null);
     const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
-    const { currentStore, products = [], customers = [] } = useData();
+    const { currentStore, products: rawProducts, customers: rawCustomers } = useData();
+    const products = useMemo(() => Array.isArray(rawProducts) ? rawProducts : [], [rawProducts]);
+    const customers = useMemo(() => Array.isArray(rawCustomers) ? rawCustomers : [], [rawCustomers]);
 
     // Helper to check permissions
     const hasPermission = (feature) => {
         if (!user) return false;
-        if (user.role === 'super_admin') return true;
-        if (!currentStore) return user.role === 'owner' || user.role === 'super_admin';
 
-        // Admin always has access unless specifically restricted (logic simplification)
-        if (user.role === 'owner' || user.role === 'super_admin') return true;
+        const userRole = (user.role || '').toLowerCase();
 
-        const perms = user.permissions || [];
+        if (userRole === 'super_admin') return true;
+        if (!currentStore) return userRole === 'owner' || userRole === 'super_admin';
+
+        // Admin always has access unless specifically restricted
+        if (userRole === 'owner' || userRole === 'super_admin' || userRole === 'admin') return true;
+
+        const perms = Array.isArray(user.permissions) ? user.permissions : [];
         return perms.includes(feature) || perms.some(p => p.startsWith(feature + '.'));
     };
 
     // Permission Gates
-    const canViewFinancials = hasPermission('reports.profit_loss') || hasPermission('reports.sales_performance');
-    const canViewStock = hasPermission('products.stock');
+    const canViewFinancials = hasPermission('dashboard.financials') || hasPermission('reports.profit_loss');
+    const canViewStock = hasPermission('dashboard.stock') || hasPermission('products.stock');
 
     const handleViewReceipt = (transaction) => {
         setSelectedTransaction(transaction);

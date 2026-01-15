@@ -1,102 +1,185 @@
+
+// --- PERMISSION SCHEMA ---
+// --- PERMISSION SCHEMA ---
+export const PERMISSION_SCHEMA = [
+    {
+        id: 'dashboard',
+        label: 'Dashboard',
+        children: [
+            { id: 'dashboard.view', label: 'Akses Halaman Dashboard' },
+            { id: 'dashboard.operational', label: 'Statistik Operasional' },
+            { id: 'dashboard.financials', label: 'Statistik Keuangan' },
+            { id: 'dashboard.stock', label: 'Notifikasi Stok' }
+        ]
+    },
+    {
+        id: 'transactions',
+        label: 'Transaksi',
+        children: [
+            { id: 'transactions.view', label: 'Lihat Riwayat' },
+            { id: 'transactions.detail', label: 'Lihat Detail/Struk' },
+            { id: 'transactions.print', label: 'Cetak Ulang Struk' },
+            { id: 'transactions.refund', label: 'Refund / Void' }
+        ]
+    },
+    {
+        id: 'pos',
+        label: 'Kasir (POS)',
+        children: [
+            { id: 'pos.access', label: 'Akses POS' },
+            { id: 'pos.custom_price', label: 'Harga Manual' },
+            { id: 'pos.discount', label: 'Diskon' },
+            { id: 'pos.open_price', label: 'Ubah Harga' }
+        ]
+    },
+    {
+        id: 'database',
+        label: 'Database (Master Data)',
+        children: [
+            // Returns to granular Product permissions
+            { id: 'products.read', label: 'Produk: Lihat Daftar' },
+            { id: 'products.create', label: 'Produk: Tambah Baru' },
+            { id: 'products.update', label: 'Produk: Edit' },
+            { id: 'products.delete', label: 'Produk: Hapus' },
+            { id: 'products.stock', label: 'Produk: Opname Stok' },
+            { id: 'products.import_export', label: 'Produk: Import / Export' },
+
+            // Categories
+            { id: 'categories.read', label: 'Kategori: Lihat' },
+            { id: 'categories.create', label: 'Kategori: Tambah' },
+            { id: 'categories.update', label: 'Kategori: Edit' },
+            { id: 'categories.delete', label: 'Kategori: Hapus' },
+
+            // Customers
+            { id: 'customers.read', label: 'Pelanggan: Lihat' },
+            { id: 'customers.create', label: 'Pelanggan: Tambah' },
+            { id: 'customers.update', label: 'Pelanggan: Edit' },
+            { id: 'customers.delete', label: 'Pelanggan: Hapus' },
+
+            // Suppliers
+            { id: 'suppliers.read', label: 'Supplier: Lihat' },
+            { id: 'suppliers.create', label: 'Supplier: Tambah' },
+            { id: 'suppliers.update', label: 'Supplier: Edit' },
+            { id: 'suppliers.delete', label: 'Supplier: Hapus' },
+
+            { id: 'products.purchase_orders', label: 'Purchase Order (Kulakan)' }
+        ]
+    },
+    {
+        id: 'finance',
+        label: 'Keuangan',
+        children: [
+            { id: 'finance.cash_flow', label: 'Arus Kas (Cash Flow)' }
+        ]
+    },
+    {
+        id: 'reports',
+        label: 'Laporan',
+        children: [
+            { id: 'reports.view', label: 'Akses Halaman Laporan' },
+            { id: 'reports.profit_loss', label: 'Laba Rugi' },
+            { id: 'reports.sales_items', label: 'Penjualan per Item' },
+            { id: 'reports.sales_categories', label: 'Penjualan per Kategori' },
+            { id: 'reports.inventory_value', label: 'Nilai Aset / Stok' },
+            { id: 'reports.shifts', label: 'Laporan Shift & Pengeluaran' },
+            { id: 'reports.performance', label: 'Performa Sales' },
+            { id: 'reports.forecast', label: 'Forecasting (Prediksi)' }
+        ]
+    },
+    {
+        id: 'smart_insights',
+        label: 'Smart Insights (AI)',
+        children: [
+            { id: 'smart_insights.bundling', label: 'Analisa Bundling / Market Basket' },
+            { id: 'smart_insights.forecast', label: 'Sales Forecasting' },
+            { id: 'smart_insights.segmentation', label: 'Segmentasi Pelanggan' }
+        ]
+    },
+    {
+        id: 'rental',
+        label: 'Rental / Sewa',
+        children: [
+            { id: 'rental.access', label: 'Akses Dashboard Rental' }
+        ]
+    },
+    {
+        id: 'others',
+        label: 'Lainnya',
+        children: [
+            { id: 'others.staff', label: 'Manajemen Staff (Lihat)' }, // App.jsx uses others.staff
+            { id: 'others.login_history', label: 'Riwayat Login' }
+        ]
+    },
+    {
+        id: 'settings',
+        label: 'Pengaturan',
+        children: [
+            { id: 'settings.profile', label: 'Profil Toko' },
+            { id: 'settings.printer', label: 'Printer' },
+            { id: 'settings.loyalty', label: 'Loyalty Point' },
+            { id: 'settings.users', label: 'Manajemen User (Admin)' },
+            { id: 'sales.target', label: 'Target Penjualan' } // App.jsx uses sales.target
+        ]
+    }
+];
+
+// --- DEFAULT ROLES (PRESETS) ---
+export const ROLE_PRESETS = {
+    staff: [
+        'dashboard.view',
+        'pos.access',
+        'transactions.view', 'transactions.detail',
+        'products.read', 'categories.read', 'customers.read', 'suppliers.read'
+    ],
+    sales: [
+        'dashboard.view', 'dashboard.operational',
+        'pos.access',
+        'transactions.view', 'transactions.detail',
+        'products.read', 'categories.read', 'customers.read', 'customers.create', 'suppliers.read',
+        'reports.view', 'reports.performance'
+    ],
+    admin: [
+        // ALL permissions included
+        'dashboard.view', 'dashboard.operational', 'dashboard.financials', 'dashboard.stock',
+        'transactions.view', 'transactions.detail', 'transactions.print', 'transactions.refund',
+        'pos.access', 'pos.custom_price', 'pos.discount', 'pos.open_price',
+
+        // Granular Master Data
+        'products.read', 'products.create', 'products.update', 'products.delete', 'products.stock', 'products.import_export', 'products.purchase_orders',
+        'categories.read', 'categories.create', 'categories.update', 'categories.delete',
+        'customers.read', 'customers.create', 'customers.update', 'customers.delete',
+        'suppliers.read', 'suppliers.create', 'suppliers.update', 'suppliers.delete',
+
+        'finance.cash_flow',
+        'reports.view', 'reports.profit_loss', 'reports.sales_items', 'reports.sales_categories', 'reports.inventory_value', 'reports.shifts', 'reports.performance', 'reports.forecast',
+        'smart_insights.bundling', 'smart_insights.forecast', 'smart_insights.segmentation',
+        'rental.access',
+        'others.staff', 'others.login_history',
+        'settings.profile', 'settings.printer', 'settings.loyalty', 'settings.users', 'sales.target'
+    ]
+};
+
 // Helper function to normalize and ensure complete permissions
 export const normalizePermissions = (permissions) => {
-    if (!permissions) {
-        const adminPermissions = [
-            'dashboard',
-            'pos',
-            'transactions',
-            'products.manage', 'products.list', 'products.categories', 'products.stock', 'products.stock_opname', 'products.customers', 'products.suppliers', 'products.purchase_orders',
-            'reports.profit_loss', 'reports.sales_items', 'reports.top_selling', 'reports.sales_categories',
-            'reports.inventory_value', 'reports.shifts', 'reports.expenses', 'reports.loyalty', 'reports.performance', 'reports.forecast',
-            'sales.target',
-            'finance.cash_flow',
-            'transactions.void', 'transactions.refund',
-            'others.staff', 'others.login_history', 'shifts.close_others',
-            'settings.profile', 'settings.subscription', 'settings.fees', 'settings.printer',
-            'settings.loyalty', 'settings.sales_performance', 'settings.telegram', 'settings.access'
-        ];
-        return {
-            super_admin: adminPermissions,
-            owner: adminPermissions,
-            admin: adminPermissions,
-            staff: ['pos', 'dashboard', 'transactions'],
-            sales: ['pos', 'dashboard', 'transactions']
-        };
+    // If no permissions array (legacy user), return based on role hardcoding (backward compatibility)
+    // But ideally, we should migrate them or just return what they have.
+    // This function is mainly used when loading the profile to ensure shape.
+
+    if (!permissions || permissions.length === 0) {
+        // Fallback for legacy users without permissions array
+        return {}; // Return empty to let the UI logic handle "role" based fallbacks if needed, 
+        // OR we can return the defaults here based on a "role" argument if we had it.
+        // But this function signature only takes 'permissions'.
+        // So we rely on the component logical layers.
     }
 
-    const normalized = { ...permissions };
+    // For the UI, we just need the array.
+    // For "checkPermission", we flatten.
+    return permissions;
+};
 
-    const expandBroadPermission = (roleSet, broadKey, subPermissions) => {
-        if (roleSet.has(broadKey)) {
-            roleSet.delete(broadKey);
-            subPermissions.forEach(p => roleSet.add(p));
-        }
-    };
-
-    // Dynamic Normalization for ALL roles (catches 'cashier', 'custom', etc.)
-    Object.keys(normalized).forEach(role => {
-        const roleSet = new Set(normalized[role]);
-
-        // 1. Settings Expansion (Admin gets all, others get restricted list if they had broad 'settings')
-        if (roleSet.has('settings')) {
-            const allSettings = [
-                'settings.profile', 'settings.subscription', 'settings.fees', 'settings.printer',
-                'settings.loyalty', 'settings.sales_performance', 'settings.telegram', 'settings.access'
-            ];
-
-            // Filter out sensitive settings for non-admins
-            const allowedSettings = (role === 'admin' || role === 'owner' || role === 'super_admin')
-                ? allSettings
-                : allSettings.filter(s => s !== 'settings.access' && s !== 'settings.fees' && s !== 'settings.subscription');
-
-            expandBroadPermission(roleSet, 'settings', allowedSettings);
-        } else if (role === 'admin' || role === 'owner' || role === 'super_admin') {
-            // Admin always gets full settings if not present (or if we are just ensuring defaults)
-            // But expandBroadPermission only runs if 'settings' key exists.
-            // We need to ensure Admin has them regardless? 
-            // Existing code implies we trust admins to have 'settings' or we add them manually?
-            // Actually, 'admin' block at top defines default. 
-            // This loop is for normalizing potential DB data.
-        }
-
-        // 2. Products Expansion (Crucial for migration)
-        if (roleSet.has('products')) {
-            // Default expansion for products - give at least list access
-            // For admin we give more, for others just list usually, but let's be safe and give list + granular checks will filter
-            const expansion = (role === 'admin' || role === 'owner' || role === 'super_admin')
-                ? ['products.manage', 'products.list', 'products.categories', 'products.stock', 'products.customers', 'products.suppliers', 'products.purchase_orders']
-                : ['products.list'];
-
-            expandBroadPermission(roleSet, 'products', expansion);
-        }
-
-        // 3. Reports Expansion
-        if (roleSet.has('reports')) {
-            expandBroadPermission(roleSet, 'reports', [
-                'reports.profit_loss', 'reports.sales_items', 'reports.sales_categories',
-                'reports.inventory_value', 'reports.shifts', 'reports.expenses', 'reports.loyalty', 'reports.performance',
-                'reports.forecast' // Added missing forecast
-            ]);
-        }
-
-        // 4. Sales Expansion
-        if (roleSet.has('sales')) {
-            expandBroadPermission(roleSet, 'sales', ['sales.target']);
-        }
-
-        // 5. Transactions Augmentation (Backfill for Admins)
-        if (roleSet.has('transactions') && (role === 'admin' || role === 'owner' || role === 'super_admin')) {
-            roleSet.add('transactions.void');
-            roleSet.add('transactions.refund');
-        }
-
-        // 5. Force valid defaults for known roles if missing
-        if (role === 'staff' || role === 'sales' || role === 'cashier') {
-            ['dashboard', 'transactions'].forEach(p => roleSet.add(p));
-        }
-
-        normalized[role] = Array.from(roleSet);
-    });
-
-    return normalized;
+// Helper to get defaults by role
+export const getPermissionsForRole = (role) => {
+    if (!role) return [];
+    return ROLE_PRESETS[role.toLowerCase()] || [];
 };

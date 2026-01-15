@@ -465,14 +465,18 @@ const Transactions = () => {
                         <BookLock className="mr-2 h-4 w-4" />
                         {isProcessingCloseBook ? "Memproses..." : "Tutup Buku Harian"}
                     </Button>
-                    <Button variant="outline" onClick={handleExportPDF}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Export PDF
-                    </Button>
-                    <Button variant="outline" onClick={exportData}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Export CSV
-                    </Button>
+                    {checkPermission('transactions.view') && (
+                        <>
+                            <Button variant="outline" onClick={handleExportPDF}>
+                                <Download className="mr-2 h-4 w-4" />
+                                Export PDF
+                            </Button>
+                            <Button variant="outline" onClick={exportData}>
+                                <Download className="mr-2 h-4 w-4" />
+                                Export CSV
+                            </Button>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -616,21 +620,19 @@ const Transactions = () => {
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                                                <Button variant="ghost" size="icon" onClick={() => handleViewReceipt(tx)}>
-                                                    <Eye className="h-4 w-4" />
-                                                </Button>
-                                                {tx.status !== 'void' && tx.status !== 'refunded' && (
+                                                {checkPermission('transactions.detail') && (
+                                                    <Button variant="ghost" size="icon" onClick={() => handleViewReceipt(tx)}>
+                                                        <Eye className="h-4 w-4" />
+                                                    </Button>
+                                                )}
+                                                {tx.status !== 'void' && tx.status !== 'refunded' && checkPermission('transactions.refund') && (
                                                     <>
-                                                        {checkPermission('transactions.refund') && (
-                                                            <Button variant="ghost" size="icon" onClick={() => handleRefundClick(tx)} className="text-orange-500 hover:text-orange-600">
-                                                                <RotateCcw className="h-4 w-4" />
-                                                            </Button>
-                                                        )}
-                                                        {checkPermission('transactions.void') && (
-                                                            <Button variant="ghost" size="icon" onClick={() => handleVoidClick(tx)} className="text-destructive hover:text-destructive">
-                                                                <Ban className="h-4 w-4" />
-                                                            </Button>
-                                                        )}
+                                                        <Button variant="ghost" size="icon" onClick={() => handleRefundClick(tx)} className="text-orange-500 hover:text-orange-600" title="Refund">
+                                                            <RotateCcw className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" onClick={() => handleVoidClick(tx)} className="text-destructive hover:text-destructive" title="Batalkan">
+                                                            <Ban className="h-4 w-4" />
+                                                        </Button>
                                                     </>
                                                 )}
                                             </div>
