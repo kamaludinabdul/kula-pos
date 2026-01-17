@@ -26,7 +26,7 @@ const CashFlow = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [datePickerDate, setDatePickerDate] = useState(() => {
-        const { startDate, endDate } = getDateRange('today');
+        const { startDate, endDate } = getDateRange('thisMonth');
         return { from: startDate, to: endDate };
     });
 
@@ -257,6 +257,176 @@ const CashFlow = () => {
 
     const currentBalance = allTimeBalance.sales + allTimeBalance.cashIn - allTimeBalance.cashOut;
 
+    // --- MIGRATION LOGIC (TEMP) ---
+    const [isMigrating, setIsMigrating] = useState(false);
+
+    const handleMigrateFromFirebase = async () => {
+        if (!confirm("⚠️ PENTING: Apakah Anda yakin ingin mengambil data dari Firebase?\n\nPastikan Anda belum pernah melakukan import ini sebelumnya agar data tidak ganda.\n\nLanjutkan?")) return;
+
+        setIsMigrating(true);
+        try {
+            // 1. Initialize Firebase (Dynamic Import to avoid bundling issues if not used)
+            const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js");
+            const { getFirestore, collection, getDocs, query, where, limit } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+
+            const firebaseConfig = {
+                apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+                authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+                projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+                storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+                messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+                appId: import.meta.env.VITE_FIREBASE_APP_ID
+            };
+
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+
+            // 2. DEEP SCAN STRATEGY
+            console.log("Starting Deep Scan of all Stores...");
+
+            // Fetch all stores
+            const storesSnap = await getDocs(query(collection(db, "stores")));
+            console.log(`Scanned ${storesSnap.size} stores.`);
+
+            let candidateFound = null;
+            let candidateCount = 0;
+
+            // Loop through all stores to find where the cash flow data hides
+            for (const doc of storesSnap.docs) {
+                const s = doc.data();
+                const storeId = doc.id;
+                const storeName = s.name || 'Unknown Store';
+
+                // Check multiple possible subcollection names
+                const subCollectionsToCheck = ['cash_flows', 'cashflow', 'expenses', 'aruskas', 'transactions'];
+
+                for (const subName of subCollectionsToCheck) {
+                    try {
+                        const subRef = collection(db, `stores/${storeId}/${subName}`);
+                        const subSnap = await getDocs(query(subRef, limit(50))); // Check first 50
+
+                        if (!subSnap.empty) {
+                            console.log(`FOUND DATA! Store: ${storeName}, Subcoll: ${subName}, Count: ${subSnap.size}`);
+
+                            // If we find data, is it the RIGHT data? 
+                            // We can check fields. But for now, let's assume if it has data, it's a candidate.
+                            // Priority: 'cash_flows' > 'cashflow' > 'expenses'
+
+                            if (!candidateFound || (s.name && s.name.toLowerCase() === currentStore.name.toLowerCase())) {
+                                candidateFound = {
+                                    id: storeId,
+                                    name: storeName,
+                                    snapshot: subSnap,
+                                    collectionPath: `stores/${storeId}/${subName}`,
+                                    type: 'subcollection'
+                                };
+                                candidateCount++;
+                            }
+                        }
+                    } catch (e) {
+                        // Ignore error, just continue
+                    }
+                }
+            }
+
+            // Also Check Root Collections again with same variety
+            const rootCollectionsToCheck = ['cash_flows', 'cashflow', 'expenses', 'aruskas']; // Transactions usually huge, skip root transactions for cashflow for now unless desperate
+            for (const rootName of rootCollectionsToCheck) {
+                if (candidateFound) break; // detailed subcollection preferred?
+                try {
+                    const rootSnap = await getDocs(query(collection(db, rootName), limit(50)));
+                    if (!rootSnap.empty) {
+                        candidateFound = {
+                            id: 'ROOT',
+                            name: 'Root Collection',
+                            snapshot: rootSnap,
+                            collectionPath: rootName,
+                            type: 'root'
+                        };
+                    }
+                } catch (e) { }
+            }
+
+            if (!candidateFound) {
+                alert("Deep Scan Selesai: TIDAK ditemukan data Arus Kas di toko manapun (Sub-collection) maupun di Root.");
+                setIsMigrating(false);
+                return;
+            }
+
+            // Confirm with user
+            const confirmMsg = `Ditemukan ${candidateFound.snapshot.size}+ data di:\nLokasi: ${candidateFound.collectionPath}\nToko: ${candidateFound.name}\n\nApakah ini data yang Anda cari? Klik OK untuk Import.`;
+            if (!confirm(confirmMsg)) {
+                setIsMigrating(false);
+                return;
+            }
+
+            // 3. Import Data
+            console.log("Importing from:", candidateFound.collectionPath);
+
+            // We need to fetch ALL docs now, not just the limit(50) snapshot
+            // Re-query the winner
+            let finalQuery;
+            if (candidateFound.type === 'subcollection') {
+                finalQuery = query(collection(db, candidateFound.collectionPath));
+            } else {
+                finalQuery = query(collection(db, candidateFound.collectionPath));
+                // Filter by storeId if root?
+                // But we don't know the field name. 
+                // Let's assume user wants everything if they confirmed ROOT match.
+                // OR we try to filter if possible.
+            }
+
+            const snapshot = await getDocs(finalQuery);
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const doc of snapshot.docs) {
+                const data = doc.data();
+
+                // Prevent duplicate: Check if ID exists (assuming we keep ID or store it in metadata)
+                // Or checking exact match of date/amount/desc
+
+                // Normalize Date
+                let dateStr = data.date;
+                // Handle Timestamp if needed
+                if (data.date && typeof data.date.toDate === 'function') {
+                    dateStr = data.date.toDate().toISOString().split('T')[0];
+                }
+
+                const payload = {
+                    store_id: currentStore.id,
+                    type: data.type,
+                    category: data.category === 'Penjualan' ? 'Penjualan (Rekap)' : (data.category || 'Lain-lain'),
+                    amount: Number(data.amount),
+                    description: data.description || data.reason || 'Migrasi Firebase',
+                    date: dateStr,
+                    performed_by: user.name || 'Migrator',
+                    expense_group: data.expenseGroup || 'operational',
+                    created_at: new Date().toISOString()
+                    // external_id: doc.id // Optional: store firebase ID to prevent re-import?
+                };
+
+                const { error } = await supabase.from('cash_flow').insert(payload);
+                if (error) {
+                    console.error("Failed to insert:", payload, error);
+                    errorCount++;
+                } else {
+                    successCount++;
+                }
+            }
+
+            alert(`Migrasi Selesai!\nSukses: ${successCount}\nGagal: ${errorCount}\n\nSilakan refresh halaman.`);
+            fetchTransactions();
+
+        } catch (err) {
+            console.error("Migration Error:", err);
+            alert("Gagal Migrasi: " + err.message);
+        } finally {
+            setIsMigrating(false);
+        }
+    };
+
     return (
         <div className="space-y-6 p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -269,6 +439,7 @@ const CashFlow = () => {
                         date={datePickerDate}
                         onDateChange={setDatePickerDate}
                     />
+
                     <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                         <DialogTrigger asChild>
                             <Button className="gap-2">
@@ -384,14 +555,14 @@ const CashFlow = () => {
                                     {isSaving ? 'Menyimpan...' : 'Simpan'}
                                 </Button>
                             </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-                </div>
-            </div>
+                        </DialogContent >
+                    </Dialog >
+                </div >
+            </div >
 
 
             {/* All-Time Balance Card */}
-            <Card className="bg-slate-900 text-white border-none shadow-lg">
+            < Card className="bg-slate-900 text-white border-none shadow-lg" >
                 <CardHeader>
                     <CardTitle className="text-lg font-medium text-slate-200">Total Uang Saat Ini (Tanpa Filter)</CardTitle>
                 </CardHeader>
@@ -412,10 +583,10 @@ const CashFlow = () => {
                         </div>
                     </div>
                 </CardContent>
-            </Card>
+            </Card >
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            < div className="grid grid-cols-1 md:grid-cols-3 gap-4" >
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Pemasukan</CardTitle>
@@ -479,10 +650,10 @@ const CashFlow = () => {
                         <p className="text-xs text-muted-foreground mt-1">Pembelian aset & inventaris</p>
                     </CardContent>
                 </Card>
-            </div>
+            </div >
 
             {/* Transactions Table */}
-            <Card>
+            < Card >
                 <CardHeader>
                     <CardTitle>Riwayat Transaksi</CardTitle>
                 </CardHeader>
@@ -552,7 +723,7 @@ const CashFlow = () => {
                         </TableBody>
                     </Table>
                 </CardContent>
-            </Card>
+            </Card >
         </div >
     );
 };

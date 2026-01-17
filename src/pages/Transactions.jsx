@@ -309,12 +309,8 @@ const Transactions = () => {
         if (!transactionToRefund || !refundReason) return;
         const result = await processRefund(transactionToRefund.id, refundReason);
         if (result.success) {
-            await addCashMovement(
-                'out',
-                transactionToRefund.total,
-                `Refund Transaksi #${transactionToRefund.id.slice(-8)}: ${refundReason}`,
-                'Refund'
-            );
+            // Refund hanya mengubah status transaksi, tidak dicatat ke cash_flow
+            // karena transaksi refunded sudah tidak dihitung di Tutup Buku
             setIsRefundDialogOpen(false);
             setTransactionToRefund(null);
             fetchTransactions(true);
@@ -363,11 +359,12 @@ const Transactions = () => {
             const count = sales.length;
 
             // 3. Check for existing Rekap
+            // 3. Check for existing Rekap (Handle both new 'Penjualan (Rekap)' and legacy 'Penjualan')
             const { data: cfData, error: cfError } = await supabase
                 .from('cash_flow')
                 .select('*')
                 .eq('store_id', currentStore.id)
-                .eq('category', 'Penjualan (Rekap)')
+                .in('category', ['Penjualan (Rekap)', 'Penjualan']) // Check both to avoid duplicates
                 .eq('date', dateStr)
                 .limit(1);
 
