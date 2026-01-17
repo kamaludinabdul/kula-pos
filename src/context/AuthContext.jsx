@@ -280,12 +280,15 @@ export const AuthProvider = ({ children }) => {
             if (isMounted) setLoading(false);
         };
 
-        const checkInitialSession = async () => {
-            if (hasInitializedRef.current) return;
-            hasInitializedRef.current = true; // LOCK IMMEDIATELY to prevent double execution in Strict Mode
+        const checkInitialSession = async (retryCount = 0) => {
+            const MAX_RETRIES = 3;
+            const RETRY_DELAY = 300;
+
+            if (hasInitializedRef.current && retryCount === 0) return;
+            if (retryCount === 0) hasInitializedRef.current = true; // LOCK IMMEDIATELY to prevent double execution in Strict Mode
             const requestId = ++fetchRequestId.current;
             try {
-                console.log("Auth: Checking initial session...");
+                console.log("Auth: Checking initial session...", retryCount > 0 ? `(retry ${retryCount})` : '');
                 const startTime = performance.now();
 
                 const sessionQuery = supabase.auth.getSession();
@@ -311,10 +314,15 @@ export const AuthProvider = ({ children }) => {
                     }
                 }
             } catch (error) {
-                // If aborted, we still need to stop loading if we are mounted, 
-                // otherwise the app assumes we are still fetching forever.
+                // If aborted, retry before giving up
+                if ((error.name === 'AbortError' || error.message?.includes('aborted')) && retryCount < MAX_RETRIES) {
+                    console.log(`Auth: Session check aborted, retrying in ${RETRY_DELAY}ms... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+                    return checkInitialSession(retryCount + 1);
+                }
+
                 if (error.name === 'AbortError' || error.message?.includes('aborted')) {
-                    console.warn("Auth: Initial session check aborted.");
+                    console.warn("Auth: Initial session check aborted after retries.");
                     if (isMounted) completeLoading();
                     return;
                 }
