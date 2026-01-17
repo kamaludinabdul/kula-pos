@@ -18,10 +18,12 @@ export const AuthProvider = ({ children }) => {
     const idleTimerRef = useRef(null);
     const lastResetTime = useRef(0);
     const fetchRequestId = useRef(0);
+    const profilePromiseRef = useRef(null); // Stores the active promise for profile fetching
     const currentChannel = useRef(null);
     const profileChannelRef = useRef(null);
     const sessionStartTimeRef = useRef(new Date().toISOString());
     const userRef = useRef(user);
+    const hasInitializedRef = useRef(false);
 
     useEffect(() => {
         userRef.current = user;
@@ -29,41 +31,93 @@ export const AuthProvider = ({ children }) => {
 
     // --- Profile Fetching Helper ---
     const fetchUserProfile = useCallback(async (userId) => {
-        // ... (fetch logic)
-        const { data: profile, error } = await supabase
-            .from('profiles')
-            .select(`
-                *,
-                stores (*)
-            `)
-            .eq('id', userId)
-            .single();
-
-        if (error) {
-            console.error("Error fetching user profile:", error);
-            return null;
+        // REQUEST COALESCING: If a fetch is already in progress, return that promise.
+        if (profilePromiseRef.current) {
+            console.log("Auth: Profile fetch already in progress, sharing promise");
+            return profilePromiseRef.current;
         }
 
-        // Hydrate permissions with FALLBACK for legacy users
-        let effectivePermissions = profile.permissions;
-        if (!effectivePermissions || effectivePermissions.length === 0) {
-            // If user has no permissions saved, use the default for their role
-            effectivePermissions = getPermissionsForRole(profile.role);
-        }
+        const fetchPromise = (async () => {
+            console.log('Fetching profile for:', userId);
+            const startTime = performance.now();
 
-        const normalized = normalizePermissions(effectivePermissions ? { [profile.role]: effectivePermissions } : null);
-        if (normalized[profile.role]) {
-            profile.permissions = normalized[profile.role];
-        } else {
-            // Fallback if normalize failed or returns different shape
-            profile.permissions = effectivePermissions || [];
-        }
+            try {
+                // Step 1: Fetch profile only (faster than join)
+                console.log('Auth: Step 1: Fetching profile...');
+                const profileStart = performance.now();
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
+                console.log(`Auth: Profile query took: ${((performance.now() - profileStart) / 1000).toFixed(1)}s`);
 
-        if (profile) {
-            profile.storeId = profile.store_id;
-        }
+                if (profileError) {
+                    console.error("Auth: Error fetching user profile:", profileError);
+                    throw profileError;
+                }
 
-        return profile;
+                // Step 2: Fetch store if profile has store_id
+                if (profile.store_id) {
+                    console.log('Auth: Step 2: Fetching store...');
+                    const storeStart = performance.now();
+
+                    // Add a timeout for the store query to prevent indefinite hanging
+                    const storeQuery = supabase
+                        .from('stores')
+                        .select('*')
+                        .eq('id', profile.store_id)
+                        .single();
+
+                    const timeoutPromise = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('Store query timeout')), 10000)
+                    );
+
+                    try {
+                        const { data: store, error: storeError } = await Promise.race([storeQuery, timeoutPromise]);
+                        console.log(`Auth: Store query took: ${((performance.now() - storeStart) / 1000).toFixed(1)}s`);
+
+                        if (!storeError && store) {
+                            profile.stores = store;
+                        } else if (storeError) {
+                            console.warn("Auth: Error fetching store detail:", storeError);
+                        }
+                    } catch (err) {
+                        console.warn("Auth: Store fetch skipped or timed out:", err.message);
+                        // We continue, as DataContext can retry later
+                    }
+                }
+
+                console.log(`Total profile fetch took: ${((performance.now() - startTime) / 1000).toFixed(1)}s`);
+
+                // Hydrate permissions with FALLBACK for legacy users
+                let effectivePermissions = profile.permissions;
+                if (!effectivePermissions || effectivePermissions.length === 0) {
+                    effectivePermissions = getPermissionsForRole(profile.role);
+                }
+
+                const normalized = normalizePermissions(effectivePermissions ? { [profile.role]: effectivePermissions } : null);
+                if (normalized[profile.role]) {
+                    profile.permissions = normalized[profile.role];
+                } else {
+                    profile.permissions = effectivePermissions || [];
+                }
+
+                if (profile) {
+                    profile.storeId = profile.store_id;
+                }
+
+                return profile;
+            } catch (err) {
+                console.error(`Auth: Profile fetch failed after ${((performance.now() - startTime) / 1000).toFixed(1)}s:`, err.message);
+                throw err;
+            } finally {
+                profilePromiseRef.current = null;
+            }
+        })();
+
+        profilePromiseRef.current = fetchPromise;
+        return fetchPromise;
     }, []);
 
     const logout = useCallback(async () => {
@@ -85,78 +139,91 @@ export const AuthProvider = ({ children }) => {
 
     // --- Profile Loading Logic ---
     const loadUserSession = useCallback(async (userId, requestId) => {
+        console.log("Loading user session for:", userId);
         try {
             const profile = await fetchUserProfile(userId);
 
-            // Only update if this is still the latest request and component is mounted (we can't check isMounted directly here cleanly without ref, but fetchRequestId helps)
-            if (requestId !== fetchRequestId.current) return;
+            // Only update if this is still the latest request (or if it's a coalesced request that finished)
+            // With request coalescing, multiple calls might await the same promise.
+            // When it resolves, we want the LATEST one to update the state.
+            if (requestId !== fetchRequestId.current) {
+                console.log(`Request ID mismatch (Current: ${fetchRequestId.current}, This: ${requestId}). Checking if we should proceed...`);
+                // If the content is valid, we might still want to use it if the user hasn't changed.
+                // But for strict correctness, let's allow only the latest ID to write state.
+                return;
+            }
 
-            if (profile) {
-                setUser(profile);
-                if (profile.stores?.settings) {
-                    setStoreSettings(profile.stores.settings);
+            if (!profile) {
+                console.warn("No profile found for user, logging out");
+                await logout();
+                return;
+            }
+
+            console.log("Profile loaded successfully:", profile.name);
+            setUser(profile);
+            if (profile.stores?.settings) {
+                setStoreSettings(profile.stores.settings);
+            }
+
+            // Handle Store Channel (Realtime)
+            if (profile.store_id) {
+                // --- FORCE LOGOUT CHECK (Initial) ---
+                if (profile.last_force_logout_at) {
+                    const forceTime = new Date(profile.last_force_logout_at).getTime();
+                    const sessionTime = new Date(sessionStartTimeRef.current).getTime();
+                    if (forceTime > sessionTime) {
+                        console.warn("Initial force logout check triggered.");
+                        alert("Sesi Anda telah dihentikan oleh Admin.");
+                        await logout();
+                        return;
+                    }
                 }
 
-                // Handle Store Channel (Realtime)
-                if (profile.store_id) {
-                    // --- FORCE LOGOUT CHECK (Initial) ---
-                    if (profile.last_force_logout_at) {
-                        const forceTime = new Date(profile.last_force_logout_at).getTime();
-                        const sessionTime = new Date(sessionStartTimeRef.current).getTime();
-                        if (forceTime > sessionTime) {
-                            console.warn("Initial force logout check triggered.");
-                            alert("Sesi Anda telah dihentikan oleh Admin.");
-                            await logout();
-                            return;
-                        }
-                    }
-
-                    // Cleanup previous
-                    if (currentChannel.current) {
-                        supabase.removeChannel(currentChannel.current);
-                    }
-
-                    const channel = supabase
-                        .channel(`store-${profile.store_id}`)
-                        .on('postgres_changes', {
-                            event: 'UPDATE',
-                            schema: 'public',
-                            table: 'stores',
-                            filter: `id=eq.${profile.store_id}`
-                        }, payload => {
-                            setStoreSettings(payload.new.settings);
-                        })
-                        .subscribe();
-
-                    currentChannel.current = channel;
+                // Cleanup previous
+                if (currentChannel.current) {
+                    supabase.removeChannel(currentChannel.current);
                 }
 
-                // Handle Profile Changes (Force Logout Realtime)
-                if (profileChannelRef.current) supabase.removeChannel(profileChannelRef.current);
-
-                profileChannelRef.current = supabase
-                    .channel(`profile-${profile.id}`)
+                const channel = supabase
+                    .channel(`store-${profile.store_id}`)
                     .on('postgres_changes', {
                         event: 'UPDATE',
                         schema: 'public',
-                        table: 'profiles',
-                        filter: `id=eq.${profile.id}`
-                    }, async (payload) => {
-                        // Check for force logout
-                        if (payload.new.last_force_logout_at) {
-                            const forceTime = new Date(payload.new.last_force_logout_at).getTime();
-                            const sessionTime = new Date(sessionStartTimeRef.current).getTime();
-                            if (forceTime > sessionTime) {
-                                alert("Sesi Anda telah dihentikan oleh Admin.");
-                                await logout();
-                            }
-                        }
-
-                        // Update local state if needed (optional)
-                        setUser(prev => ({ ...prev, ...payload.new }));
+                        table: 'stores',
+                        filter: `id=eq.${profile.store_id}`
+                    }, payload => {
+                        setStoreSettings(payload.new.settings);
                     })
                     .subscribe();
+
+                currentChannel.current = channel;
             }
+
+            // Handle Profile Changes (Force Logout Realtime)
+            if (profileChannelRef.current) supabase.removeChannel(profileChannelRef.current);
+
+            profileChannelRef.current = supabase
+                .channel(`profile-${profile.id}`)
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'profiles',
+                    filter: `id=eq.${profile.id}`
+                }, async (payload) => {
+                    // Check for force logout
+                    if (payload.new.last_force_logout_at) {
+                        const forceTime = new Date(payload.new.last_force_logout_at).getTime();
+                        const sessionTime = new Date(sessionStartTimeRef.current).getTime();
+                        if (forceTime > sessionTime) {
+                            alert("Sesi Anda telah dihentikan oleh Admin.");
+                            await logout();
+                        }
+                    }
+
+                    // Update local state if needed (optional)
+                    setUser(prev => ({ ...prev, ...payload.new }));
+                })
+                .subscribe();
         } catch (error) {
             // Ignore AbortError - don't logout user
             if (error.name === 'AbortError' || error.message?.includes('aborted')) {
@@ -164,33 +231,66 @@ export const AuthProvider = ({ children }) => {
                 return;
             }
             console.error("Error loading profile:", error);
+            // Re-throw so caller can handle
+            throw error;
         }
     }, [fetchUserProfile, logout]);
 
     // --- Listen to Auth State ---
     useEffect(() => {
         let isMounted = true;
+        let loadingCompleted = false;
+
+        // SAFETY: Force loading to false after 60 seconds max to prevent stuck state
+        // Increased from 5s because Supabase can be slow (especially with cold starts)
+        const _safetyTimeout = setTimeout(() => {
+            if (isMounted && !loadingCompleted) {
+                console.warn("Auth: Safety timeout triggered after 60s, completing loading");
+                setLoading(false);
+            }
+        }, 60000);
+
+        // Helper to mark loading as completed normally
+        const completeLoading = () => {
+            loadingCompleted = true;
+            if (isMounted) setLoading(false);
+        };
 
         const checkInitialSession = async () => {
+            if (hasInitializedRef.current) return;
+            hasInitializedRef.current = true; // LOCK IMMEDIATELY to prevent double execution in Strict Mode
             const requestId = ++fetchRequestId.current;
             try {
+                console.log("Auth: Checking initial session...");
+                const startTime = performance.now();
                 const { data: { session }, error } = await supabase.auth.getSession();
+                const sessionTime = performance.now() - startTime;
+                console.log(`Auth: Session check complete (${sessionTime.toFixed(0)}ms):`, session ? "Logged in" : "No session", error);
                 if (error) throw error;
 
                 if (session?.user) {
+                    const profileStart = performance.now();
                     await loadUserSession(session.user.id, requestId);
+                    console.log(`Auth: Initial profile loaded (${(performance.now() - profileStart).toFixed(0)}ms)`);
+                    // CRITICAL: Complete loading after profile is loaded for logged-in users!
+                    if (isMounted) completeLoading();
                 } else {
-                    if (isMounted) setLoading(false);
+                    // Complete loading after session check if not logged in
+                    if (isMounted && requestId === fetchRequestId.current) {
+                        completeLoading();
+                    }
                 }
             } catch (error) {
+                // If aborted, we still need to stop loading if we are mounted, 
+                // otherwise the app assumes we are still fetching forever.
                 if (error.name === 'AbortError' || error.message?.includes('aborted')) {
-                    return; // Ignore
+                    console.warn("Auth: Initial session check aborted.");
+                    if (isMounted) completeLoading();
+                    return;
                 }
-                console.error("Error checking initial session:", error);
-            } finally {
-                if (isMounted && requestId === fetchRequestId.current) {
-                    setLoading(false);
-                }
+                console.error("Auth: Error checking initial session:", error);
+                hasInitializedRef.current = true;
+                if (isMounted) completeLoading(); // Force complete on error
             }
         };
 
@@ -198,12 +298,26 @@ export const AuthProvider = ({ children }) => {
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (!isMounted) return;
+            console.log(`Auth: State Change Event: ${event}`);
 
             if (session?.user) {
-                // Load or refresh profile
-                const requestId = ++fetchRequestId.current;
-                await loadUserSession(session.user.id, requestId);
-                if (isMounted) setLoading(false);
+                if (hasInitializedRef.current && event === 'INITIAL_SESSION') {
+                    console.log("Auth: Ignoring redundant INITIAL_SESSION event");
+                    return;
+                }
+
+                if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
+                    // If we just signed in, the login() function might have already started the fetch
+                    // But we're removing that manual call, so this listener becomes the primary source.
+                    const requestId = ++fetchRequestId.current;
+                    hasInitializedRef.current = true;
+                    try {
+                        await loadUserSession(session.user.id, requestId);
+                    } catch (err) {
+                        console.error("Auth: Failed to load user session in listener:", err);
+                    }
+                    if (isMounted) completeLoading();
+                }
             } else {
                 // Clear state on logout
                 setUser(null);
@@ -215,12 +329,13 @@ export const AuthProvider = ({ children }) => {
                     supabase.removeChannel(currentChannel.current);
                     currentChannel.current = null;
                 }
-                setLoading(false);
+                completeLoading();
             }
         });
 
         return () => {
             isMounted = false;
+            clearTimeout(_safetyTimeout);
             subscription.unsubscribe();
             if (currentChannel.current) {
                 supabase.removeChannel(currentChannel.current);
@@ -311,10 +426,23 @@ export const AuthProvider = ({ children }) => {
         // Record login history (custom table in Supabase) - Fire and forget
         (async () => {
             try {
+                // Fetch profile to get user details for audit log
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('name, role, store_id, stores(name)')
+                    .eq('id', data.user.id)
+                    .single();
+
                 await supabase.from('audit_logs').insert({
                     user_id: data.user.id,
                     action: 'login_success',
-                    metadata: { user_agent: navigator.userAgent }
+                    status: 'success',
+                    user_name: profile?.name || data.user.email,
+                    user_role: profile?.role || 'unknown',
+                    store_id: profile?.store_id,
+                    store_name: profile?.stores?.name || null,
+                    user_agent: navigator.userAgent,
+                    metadata: { email: data.user.email }
                 });
 
                 // Set status to Online
@@ -324,11 +452,9 @@ export const AuthProvider = ({ children }) => {
             }
         })();
 
-        // Explicitly load profile to ensure state is ready before navigation
-        if (data.user) {
-            const requestId = ++fetchRequestId.current;
-            await loadUserSession(data.user.id, requestId);
-        }
+        // We no longer call loadUserSession manually here. 
+        // supabase.auth.onAuthStateChange will catch the 'SIGNED_IN' event and handle it.
+        // This prevents double-loading during the login flow.
 
         return { success: true };
     };
@@ -373,6 +499,31 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const resetPassword = async (email) => {
+        try {
+            // Determine the correct redirect URL based on the environment
+            let redirectUrl = window.location.origin + '/reset-password';
+
+            // Explicitly force the URL for production/staging to ensure no ambiguity
+            if (import.meta.env.MODE === 'production') {
+                redirectUrl = 'https://kula-pos.web.app/reset-password';
+            } else if (import.meta.env.MODE === 'staging') {
+                redirectUrl = 'https://kula-pos-staging.web.app/reset-password';
+            }
+
+            console.log("Requesting password reset with redirect to:", redirectUrl);
+
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: redirectUrl
+            });
+            if (error) throw error;
+            return { success: true };
+        } catch (error) {
+            console.error("Reset password error:", error);
+            return { success: false, message: error.message };
+        }
+    };
+
     const checkPermission = useCallback((permission) => {
         if (!user) return false;
         if (user.role === 'super_admin' || user.role === 'owner') return true;
@@ -390,7 +541,7 @@ export const AuthProvider = ({ children }) => {
     }, [user]);
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, signup, loading, isLocked, unlock, checkPermission, updateStaffPassword }}>
+        <AuthContext.Provider value={{ user, login, logout, signup, resetPassword, loading, isLocked, unlock, checkPermission, updateStaffPassword }}>
             {!loading && children}
         </AuthContext.Provider>
     );

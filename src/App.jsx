@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider, useData } from './context/DataContext';
@@ -14,6 +14,7 @@ import { Toaster } from './components/ui/toaster';
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const POS = lazy(() => import('./pages/POS'));
 const MobilePOS = lazy(() => import('./pages/MobilePOS'));
 const RentalDashboard = lazy(() => import('./pages/RentalDashboard'));
@@ -91,6 +92,19 @@ const PrivateRoute = ({ children, feature, plan, permission }) => {
   const authContext = useAuth();
   const dataContext = useData();
   const location = useLocation();
+  const [showRefresh, setShowRefresh] = useState(false);
+
+  useEffect(() => {
+    let timeout;
+    if (authContext?.loading || dataContext?.loading || dataContext?.storesLoading) {
+      timeout = setTimeout(() => {
+        setShowRefresh(true);
+      }, 10000); // Show refresh after 10 seconds of loading
+    } else {
+      setShowRefresh(false);
+    }
+    return () => clearTimeout(timeout);
+  }, [authContext?.loading, dataContext?.loading, dataContext?.storesLoading]);
 
   if (!authContext || !dataContext) {
     return <PageLoader />;
@@ -105,6 +119,21 @@ const PrivateRoute = ({ children, feature, plan, permission }) => {
       <div className="flex flex-col items-center justify-center h-screen bg-white text-black z-50">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mb-4"></div>
         <p className="font-medium">Memuat Data...</p>
+
+        {showRefresh && (
+          <div className="mt-8 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <p className="text-sm text-gray-500 mb-4 text-center px-6">
+              Terlalu lama? Mungkin ada masalah koneksi atau cache browser.
+            </p>
+            <button
+              onClick={() => window.location.reload(true)}
+              className="px-6 py-2 bg-blue-600 text-white rounded-full font-medium hover:bg-blue-700 transition-colors shadow-lg flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path><path d="M3 21v-5h5"></path></svg>
+              Segarkan Halaman
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -221,6 +250,7 @@ const App = () => {
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
 
                   {/* Root Redirect */}
                   <Route path="/" element={

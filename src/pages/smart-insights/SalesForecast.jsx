@@ -53,100 +53,90 @@ const SalesForecast = () => {
                 .map(([date, total]) => ({ date, total }))
                 .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-            // -- Simple Moving Average (SMA) Forecast Logic --
-            const filledData = [...historicalData];
-            const futureData = [];
+            // -- Improved Forecast Logic (Backtesting + Future) --
+            const finalChart = [];
+            let totalError = 0;
+            let errorCount = 0;
 
-            // Requirement: At least 1 day of data to predict
+            // Requirement: At least 7 days of data recommended for 7-day moving average
             if (historicalData.length > 0) {
-                // Determine window size based on available data (max 7)
+                for (let i = 0; i < historicalData.length; i++) {
+                    const current = historicalData[i];
+                    let historicalPrediction = null;
+
+                    // Calculate 7-day moving average prediction for THIS day
+                    // based on previous 7 days.
+                    if (i >= 7) {
+                        const window = historicalData.slice(i - 7, i);
+                        const avg = window.reduce((sum, d) => sum + d.total, 0) / 7;
+                        historicalPrediction = Math.round(avg);
+
+                        // Calculate Accuracy Metric (Absolute Percentage Error)
+                        if (current.total > 0) {
+                            const error = Math.abs(current.total - historicalPrediction) / current.total;
+                            totalError += error;
+                            errorCount++;
+                        }
+                    }
+
+                    finalChart.push({
+                        date: current.date,
+                        displayDate: new Date(current.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+                        actual: current.total,
+                        predicted: historicalPrediction,
+                        fullHash: current.date + 'act'
+                    });
+                }
+
+                // Generate Future Forecast
                 const windowSize = Math.min(historicalData.length, 7);
                 let lastDaysValues = historicalData.slice(-windowSize).map(d => d.total);
-
-                // Calculate initial average
                 let currentAvg = lastDaysValues.reduce((a, b) => a + b, 0) / windowSize;
 
-                // Add "Connection Point" - Last actual data point is also the start of prediction line
-                // This prevents a gap in the chart
+                // Add Connection Point (Last historical point starts the future line)
+                if (finalChart.length > 0) {
+                    finalChart[finalChart.length - 1].predicted = finalChart[finalChart.length - 1].actual;
+                }
 
                 for (let i = 1; i <= 7; i++) {
-                    const lastDate = new Date(filledData[filledData.length - 1].date);
+                    const lastDate = new Date(finalChart[finalChart.length - 1].date);
                     lastDate.setDate(lastDate.getDate() + 1);
                     const nextDateStr = lastDate.toISOString().split('T')[0];
-
-                    // Naive forecast with slight variance to look realistic (MVP)
-                    // If we just use flat avg, it looks broken. Let's add tiny random noise or trend
                     const nextVal = Math.round(currentAvg);
 
-                    const futurePoint = {
+                    finalChart.push({
                         date: nextDateStr,
+                        displayDate: new Date(nextDateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+                        actual: null,
                         predicted: nextVal,
-                        isPrediction: true
-                    };
+                        fullHash: nextDateStr + 'pred'
+                    });
 
-                    futureData.push(futurePoint);
-                    filledData.push(futurePoint); // Add to filled for next iteration date calculation
-
-                    // Sliding window update
+                    // Sliding window update for multi-step forecast
                     lastDaysValues.shift();
                     lastDaysValues.push(nextVal);
                     currentAvg = lastDaysValues.reduce((a, b) => a + b, 0) / windowSize;
                 }
             }
 
-            // Combine for Chart with DISTINCT keys for Actual vs Predicted
-            const finalChart = [];
-
-            // 1. Add Historical Data (actual = value, predicted = null)
-            historicalData.forEach(d => {
-                finalChart.push({
-                    date: d.date,
-                    displayDate: new Date(d.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-                    actual: d.total,
-                    predicted: null, // No prediction overlay on past
-                    fullHash: d.date + 'act'
-                });
-            });
-
-            // 2. Add Connection Point (Optional: If we want overlap at the seam)
-            // Ideally re-add the last actual point as the first predicted point for continuity
-            if (historicalData.length > 0 && futureData.length > 0) {
-                const lastH = historicalData[historicalData.length - 1];
-                // Modify the last entry in finalChart to ALSO have a start for prediction?
-                // Or add a new entry with same date? No, Recharts handles same-category unique key poorly sometimes.
-                // Better: The last historical point should have 'predicted' = actual value to start the line
-                finalChart[finalChart.length - 1].predicted = lastH.total;
-            }
-
-            // 3. Add Future Data (actual = null, predicted = value)
-            futureData.forEach(d => {
-                finalChart.push({
-                    date: d.date,
-                    displayDate: new Date(d.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-                    actual: null,
-                    predicted: d.predicted,
-                    fullHash: d.date + 'pred'
-                });
-            });
-
             setChartData(finalChart);
 
+            const futureData = finalChart.filter(d => d.actual === null);
             const totalPred = futureData.reduce((acc, cur) => acc + cur.predicted, 0);
 
-            // Calculate trend safely
+            // Calculate trend
             let pastTotal = 0;
-            if (historicalData.length > 0) {
-                const window = Math.min(historicalData.length, 7);
-                pastTotal = historicalData.slice(-window).reduce((a, b) => a + b.total, 0);
-                // Normalize to 7 days if less data
-                if (window < 7) {
-                    pastTotal = (pastTotal / window) * 7;
-                }
+            if (historicalData.length >= 7) {
+                pastTotal = historicalData.slice(-7).reduce((a, b) => a + b.total, 0);
             }
+
+            // Accuracy calculation
+            const accuracy = errorCount > 0 ? Math.max(0, 100 - (totalError / errorCount * 100)) : 0;
 
             setPrediction({
                 nextWeekTotal: totalPred,
-                trend: totalPred >= pastTotal ? 'up' : 'down'
+                trend: totalPred >= pastTotal ? 'up' : 'down',
+                accuracy: Math.round(accuracy)
             });
 
         } catch (error) {
@@ -170,7 +160,7 @@ const SalesForecast = () => {
                 </p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Prediksi Omset 7 Hari Kedepan</CardTitle>
@@ -182,6 +172,20 @@ const SalesForecast = () => {
                         </div>
                         <p className="text-xs text-muted-foreground">
                             Berdasarkan tren penjualan {chartData.filter(d => d.actual !== null).length} hari terakhir
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Akurasi Prediksi</CardTitle>
+                        <DollarSign className="h-4 w-4 text-blue-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">
+                            {prediction.accuracy}%
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Tingkat kecocokan data historis vs prediksi
                         </p>
                     </CardContent>
                 </Card>
@@ -207,10 +211,10 @@ const SalesForecast = () => {
 
             <Card className="col-span-4">
                 <CardHeader>
-                    <CardTitle>Grafik Forecast Penjualan</CardTitle>
+                    <CardTitle>Grafik Forecast vs Aktual</CardTitle>
                     <CardDescription>
-                        Area <span className="text-indigo-500 font-bold">ungu</span> adalah data aktual,
-                        Area <span className="text-orange-500 font-bold">oranye</span> adalah prediksi AI.
+                        Bandingkan data <span className="text-indigo-500 font-bold">aktual (ungu)</span> dengan
+                        <span className="text-orange-500 font-bold"> prediksi (oranye)</span> untuk memvalidasi akurasi AI.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="h-[400px]">
@@ -241,7 +245,7 @@ const SalesForecast = () => {
                                 <Tooltip
                                     formatter={(value, name) => [
                                         `Rp ${value.toLocaleString('id-ID')}`,
-                                        name === 'actual' ? 'Aktual' : 'Prediksi'
+                                        name
                                     ]}
                                     labelFormatter={(label) => `Tanggal: ${label}`}
                                 />
@@ -249,17 +253,17 @@ const SalesForecast = () => {
                                     type="monotone"
                                     dataKey="actual"
                                     stroke="#8884d8"
-                                    fillOpacity={1}
+                                    fillOpacity={0.6}
                                     fill="url(#colorValue)"
-                                    name="actual"
+                                    name="Aktual"
                                 />
                                 <Area
                                     type="monotone"
                                     dataKey="predicted"
                                     stroke="#f97316"
-                                    fillOpacity={1}
+                                    fillOpacity={0.4}
                                     fill="url(#colorPred)"
-                                    name="predicted"
+                                    name="Prediksi"
                                 />
                             </AreaChart>
                         </ResponsiveContainer>

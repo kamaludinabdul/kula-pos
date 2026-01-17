@@ -521,8 +521,8 @@ const Staff = () => {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant={(staff.role === 'admin' || staff.role === 'owner') ? 'default' : staff.role === 'sales' ? 'outline' : 'secondary'}>
-                                                    {(staff.role === 'admin' || staff.role === 'owner') ? 'Administrator' : staff.role === 'sales' ? 'Sales' : 'Kasir'}
+                                                <Badge variant={staff.role === 'owner' ? 'default' : staff.role === 'admin' ? 'default' : staff.role === 'sales' ? 'outline' : 'secondary'}>
+                                                    {staff.role === 'owner' ? 'Owner' : staff.role === 'admin' ? 'Administrator' : staff.role === 'sales' ? 'Sales' : 'Kasir'}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
@@ -657,6 +657,9 @@ const Staff = () => {
                                     <SelectItem value="staff">Kasir</SelectItem>
                                     <SelectItem value="sales">Sales</SelectItem>
                                     <SelectItem value="admin">Administrator</SelectItem>
+                                    {(user?.role === 'super_admin' || user?.role === 'owner') && (
+                                        <SelectItem value="owner">Owner (Pemilik)</SelectItem>
+                                    )}
                                 </SelectContent>
                             </Select>
                         </div>

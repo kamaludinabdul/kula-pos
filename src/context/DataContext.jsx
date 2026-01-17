@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback, useRef } from 'react';
 import { supabase } from '../supabase';
 import { useAuth } from './AuthContext';
 import { normalizePermissions } from '../utils/permissions';
@@ -67,6 +67,7 @@ export const DataProvider = ({ children }) => {
     const [stockMovements, setStockMovements] = useState([]);
     const [salesTargets, setSalesTargets] = useState([]);
     const [promotions, setPromotions] = useState([]);
+    const isFetchingRef = useRef(false);
 
     const [suppliers, setSuppliers] = useState([]);
     const [purchaseOrders, setPurchaseOrders] = useState([]);
@@ -406,40 +407,41 @@ export const DataProvider = ({ children }) => {
             return;
         }
 
+        if (isFetchingRef.current) {
+            console.log("DataContext: Fetch already in progress, skipping redundant call");
+            return;
+        }
+
+        isFetchingRef.current = true;
         if (shouldSetLoading) setLoading(true);
         try {
-            console.log("Fetching data for user:", user?.email, "Role:", user?.role, "StoreId:", user?.storeId);
-            // 1. Stores are now handled by onSnapshot useEffect below
-            // This prevents stale data and ensures real-time updates for settings like 'enableDiscount'
-
-            // 2. Fetch Operational Data
-            // Only fetch operational data if we have an active store context
+            console.log("DataContext: Fetching data for user:", user?.email, "Role:", user?.role, "StoreId:", activeStoreId);
 
             if (activeStoreId) {
                 setLastFetchError(null);
 
-                // --- PHASE 1: INITIAL SNAPSHOT (Consolidated RPC) ---
+                // --- PHASE 1: INITIAL SNAPSHOT ---
+                const phase1Start = performance.now();
                 try {
                     const { data: snapshot, error: snapshotError } = await supabase.rpc('get_store_initial_snapshot', {
                         p_store_id: activeStoreId
                     });
 
                     if (snapshotError) {
-                        console.warn("Initial snapshot RPC error:", snapshotError);
+                        console.warn("DataContext: Initial snapshot RPC error:", snapshotError);
                     } else if (snapshot) {
-                        console.log("Initial snapshot loaded successfully");
+                        console.log("DataContext: Initial snapshot loaded successfully");
                         if (snapshot.categories && Array.isArray(snapshot.categories)) {
                             setCategories(snapshot.categories);
                         }
                     }
                 } catch (e) {
-                    console.warn("Initial snapshot RPC failed, falling back to standard fetch:", e);
+                    console.warn("DataContext: Initial snapshot RPC failed:", e);
                 }
+                console.log(`DataContext: Phase 1 (Snapshot) took: ${((performance.now() - phase1Start) / 1000).toFixed(2)}s`);
 
-                // (safeFetchSupabase moved to top level)
-
-                // --- PHASE 2: CRITICAL DATA (Unblocks UI) ---
-                // Fetch Products (Categories potentially arrived in snapshot)
+                // --- PHASE 2: CRITICAL DATA (Products) ---
+                const phase2Start = performance.now();
                 const fetchedProducts = await (async () => {
                     try {
                         const { data, error } = await supabase
@@ -453,7 +455,6 @@ export const DataProvider = ({ children }) => {
 
                         const processed = data.map(p => ({
                             ...p,
-                            // Map snake_case to camelCase
                             buyPrice: p.buy_price,
                             sellPrice: p.sell_price,
                             minStock: p.min_stock,
@@ -476,22 +477,25 @@ export const DataProvider = ({ children }) => {
                         setProducts(processed);
                         return processed;
                     } catch (e) {
-                        console.error('Failed to fetch products:', e);
+                        console.error('DataContext: Failed to fetch products:', e);
                         return [];
                     }
                 })();
+                console.log(`DataContext: Phase 2 (Products) took: ${((performance.now() - phase2Start) / 1000).toFixed(2)}s`);
 
-                // UNBLOCK UI: Turn off loading indicator immediately after critical data
+                // Unblock UI for POS
                 if (shouldSetLoading) setLoading(false);
 
-                // Update Offline Cache for critical data
+                // Update Offline Cache
                 if (fetchedProducts?.length > 0) {
                     offlineService.cacheData(activeStoreId, fetchedProducts || [], categories || [], []);
                 }
 
-                // --- PHASE 2: BACKGROUND DATA (Silent Load) ---
-                // Fetch secondary data like history, customers, reports
-                Promise.all([
+                // --- PHASE 3: BACKGROUND DATA (Reports, History, Customers) ---
+                console.log("DataContext: Starting Phase 3 (Background Data)...");
+                const phase3Start = performance.now();
+
+                await Promise.all([
                     safeFetchSupabase({
                         supabase, activeStoreId,
                         tableName: 'transactions',
@@ -575,14 +579,10 @@ export const DataProvider = ({ children }) => {
                         }))
                     }),
                     fetchStockMovements()
-                ]).catch(err => console.error("Background fetch error:", err));
-
-
-                // Offline Cache is updated in Phase 1 and after background fetches if needed
-                // (Customers, Transactions etc are usually too large for simple full-cache on every fetch)
+                ]).catch(err => console.error("DataContext: Phase 3 failed:", err));
+                console.log(`DataContext: Phase 3 (Background) took: ${((performance.now() - phase3Start) / 1000).toFixed(2)}s`);
 
             } else {
-                // Reset data if no store selected (e.g. Super Admin dashboard view)
                 setCategories([]);
                 setProducts([]);
                 setTransactions([]);
@@ -591,24 +591,24 @@ export const DataProvider = ({ children }) => {
                 setSalesTargets([]);
             }
         } catch (error) {
-            console.error("Failed to fetch data from Supabase:", error);
+            console.error("DataContext: Failed to fetch data from Supabase:", error);
             setLastFetchError(error.message);
 
             // Fallback to Offline Cache
             if (activeStoreId) {
-                console.log("Attempting to load from offline cache...");
+                console.log("DataContext: Attempting to load from offline cache...");
                 const cached = await offlineService.loadFromCache(activeStoreId);
                 if (cached.products.length > 0) {
                     setProducts(cached.products);
                     setCategories(cached.categories);
                     setCustomers(cached.customers);
-                    console.log("Loaded from offline cache:", cached.products.length, "products");
+                    console.log("DataContext: Loaded from offline cache:", cached.products.length, "products");
                 }
             }
         } finally {
             setLoading(false);
+            isFetchingRef.current = false;
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, activeStoreId, fetchStockMovements]);
 
     useEffect(() => {
@@ -672,6 +672,38 @@ export const DataProvider = ({ children }) => {
         }
         if (!isSilent) setStoresLoading(true);
         try {
+            // OPTIMIZATION: If AuthContext already fetched the current store, use it!
+            if (user.stores && user.stores.id === activeStoreId && user.role !== 'super_admin') {
+                console.log("DataContext: Using pre-fetched store data from AuthContext");
+                const s = user.stores;
+                setStores([{
+                    ...s,
+                    planExpiryDate: s.plan_expiry_date,
+                    enableSalesPerformance: s.enable_sales_performance,
+                    enableRental: s.enable_rental,
+                    enableDiscount: s.enable_discount,
+                    discountPin: s.discount_pin,
+                    taxRate: s.tax_rate,
+                    serviceCharge: s.service_charge,
+                    taxType: s.tax_type,
+                    petCareEnabled: s.pet_care_enabled,
+                    telegramBotToken: s.telegram_bot_token,
+                    telegramChatId: s.telegram_chat_id,
+                    ownerName: s.owner_name,
+                    ownerId: s.owner_id,
+                    createdAt: s.created_at,
+                    loyaltySettings: s.settings?.loyaltySettings,
+                    autoPrintReceipt: s.settings?.autoPrintReceipt,
+                    printerType: s.settings?.printerType,
+                    printerWidth: s.settings?.printerWidth,
+                    receiptHeader: s.settings?.receiptHeader,
+                    receiptFooter: s.settings?.receiptFooter,
+                    permissions: normalizePermissions(s.settings?.permissions)
+                }]);
+                setStoresLoading(false);
+                return;
+            }
+
             let query = supabase.from('stores').select('*');
             if (user.role !== 'super_admin' && activeStoreId) {
                 query = query.eq('id', activeStoreId);
@@ -716,7 +748,13 @@ export const DataProvider = ({ children }) => {
 
     // Real-time Store Subscription
     useEffect(() => {
-        if (!user) return;
+        if (!user) {
+            // No user - reset loading states to prevent stuck loading screen
+            setLoading(false);
+            setStoresLoading(false);
+            setStores([]);
+            return;
+        }
 
         fetchStores();
 

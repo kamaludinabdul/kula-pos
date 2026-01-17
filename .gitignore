@@ -30,3 +30,4 @@ server/.env
 
 # Firebase cache
 .firebase
+scripts/serviceAccountKey.json

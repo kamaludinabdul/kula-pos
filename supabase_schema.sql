@@ -4,11 +4,8 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Helper Function to get Store ID (Security Definer to bypass recursion)
-CREATE OR REPLACE FUNCTION public.get_my_store_id()
-RETURNS UUID AS $$
-  SELECT store_id FROM public.profiles WHERE id = auth.uid();
-$$ LANGUAGE sql SECURITY DEFINER;
+-- Helper Function to get Store ID moved to after profiles table creation
+
 
 -- 1. Stores Table
 CREATE TABLE IF NOT EXISTS stores (
@@ -48,6 +45,12 @@ CREATE TABLE IF NOT EXISTS profiles (
     permissions JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Helper Function to get Store ID (Security Definer to bypass recursion)
+CREATE OR REPLACE FUNCTION public.get_my_store_id()
+RETURNS UUID AS $$
+  SELECT store_id FROM public.profiles WHERE id = auth.uid();
+$$ LANGUAGE sql SECURITY DEFINER;
 
 -- Trigger to create profile on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()

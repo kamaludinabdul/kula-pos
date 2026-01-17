@@ -5,11 +5,11 @@ import { readFileSync } from 'fs';
 
 // --- CONFIGURATION ---
 const serviceAccount = JSON.parse(
-  readFileSync('./scripts/kula-pos-staging-firebase-adminsdk-fbsvc-7bec409b0a.json', 'utf8')
+  readFileSync('./scripts/serviceAccountKey.json', 'utf8')
 );
 
-const supabaseUrl = "https://jsylclofqbqdutccsrxb.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpzeWxjbG9mcWJxZHV0Y2NzcnhiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Nzg5NzExNiwiZXhwIjoyMDgzNDczMTE2fQ.Aqs2ODInyTyIYq_uzwuXpvZC4XdEzBU61Rc66deXUFs";
+const supabaseUrl = "https://cuoayarlytvayhgyjuqb.supabase.co"; // [EDIT ME] Production URL
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY || "YOUR_SERVICE_ROLE_KEY";
 // Using Service Role Key to bypass RLS for migration RLS
 
 // Initialize Firebase Admin

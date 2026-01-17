@@ -123,7 +123,51 @@ DROP POLICY IF EXISTS "Enable delete for authenticated users" ON public.profiles
 CREATE POLICY "Enable delete for authenticated users" ON public.profiles FOR DELETE TO authenticated USING (true);
 
 
--- 4.3 Fix Multi-Tenant missing policies
+
+-- 4.3 Create missing tables first (Pets, Medical Records, Rooms)
+CREATE TABLE IF NOT EXISTS pets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+    customer_id TEXT REFERENCES customers(id) ON DELETE SET NULL,
+    name TEXT NOT NULL,
+    type TEXT DEFAULT 'Cat',
+    breed TEXT,
+    gender TEXT,
+    birth_date TIMESTAMPTZ,
+    weight NUMERIC(10, 2),
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS medical_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+    pet_id UUID REFERENCES pets(id) ON DELETE CASCADE,
+    date TIMESTAMPTZ,
+    diagnosis TEXT,
+    treatment TEXT,
+    notes TEXT,
+    doctor_name TEXT,
+    next_visit TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS rooms (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    type TEXT,
+    capacity INTEGER DEFAULT 1,
+    price_per_night NUMERIC(15, 2) DEFAULT 0,
+    status TEXT DEFAULT 'available',
+    features JSONB DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 4.4 Fix Multi-Tenant missing policies
 DO $$ 
 DECLARE 
     tbl_name TEXT;
@@ -157,10 +201,20 @@ END $$;
 COMMIT;
 
 -- 6. RPC Fixes (Search Path Vulnerability Fix)
--- Must be outside transaction block for some Postgres versions if creating new funcs, but ALTER is fine.
-ALTER FUNCTION public.get_profit_loss_report(UUID, TIMESTAMPTZ, TIMESTAMPTZ) SET search_path = public;
-ALTER FUNCTION public.get_product_sales_report(UUID, TIMESTAMPTZ, TIMESTAMPTZ) SET search_path = public;
-ALTER FUNCTION public.reset_loyalty_points(UUID) SET search_path = public;
--- (Add others if necessary, but these are the critical reporting ones recently touched)
+-- These functions may not exist in a fresh DB, so wrap safely
+DO $$ BEGIN
+    ALTER FUNCTION public.get_profit_loss_report(UUID, TIMESTAMPTZ, TIMESTAMPTZ) SET search_path = public;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    ALTER FUNCTION public.get_product_sales_report(UUID, TIMESTAMPTZ, TIMESTAMPTZ) SET search_path = public;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;
+
+DO $$ BEGIN
+    ALTER FUNCTION public.reset_loyalty_points(UUID) SET search_path = public;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;
 
 NOTIFY pgrst, 'reload schema';
