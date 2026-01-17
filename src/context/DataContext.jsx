@@ -622,6 +622,7 @@ export const DataProvider = ({ children }) => {
             setLoading(false);
             isFetchingRef.current = false;
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, activeStoreId, fetchStockMovements]);
 
     useEffect(() => {

@@ -20,7 +20,7 @@ async function checkUser() {
     console.log("Profile Data:", data);
 
     console.log("\nChecking RLS Status for transactions...");
-    const { data: rlsData, error: rlsError } = await supabase.rpc('check_rls_status', { table_name: 'transactions' });
+    const { data: _rlsData, error: rlsError } = await supabase.rpc('check_rls_status', { table_name: 'transactions' });
     // Note: check_rls_status might not exist, but let's try direct query if possible or just rely on console.
 
     if (rlsError) {

@@ -239,6 +239,7 @@ const Transactions = () => {
             }
         }, 600);
         return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [storeId, searchTerm, statusFilter, paymentMethodFilter, dateFromStr, dateToStr, itemsPerPage, fetchTransactions]);
 
     const handlePageChange = (page) => {

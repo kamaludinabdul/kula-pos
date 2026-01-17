@@ -27,28 +27,28 @@ async function fixStoreId() {
     console.log();
 
     // Check if there are records with the converted UUID
-    const { data: poRecords, count: poCount } = await supabase
+    const { count: poCount } = await supabase
         .from('purchase_orders')
         .select('id', { count: 'exact' })
         .eq('store_id', convertedUuid);
 
     console.log(`📦 Purchase Orders with converted UUID: ${poCount || 0}`);
 
-    const { data: custRecords, count: custCount } = await supabase
+    const { count: custCount } = await supabase
         .from('customers')
         .select('id', { count: 'exact' })
         .eq('store_id', convertedUuid);
 
     console.log(`👥 Customers with converted UUID: ${custCount || 0}`);
 
-    const { data: shiftRecords, count: shiftCount } = await supabase
+    const { count: shiftCount } = await supabase
         .from('shifts')
         .select('id', { count: 'exact' })
         .eq('store_id', convertedUuid);
 
     console.log(`⏰ Shifts with converted UUID: ${shiftCount || 0}`);
 
-    const { data: cashRecords, count: cashCount } = await supabase
+    const { count: cashCount } = await supabase
         .from('cash_flow')
         .select('id', { count: 'exact' })
         .eq('store_id', convertedUuid);

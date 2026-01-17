@@ -101,6 +101,7 @@ const PrivateRoute = ({ children, feature, plan, permission }) => {
         setShowRefresh(true);
       }, 10000); // Show refresh after 10 seconds of loading
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowRefresh(false);
     }
     return () => clearTimeout(timeout);
@@ -196,7 +197,7 @@ const PrivateRoute = ({ children, feature, plan, permission }) => {
 
 const RootRedirect = () => {
   const { user } = useAuth();
-  const { currentStore } = useData();
+  const { currentStore, loading: dataLoading, storesLoading } = useData();
 
   if (!user) return <Navigate to="/login" />;
 
@@ -205,8 +206,13 @@ const RootRedirect = () => {
     return <Navigate to="/stores" replace />;
   }
 
-  // Loop Prevention: If user has no active store context, go to /stores 
-  // to select or create one, instead of forcing /dashboard or /pos.
+  // Wait for data context to finish loading before deciding redirect
+  // This prevents incorrect redirect to /stores during initial load
+  if (dataLoading || storesLoading) {
+    return <PageLoader />;
+  }
+
+  // Only redirect to /stores if user truly has no store after loading is complete
   if (!currentStore) {
     return <Navigate to="/stores" replace />;
   }
