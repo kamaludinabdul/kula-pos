@@ -24,6 +24,7 @@ import DiscountPinDialog from '../components/DiscountPinDialog';
 import RentalDurationDialog from '../components/pos/RentalDurationDialog';
 
 const POS = () => {
+    console.log("[POS] Rendering...", { hasUser: !!useAuth()?.user, hasStore: !!useData()?.currentStore });
     // --- Contexts ---
     const { user, logout } = useAuth();
     // ... rest of context decl ...
@@ -147,9 +148,86 @@ const POS = () => {
 
     // --- Connect Notification to usePOS ---
     useEffect(() => {
+        console.log("[POS] Component Mounted");
         window.onPOSNotification = (title, message) => showAlert(title, message);
-        return () => { window.onPOSNotification = null; };
+        return () => {
+            console.log("[POS] Component Unmounted");
+            window.onPOSNotification = null;
+        };
     }, [showAlert]);
+
+    // --- Global Barcode Scanner Listener ---
+    // Hardware scanners (USB/Bluetooth) type characters very fast (<50ms) and end with Enter
+    const barcodeBufferRef = useRef('');
+    const barcodeTimeoutRef = useRef(null);
+
+    useEffect(() => {
+        const handleGlobalKeyDown = (e) => {
+            // Ignore if typing in an input field (except search)
+            const activeElement = document.activeElement;
+            const isSearchInput = activeElement?.id === 'product-search';
+            const isInputField = activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA';
+
+            // Clear buffer after 100ms of no input (human typing is slower)
+            if (barcodeTimeoutRef.current) {
+                clearTimeout(barcodeTimeoutRef.current);
+            }
+
+            // If Enter is pressed and we have a buffer, process as barcode
+            if (e.key === 'Enter' && barcodeBufferRef.current.length >= 3) {
+                e.preventDefault();
+                const barcode = barcodeBufferRef.current;
+                barcodeBufferRef.current = '';
+
+                // Find and add product to cart
+                const product = products.find(p =>
+                    (p.code && p.code.toLowerCase() === barcode.toLowerCase()) ||
+                    (p.barcode && p.barcode.toLowerCase() === barcode.toLowerCase())
+                );
+
+                if (product) {
+                    // Handle rental products
+                    if (product.pricingType === 'hourly') {
+                        setSelectedRentalProduct(product);
+                        setIsRentalDialogOpen(true);
+                    } else {
+                        addToCart(product);
+                    }
+                    // Play beep sound
+                    const audio = new Audio('/beep.mp3');
+                    audio.play().catch(() => { });
+                    // Clear search if user was in search field
+                    if (isSearchInput) {
+                        setSearchQuery('');
+                    }
+                } else if (barcode.length >= 3) {
+                    showAlert('Tidak Ditemukan', `Barcode tidak dikenali: ${barcode}`);
+                }
+                return;
+            }
+
+            // Add character to buffer (only printable characters)
+            if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                // If not in input field, prevent default to avoid triggering other inputs
+                if (!isInputField || isSearchInput) {
+                    barcodeBufferRef.current += e.key;
+                }
+            }
+
+            // Reset buffer after 100ms
+            barcodeTimeoutRef.current = setTimeout(() => {
+                barcodeBufferRef.current = '';
+            }, 100);
+        };
+
+        window.addEventListener('keydown', handleGlobalKeyDown, true);
+        return () => {
+            window.removeEventListener('keydown', handleGlobalKeyDown, true);
+            if (barcodeTimeoutRef.current) {
+                clearTimeout(barcodeTimeoutRef.current);
+            }
+        };
+    }, [products, addToCart, showAlert, setSearchQuery, setSelectedRentalProduct, setIsRentalDialogOpen]);
 
     // --- Booking Integration ---
     useEffect(() => {
@@ -403,7 +481,7 @@ const POS = () => {
             {/* Top Navigation */}
             <POSHeader
                 user={user}
-                store={currentStore}
+                currentStore={currentStore}
                 isOnline={isOnline}
                 currentShift={currentShift}
                 onStartShift={() => setIsStartShiftOpen(true)}

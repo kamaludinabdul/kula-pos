@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
@@ -18,9 +18,16 @@ const Register = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
-    const { signup } = useAuth(); // We'll need to ensure signup is exposed or implement it here
+    const [loadingState, setLoadingState] = useState(false);
+    const { signup, user, loading } = useAuth(); // We'll need to ensure signup is exposed or implement it here
     const navigate = useNavigate();
+
+    // Redirect if already logged in
+    useEffect(() => {
+        if (!loading && user) {
+            navigate('/', { replace: true });
+        }
+    }, [user, loading, navigate]);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -29,17 +36,17 @@ const Register = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
-        setLoading(true);
+        setLoadingState(true);
 
         if (formData.password !== formData.confirmPassword) {
             setError('Password tidak cocok.');
-            setLoading(false);
+            setLoadingState(false);
             return;
         }
 
         if (formData.password.length < 6) {
             setError('Password minimal 6 karakter.');
-            setLoading(false);
+            setLoadingState(false);
             return;
         }
 
@@ -62,7 +69,7 @@ const Register = () => {
             console.error("Registration Error:", err);
             setError('Gagal mendaftar. ' + (err.message || 'Silakan coba lagi.'));
         } finally {
-            setLoading(false);
+            setLoadingState(false);
         }
     };
 
@@ -180,8 +187,8 @@ const Register = () => {
                             </div>
                         </div>
 
-                        <Button className="w-full bg-indigo-600 hover:bg-indigo-700 mt-6" type="submit" disabled={loading}>
-                            {loading ? (
+                        <Button className="w-full bg-indigo-600 hover:bg-indigo-700 mt-6" type="submit" disabled={loadingState}>
+                            {loadingState ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Mendaftarkan...

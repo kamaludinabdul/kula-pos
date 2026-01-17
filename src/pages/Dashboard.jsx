@@ -134,7 +134,13 @@ const Dashboard = () => {
     }, [dateRange, customStartDate, customEndDate, currentStore]);
 
     // Use fetched data instead of filtering global
-    const filteredTransactions = fetchedTransactions;
+    // IMPORTANT: Only include successful transactions (completed/success)
+    // Exclude: void, cancelled, refunded, dibatalkan
+    const filteredTransactions = fetchedTransactions.filter(t => {
+        const status = (t.status || '').toLowerCase();
+        // Only count completed/successful transactions
+        return status === 'completed' || status === 'success' || status === '';
+    });
 
     const chartData = useMemo(() => {
         if (!canViewFinancials) return [];
@@ -172,10 +178,9 @@ const Dashboard = () => {
     }, [filteredTransactions, dateRange, canViewFinancials]);
 
     const stats = useMemo(() => {
-        // Exclude voided transactions from stats
-        const validTransactions = filteredTransactions.filter(t => t.status !== 'void' && t.status !== 'cancelled');
-        const totalSales = validTransactions.reduce((sum, t) => sum + (t.total || 0), 0);
-        const totalTransactions = validTransactions.length;
+        // filteredTransactions already excludes void/cancelled at line 138
+        const totalSales = filteredTransactions.reduce((sum, t) => sum + (t.total || 0), 0);
+        const totalTransactions = filteredTransactions.length;
         const avgOrder = totalTransactions > 0 ? totalSales / totalTransactions : 0;
 
         let newCustomersCount = 0;

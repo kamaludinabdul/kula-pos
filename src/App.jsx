@@ -115,10 +115,16 @@ const PrivateRoute = ({ children, feature, plan, permission }) => {
 
   // 1. Initial Loading State
   if (loading || dataLoading || storesLoading) {
+    console.log("[PrivateRoute] Loading State:", { authLoading: loading, dataLoading, storesLoading });
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-white text-black z-50">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mb-4"></div>
         <p className="font-medium">Memuat Data...</p>
+
+        {/* Subtle diagnostic info for debugging blank screens */}
+        <div className="mt-4 text-[10px] text-gray-300 font-mono">
+          A:{loading ? 'L' : 'D'} D:{dataLoading ? 'L' : 'D'} S:{storesLoading ? 'L' : 'D'}
+        </div>
 
         {showRefresh && (
           <div className="mt-8 flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -370,8 +376,8 @@ const App = () => {
                           <CustomerSegmentation />
                         </PrivateRoute>
                       } />
-                    </Route>
 
+                    </Route>
                     {/* Promotions */}
                     <Route path="/promotions" element={
                       <PrivateRoute feature="products.read">

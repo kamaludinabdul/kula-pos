@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -6,18 +6,26 @@ import { Label } from '../components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const ForgotPassword = () => {
-    const { resetPassword } = useAuth();
+    const { resetPassword, user, loading } = useAuth();
+    const navigate = useNavigate();
     const [email, setEmail] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [loadingState, setLoadingState] = useState(false); // Renamed to avoid collision with useAuth.loading
     const [message, setMessage] = useState(null);
     const [error, setError] = useState(null);
 
+    // Redirect if already logged in
+    useEffect(() => {
+        if (!loading && user) {
+            navigate('/', { replace: true });
+        }
+    }, [user, loading, navigate]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
+        setLoadingState(true);
         setError(null);
         setMessage(null);
 
@@ -28,7 +36,7 @@ const ForgotPassword = () => {
         } else {
             setError(result.message);
         }
-        setLoading(false);
+        setLoadingState(false);
     };
 
     return (
@@ -64,8 +72,8 @@ const ForgotPassword = () => {
                                 required
                             />
                         </div>
-                        <Button type="submit" className="w-full" disabled={loading}>
-                            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        <Button type="submit" className="w-full" disabled={loadingState}>
+                            {loadingState ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                             Kirim Link Reset
                         </Button>
                     </form>

@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Search, Filter, Download, Trash2, Edit, Eye, ChevronDown, RotateCcw, Ban, ArrowUpDown, ArrowUp, ArrowDown, BookLock, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
 import ReceiptModal from '../components/ReceiptModal';
 import { SmartDatePicker } from '../components/SmartDatePicker';
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import AlertDialog from '../components/AlertDialog';
 import { formatPaymentMethod } from '../lib/utils';
@@ -66,6 +66,9 @@ const Transactions = () => {
     const [summaryStats, setSummaryStats] = useState({
         revenue: 0,
         count: 0,
+        cash: 0,
+        qris: 0,
+        transfer: 0,
         loading: true
     });
 
@@ -142,37 +145,72 @@ const Transactions = () => {
     }, [currentStore?.id, searchTerm, statusFilter, paymentMethodFilter, datePickerDate, itemsPerPage]);
 
 
+    // Use stable primitives for dependencies to avoid infinite loops
+    const storeId = currentStore?.id;
+    const dateFromStr = datePickerDate?.from?.getTime();
+    const dateToStr = datePickerDate?.to?.getTime();
+
+    // Debug: Log component Lifecycle
+    useEffect(() => {
+        console.log("Transactions: Component Mounted (v0.8.21)", { storeId });
+        return () => console.log("Transactions: Component Unmounted");
+    }, [storeId]);
+
+
     useEffect(() => {
         const fetchSummary = async () => {
-            if (!currentStore?.id) return;
+            if (!storeId) return;
             setSummaryStats(prev => ({ ...prev, loading: true }));
 
             try {
+                console.log("Transactions: Fetching Summary for store", storeId);
+                // Use date-fns for robust date range calculation
+                const start = startOfDay(datePickerDate.from);
+                const end = endOfDay(datePickerDate.to || datePickerDate.from);
+
+                // Use a broader select to ensure we get all needed fields
                 let query = supabase
                     .from('transactions')
-                    .select('total')
-                    .eq('store_id', currentStore.id)
-                    .neq('status', 'void')
-                    .neq('status', 'refunded');
-
-                if (datePickerDate?.from) {
-                    const start = new Date(datePickerDate.from);
-                    start.setHours(0, 0, 0, 0);
-                    const end = datePickerDate.to ? new Date(datePickerDate.to) : new Date(start);
-                    end.setHours(23, 59, 59, 999);
-
-                    query = query.gte('date', start.toISOString()).lte('date', end.toISOString());
-                }
+                    .select('*')
+                    .eq('store_id', storeId)
+                    .gte('date', start.toISOString())
+                    .lte('date', end.toISOString());
 
                 const { data, error } = await query;
                 if (error) throw error;
 
-                const revenue = data.reduce((sum, tx) => sum + (Number(tx.total) || 0), 0);
-                const count = data.length;
+                // Filter valid transactions in JS for maximum reliability
+                const validTxs = (data || []).filter(tx =>
+                    tx.status !== 'void' &&
+                    tx.status !== 'refunded' &&
+                    tx.status !== 'cancelled'
+                );
+
+                const revenue = validTxs.reduce((sum, tx) => sum + (parseFloat(tx.total) || 0), 0);
+                const count = validTxs.length;
+
+                // Calculate per-method totals with case-insensitivity and fallback for Indonesian labels
+                const cash = validTxs
+                    .filter(tx => {
+                        const m = tx.payment_method?.toLowerCase();
+                        return m === 'cash' || m === 'tunai';
+                    })
+                    .reduce((sum, tx) => sum + (parseFloat(tx.total) || 0), 0);
+
+                const qris = validTxs
+                    .filter(tx => tx.payment_method?.toLowerCase() === 'qris')
+                    .reduce((sum, tx) => sum + (parseFloat(tx.total) || 0), 0);
+
+                const transfer = validTxs
+                    .filter(tx => tx.payment_method?.toLowerCase() === 'transfer')
+                    .reduce((sum, tx) => sum + (parseFloat(tx.total) || 0), 0);
 
                 setSummaryStats({
                     revenue,
                     count,
+                    cash,
+                    qris,
+                    transfer,
                     loading: false
                 });
 
@@ -186,11 +224,12 @@ const Transactions = () => {
             fetchSummary();
         }, 300);
         return () => clearTimeout(timer);
-    }, [currentStore?.id, datePickerDate]);
+    }, [storeId, dateFromStr, dateToStr]);
 
     // Effect: Trigger fetch on filters change
     useEffect(() => {
         const timer = setTimeout(() => {
+            console.log("Transactions: Fetching List due to filter change");
             if (searchTerm) {
                 setTransactionsList([]);
                 fetchTransactions(1, true);
@@ -200,7 +239,7 @@ const Transactions = () => {
             }
         }, 600);
         return () => clearTimeout(timer);
-    }, [currentStore, searchTerm, statusFilter, paymentMethodFilter, datePickerDate, itemsPerPage, fetchTransactions]);
+    }, [storeId, searchTerm, statusFilter, paymentMethodFilter, dateFromStr, dateToStr, itemsPerPage, fetchTransactions]);
 
     const handlePageChange = (page) => {
         setCurrentPage(page);
@@ -438,7 +477,7 @@ const Transactions = () => {
             t.customerName || 'Umum',
             t.items?.length || 0,
             `Rp ${t.total.toLocaleString()}`,
-            t.status === 'completed' ? 'Sukses' : 'Batal',
+            t.status === 'completed' ? 'Sukses' : (t.status === 'refunded' ? 'Refund' : 'Batal'),
             t.paymentMethod || '-'
         ]);
 
@@ -482,14 +521,14 @@ const Transactions = () => {
 
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Penjualan (Omzet)</CardTitle>
+                        <CardTitle className="text-sm font-medium">Total Pendapatan</CardTitle>
                         <Wallet className="h-4 w-4 text-emerald-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-emerald-600">
+                        <div className="text-xl font-bold text-emerald-600">
                             {summaryStats.loading ? "..." : `Rp ${summaryStats.revenue.toLocaleString()}`}
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">Total pendapatan bersih</p>
@@ -498,14 +537,53 @@ const Transactions = () => {
 
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Transaksi</CardTitle>
+                        <CardTitle className="text-sm font-medium">Tunai (Cash)</CardTitle>
+                        <Wallet className="h-4 w-4 text-orange-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-xl font-bold text-orange-600">
+                            {summaryStats.loading ? "..." : `Rp ${summaryStats.cash.toLocaleString()}`}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">Pembayaran tunai</p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">QRIS / E-Wallet</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-purple-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-xl font-bold text-purple-600">
+                            {summaryStats.loading ? "..." : `Rp ${summaryStats.qris.toLocaleString()}`}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">Dompet digital</p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Transfer Bank</CardTitle>
                         <TrendingUp className="h-4 w-4 text-blue-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-blue-600">
+                        <div className="text-xl font-bold text-blue-600">
+                            {summaryStats.loading ? "..." : `Rp ${summaryStats.transfer.toLocaleString()}`}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">Transfer langsung</p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Transaksi</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-slate-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-xl font-bold text-slate-600">
                             {summaryStats.loading ? "..." : `${summaryStats.count} Transaksi`}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">Jumlah transaksi berhasil</p>
+                        <p className="text-xs text-muted-foreground mt-1">Jumlah transaksi sukses</p>
                     </CardContent>
                 </Card>
             </div>
@@ -607,10 +685,10 @@ const Transactions = () => {
                                         </TableCell>
                                         <TableCell>
                                             <Badge
-                                                variant={tx.status === 'void' ? 'destructive' : 'default'}
-                                                className={tx.status !== 'void' ? 'bg-green-500 hover:bg-green-600' : ''}
+                                                variant={tx.status === 'void' ? 'destructive' : (tx.status === 'refunded' ? 'secondary' : 'default')}
+                                                className={tx.status === 'completed' ? 'bg-green-500 hover:bg-green-600' : (tx.status === 'refunded' ? 'bg-orange-500 hover:bg-orange-600 text-white' : '')}
                                             >
-                                                {tx.status === 'void' ? 'Dibatalkan' : 'Berhasil'}
+                                                {tx.status === 'void' ? 'Dibatalkan' : (tx.status === 'refunded' ? 'Refunded' : 'Berhasil')}
                                             </Badge>
                                         </TableCell>
                                         <TableCell>

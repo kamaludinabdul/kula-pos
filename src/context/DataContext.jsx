@@ -415,7 +415,7 @@ export const DataProvider = ({ children }) => {
         isFetchingRef.current = true;
         if (shouldSetLoading) setLoading(true);
         try {
-            console.log("DataContext: Fetching data for user:", user?.email, "Role:", user?.role, "StoreId:", activeStoreId);
+            console.log("DataContext: Fetching data for user:", user?.email, "Role:", user?.role, "StoreId:", activeStoreId, "State:", { productsCount: products.length, categoriesCount: categories.length });
 
             if (activeStoreId) {
                 setLastFetchError(null);
@@ -423,9 +423,16 @@ export const DataProvider = ({ children }) => {
                 // --- PHASE 1: INITIAL SNAPSHOT ---
                 const phase1Start = performance.now();
                 try {
-                    const { data: snapshot, error: snapshotError } = await supabase.rpc('get_store_initial_snapshot', {
+                    console.log("DataContext: Starting Phase 1 (Snapshot)...");
+                    const snapshotQuery = supabase.rpc('get_store_initial_snapshot', {
                         p_store_id: activeStoreId
                     });
+
+                    const snapshotTimeout = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('Snapshot RPC timeout')), 10000)
+                    );
+
+                    const { data: snapshot, error: snapshotError } = await Promise.race([snapshotQuery, snapshotTimeout]);
 
                     if (snapshotError) {
                         console.warn("DataContext: Initial snapshot RPC error:", snapshotError);
@@ -444,13 +451,19 @@ export const DataProvider = ({ children }) => {
                 const phase2Start = performance.now();
                 const fetchedProducts = await (async () => {
                     try {
-                        const { data, error } = await supabase
+                        console.log("DataContext: Starting Phase 2 (Products)...");
+                        const productsQuery = supabase
                             .from('products')
                             .select('*, categories(id, name)')
                             .eq('store_id', activeStoreId)
                             .eq('is_deleted', false)
                             .limit(2000);
 
+                        const productsTimeout = new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error('Products fetch timeout')), 15000)
+                        );
+
+                        const { data, error } = await Promise.race([productsQuery, productsTimeout]);
                         if (error) throw error;
 
                         const processed = data.map(p => ({

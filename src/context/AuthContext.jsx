@@ -45,11 +45,19 @@ export const AuthProvider = ({ children }) => {
                 // Step 1: Fetch profile only (faster than join)
                 console.log('Auth: Step 1: Fetching profile...');
                 const profileStart = performance.now();
-                const { data: profile, error: profileError } = await supabase
+
+                // Add a timeout for the profile query
+                const profileQuery = supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', userId)
                     .single();
+
+                const profileTimeout = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Profile query timeout')), 15000)
+                );
+
+                const { data: profile, error: profileError } = await Promise.race([profileQuery, profileTimeout]);
                 console.log(`Auth: Profile query took: ${((performance.now() - profileStart) / 1000).toFixed(1)}s`);
 
                 if (profileError) {
@@ -245,10 +253,10 @@ export const AuthProvider = ({ children }) => {
         // Increased from 5s because Supabase can be slow (especially with cold starts)
         const _safetyTimeout = setTimeout(() => {
             if (isMounted && !loadingCompleted) {
-                console.warn("Auth: Safety timeout triggered after 60s, completing loading");
+                console.warn("Auth: Safety timeout triggered after 15s, completing loading");
                 setLoading(false);
             }
-        }, 60000);
+        }, 15000); // Reduced from 60s to 15s
 
         // Helper to mark loading as completed normally
         const completeLoading = () => {
@@ -263,7 +271,13 @@ export const AuthProvider = ({ children }) => {
             try {
                 console.log("Auth: Checking initial session...");
                 const startTime = performance.now();
-                const { data: { session }, error } = await supabase.auth.getSession();
+
+                const sessionQuery = supabase.auth.getSession();
+                const sessionTimeout = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Session fetch timeout')), 10000)
+                );
+
+                const { data: { session }, error } = await Promise.race([sessionQuery, sessionTimeout]);
                 const sessionTime = performance.now() - startTime;
                 console.log(`Auth: Session check complete (${sessionTime.toFixed(0)}ms):`, session ? "Logged in" : "No session", error);
                 if (error) throw error;
@@ -542,7 +556,7 @@ export const AuthProvider = ({ children }) => {
 
     return (
         <AuthContext.Provider value={{ user, login, logout, signup, resetPassword, loading, isLocked, unlock, checkPermission, updateStaffPassword }}>
-            {!loading && children}
+            {children}
         </AuthContext.Provider>
     );
 };

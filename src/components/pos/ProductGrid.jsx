@@ -85,7 +85,7 @@ const ProductGrid = ({ products, onAddToCart, isCartCollapsed }) => {
                                 />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-slate-50 text-slate-300 font-bold text-3xl">
-                                    {product.name.charAt(0).toUpperCase()}
+                                    {(product?.name || '?').charAt(0).toUpperCase()}
                                 </div>
                             )}
 

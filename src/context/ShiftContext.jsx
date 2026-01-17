@@ -133,7 +133,7 @@ export const ShiftProvider = ({ children }) => {
         };
     }, [currentStore, currentShift, updateStore]);
 
-    const getShiftSummary = async () => {
+    const getShiftSummary = React.useCallback(async () => {
         if (!currentShift || !activeStoreId) return null;
 
         try {
@@ -162,7 +162,7 @@ export const ShiftProvider = ({ children }) => {
             console.error("Error recalculating shift summary:", error);
             return currentShift;
         }
-    };
+    }, [currentShift, activeStoreId]);
 
     const startShift = async (cashierName, initialCash = 0) => {
         if (!activeStoreId) return { success: false, error: 'No active store' };

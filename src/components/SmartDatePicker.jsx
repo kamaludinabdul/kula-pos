@@ -54,11 +54,18 @@ export function SmartDatePicker({
                 toDate.setHours(23, 59, 59, 999);
             }
 
-            onDateChange({
-                from: fromDate,
-                to: toDate
-            });
-        } else {
+            // Only notify if there's a real change to avoid render loops
+            const isDifferent =
+                (fromDate?.getTime() !== date?.from?.getTime()) ||
+                (toDate?.getTime() !== date?.to?.getTime());
+
+            if (isDifferent) {
+                onDateChange({
+                    from: fromDate,
+                    to: toDate
+                });
+            }
+        } else if (date?.from !== undefined || date?.to !== undefined) {
             onDateChange({ from: undefined, to: undefined });
         }
     };
