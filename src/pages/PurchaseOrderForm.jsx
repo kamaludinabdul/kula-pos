@@ -305,20 +305,51 @@ const PurchaseOrderForm = () => {
     useEffect(() => {
         if (items.length > 0 && products.length > 0) {
             const hydratedItems = items.map(item => {
-                // Only hydrate if qtyBase is missing
-                if (item.qtyBase !== undefined && item.qtyBase !== null) return item;
+                let product = products.find(p => p.id === item.productId);
+                let isHealed = false;
 
-                const product = products.find(p => p.id === item.productId);
+                // Fallback: If product not found by ID (Legacy Data Case), try finding by Name
+                if (!product && item.productName) {
+                    const candidate = products.find(p => p.name.toLowerCase() === item.productName.toLowerCase());
+                    if (candidate) {
+                        product = candidate;
+                        isHealed = true; // Mark as healed so we trigger a state update
+                    }
+                }
+
+                // Only hydrate if qtyBase is missing OR metadata is missing OR we just healed the ID
+                const missingMetadata = !item.weight || !item.unit;
+
+                if (!missingMetadata && !isHealed && item.qtyBase !== undefined && item.qtyBase !== null) return item;
+
                 if (!product) return item;
 
-                const conversion = product.conversionToUnit ? parseInt(product.conversionToUnit) : 1;
-                const qtyBase = item.qty * conversion;
+                let newItem = { ...item };
 
-                return { ...item, qtyBase };
+                // Auto-heal ID if we found it by name fallback
+                if (isHealed) {
+                    newItem.productId = product.id;
+                    // Optional: newItem.productName = product.name; // Keep original name or sync? Keep original usually safer, but ID must be synced.
+                }
+
+                // Hydrate qtyBase
+                const conversion = product.conversionToUnit ? parseInt(product.conversionToUnit) : 1;
+                if (newItem.qtyBase === undefined || newItem.qtyBase === null) {
+                    newItem.qtyBase = newItem.qty * conversion;
+                }
+
+                // Hydrate Metadata if missing
+                // We also update metadata if we just Healed the item (because it's likely missing or wrong)
+                if (isHealed || newItem.weight === undefined || newItem.weight === null) newItem.weight = product.weight;
+                if (isHealed || !newItem.unit) newItem.unit = product.unit;
+                if (isHealed || newItem.purchaseUnit === undefined) newItem.purchaseUnit = product.purchaseUnit;
+                if (isHealed || newItem.conversionToUnit === undefined) newItem.conversionToUnit = product.conversionToUnit;
+
+                return newItem;
             });
 
             // Avoid infinite loop: only update if changes detected
-            const hasChanges = hydratedItems.some((item, idx) => item.qtyBase !== items[idx].qtyBase);
+            const hasChanges = JSON.stringify(hydratedItems) !== JSON.stringify(items);
             if (hasChanges) {
                 setItems(hydratedItems);
             }
@@ -383,7 +414,12 @@ const PurchaseOrderForm = () => {
             qtyBase: initialQtyBase,
             buyPrice: determinedPrice,
             // Subtotal = Qty Base (Tot PCS) * Price Base
-            subtotal: determinedPrice * initialQtyBase
+            subtotal: determinedPrice * initialQtyBase,
+            // Store product metadata for display (fallback when products not loaded)
+            unit: product.unit,
+            purchaseUnit: product.purchaseUnit,
+            conversionToUnit: product.conversionToUnit,
+            weight: product.weight
         }]);
 
         if (priceSource === 'history') {
@@ -433,8 +469,8 @@ const PurchaseOrderForm = () => {
     const calculateTotalWeight = () => {
         const totalWeightInGrams = items.reduce((acc, item) => {
             const product = products.find(p => p.id === item.productId);
-            // Weight is in Grams (from Product Data)
-            const unitWeight = Number(product?.weight) || 0;
+            // Weight is in Grams (from Product Data or stored item data)
+            const unitWeight = Number(product?.weight || item.weight) || 0;
             const qty = Number(item.qtyBase) || 0;
             return acc + (unitWeight * qty);
         }, 0);
@@ -471,7 +507,12 @@ const PurchaseOrderForm = () => {
                     qty: parseInt(i.qty),
                     qtyBase: parseInt(i.qtyBase || (i.qty * 1)), // Save qtyBase
                     buyPrice: parseInt(i.buyPrice),
-                    subtotal: parseInt(i.subtotal)
+                    subtotal: parseInt(i.subtotal),
+                    // Store metadata for display
+                    unit: i.unit,
+                    purchaseUnit: i.purchaseUnit,
+                    conversionToUnit: i.conversionToUnit,
+                    weight: i.weight
                 })),
                 total_amount: calculateTotal(),
                 note: notes,
@@ -951,9 +992,14 @@ const PurchaseOrderForm = () => {
                         ) : (
                             items.map((item, index) => {
                                 const product = products.find(p => p.id === item.productId);
-                                const unitWeight = Number(product?.weight) || 0;
-                                const totalItemWeight = (unitWeight * (item.qtyBase || 0)) / 1000;
-                                const hasConversion = product?.purchaseUnit && product?.conversionToUnit;
+                                // Use product data if available, otherwise fallback to item stored data
+                                const itemUnit = product?.unit || item.unit || '-';
+                                const itemPurchaseUnit = product?.purchaseUnit || item.purchaseUnit;
+                                const itemConversionToUnit = product?.conversionToUnit || item.conversionToUnit;
+                                const itemWeight = Number(product?.weight || item.weight) || 0;
+
+                                const totalItemWeight = (itemWeight * (item.qtyBase || 0)) / 1000;
+                                const hasConversion = itemPurchaseUnit && itemConversionToUnit;
 
                                 return (
                                     <TableRow key={index}>
@@ -975,22 +1021,22 @@ const PurchaseOrderForm = () => {
                                         </TableCell>
                                         <TableCell>
                                             <span className="text-sm font-medium">
-                                                {hasConversion ? product?.purchaseUnit : (product?.unit || '-')}
+                                                {hasConversion ? itemPurchaseUnit : itemUnit}
                                             </span>
-                                            {hasConversion && product && (
+                                            {hasConversion && (
                                                 <div className="text-[10px] text-muted-foreground">
-                                                    Isi {product.conversionToUnit} {product.unit}
+                                                    Isi {itemConversionToUnit} {itemUnit}
                                                 </div>
                                             )}
                                         </TableCell>
                                         <TableCell className="print:hidden text-center">
-                                            <div className={`font - medium ${totalItemWeight <= 0 ? 'text-red-500' : 'text-slate-600'} `}>
+                                            <div className={`font-medium ${totalItemWeight <= 0 ? 'text-red-500' : 'text-slate-600'}`}>
                                                 {totalItemWeight.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 3 })} Kg
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-right font-medium text-slate-600">
                                             {(() => {
-                                                const conversion = product?.conversionToUnit ? Number(product.conversionToUnit) : 1;
+                                                const conversion = itemConversionToUnit ? Number(itemConversionToUnit) : 1;
                                                 if (conversion > 1) {
                                                     const poPrice = (Number(item.buyPrice) || 0) * conversion;
                                                     return `Rp ${poPrice.toLocaleString('id-ID')} `;
