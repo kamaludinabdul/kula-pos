@@ -30,15 +30,18 @@ export const AuthProvider = ({ children }) => {
     }, [user]);
 
     // --- Profile Fetching Helper ---
-    const fetchUserProfile = useCallback(async (userId) => {
+    const fetchUserProfile = useCallback(async (userId, retryCount = 0) => {
+        const MAX_RETRIES = 3;
+        const RETRY_DELAY = 500;
+
         // REQUEST COALESCING: If a fetch is already in progress, return that promise.
-        if (profilePromiseRef.current) {
+        if (profilePromiseRef.current && retryCount === 0) {
             console.log("Auth: Profile fetch already in progress, sharing promise");
             return profilePromiseRef.current;
         }
 
         const fetchPromise = (async () => {
-            console.log('Fetching profile for:', userId);
+            console.log('Fetching profile for:', userId, retryCount > 0 ? `(retry ${retryCount})` : '');
             const startTime = performance.now();
 
             try {
@@ -118,13 +121,26 @@ export const AuthProvider = ({ children }) => {
                 return profile;
             } catch (err) {
                 console.error(`Auth: Profile fetch failed after ${((performance.now() - startTime) / 1000).toFixed(1)}s:`, err.message);
+
+                // Retry on AbortError (Supabase internal abort)
+                if ((err.name === 'AbortError' || err.message?.includes('aborted')) && retryCount < MAX_RETRIES) {
+                    console.log(`Auth: AbortError detected, retrying in ${RETRY_DELAY}ms... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+                    profilePromiseRef.current = null; // Clear promise to allow retry
+                    return fetchUserProfile(userId, retryCount + 1);
+                }
+
                 throw err;
             } finally {
-                profilePromiseRef.current = null;
+                if (retryCount === 0) {
+                    profilePromiseRef.current = null;
+                }
             }
         })();
 
-        profilePromiseRef.current = fetchPromise;
+        if (retryCount === 0) {
+            profilePromiseRef.current = fetchPromise;
+        }
         return fetchPromise;
     }, []);
 
