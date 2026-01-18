@@ -177,6 +177,9 @@ export const DataProvider = ({ children }) => {
             if (updates.address) dbUpdates.address = updates.address;
             if (updates.phone) dbUpdates.phone = updates.phone;
 
+            // Logo - allow empty string to clear it
+            if (typeof updates.logo !== 'undefined') dbUpdates.logo = updates.logo;
+
             // Boolean flags
             if (typeof updates.enableSalesPerformance !== 'undefined') dbUpdates.enable_sales_performance = updates.enableSalesPerformance;
             if (typeof updates.enableRental !== 'undefined') dbUpdates.enable_rental = updates.enableRental;
@@ -190,6 +193,11 @@ export const DataProvider = ({ children }) => {
             if (updates.taxType) dbUpdates.tax_type = updates.taxType;
             if (updates.telegramBotToken) dbUpdates.telegram_bot_token = updates.telegramBotToken;
             if (updates.telegramChatId) dbUpdates.telegram_chat_id = updates.telegramChatId;
+
+            // Geo location
+            if (updates.latitude) dbUpdates.latitude = updates.latitude;
+            if (updates.longitude) dbUpdates.longitude = updates.longitude;
+            if (updates.email) dbUpdates.email = updates.email;
 
             // Handle nested JSON settings (like loyalty)
             // Note: This is a shallow merge for 'settings' column. 
@@ -712,7 +720,9 @@ export const DataProvider = ({ children }) => {
                     printerWidth: s.settings?.printerWidth,
                     receiptHeader: s.settings?.receiptHeader,
                     receiptFooter: s.settings?.receiptFooter,
-                    permissions: normalizePermissions(s.settings?.permissions)
+                    permissions: normalizePermissions(s.settings?.permissions),
+                    logo: s.logo || s.settings?.logo,
+                    printerPaperSize: s.settings?.printerPaperSize
                 }]);
                 setStoresLoading(false);
                 return;
@@ -748,7 +758,9 @@ export const DataProvider = ({ children }) => {
                     printerWidth: s.settings?.printerWidth,
                     receiptHeader: s.settings?.receiptHeader,
                     receiptFooter: s.settings?.receiptFooter,
-                    permissions: normalizePermissions(s.settings?.permissions)
+                    permissions: normalizePermissions(s.settings?.permissions),
+                    logo: s.logo || s.settings?.logo,
+                    printerPaperSize: s.settings?.printerPaperSize
                 })));
             } else if (error) {
                 console.error("Store fetch query error:", error);
@@ -809,7 +821,9 @@ export const DataProvider = ({ children }) => {
                             printerWidth: newRow.settings?.printerWidth,
                             receiptHeader: newRow.settings?.receiptHeader,
                             receiptFooter: newRow.settings?.receiptFooter,
-                            permissions: normalizePermissions(newRow.settings?.permissions)
+                            permissions: normalizePermissions(newRow.settings?.permissions),
+                            logo: newRow.logo || newRow.settings?.logo,
+                            printerPaperSize: newRow.settings?.printerPaperSize
                         };
                         if (index >= 0) {
                             const updated = [...prev];
@@ -1059,6 +1073,15 @@ export const DataProvider = ({ children }) => {
                 is_deleted: false
             };
 
+            // Convert category name array to category_id
+            if (!productData.category_id && product.category && Array.isArray(product.category) && product.category.length > 0) {
+                const categoryName = product.category[0]; // Use first category
+                const foundCategory = categories.find(c => c.name === categoryName);
+                if (foundCategory) {
+                    productData.category_id = foundCategory.id;
+                }
+            }
+
             // Add product
             const { data: newProductData, error: productError } = await supabase
                 .from('products')
@@ -1129,6 +1152,15 @@ export const DataProvider = ({ children }) => {
                 category_id: rawData.categoryId ?? rawData.category_id
             };
 
+            // Convert category name array to category_id
+            if (!updateData.category_id && rawData.category && Array.isArray(rawData.category) && rawData.category.length > 0) {
+                const categoryName = rawData.category[0]; // Use first category
+                const foundCategory = categories.find(c => c.name === categoryName);
+                if (foundCategory) {
+                    updateData.category_id = foundCategory.id;
+                }
+            }
+
             // Remove undefined values
             Object.keys(updateData).forEach(key => {
                 if (updateData[key] === undefined) delete updateData[key];
@@ -1161,7 +1193,16 @@ export const DataProvider = ({ children }) => {
             if (error) throw error;
 
             // Optimistic update with camelCase for frontend
-            setProducts(prev => prev.map(prod => prod.id === id ? { ...prod, ...rawData } : prod));
+            // Include the resolved category info
+            const optimisticData = { ...rawData };
+            if (updateData.category_id) {
+                optimisticData.categoryId = updateData.category_id;
+                const foundCat = categories.find(c => c.id === updateData.category_id);
+                if (foundCat) {
+                    optimisticData.category = foundCat.name;
+                }
+            }
+            setProducts(prev => prev.map(prod => prod.id === id ? { ...prod, ...optimisticData } : prod));
 
             return { success: true };
         } catch (error) {

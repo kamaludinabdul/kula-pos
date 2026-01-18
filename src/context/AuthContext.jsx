@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }) => {
                     .single();
 
                 const profileTimeout = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Profile query timeout')), 15000)
+                    setTimeout(() => reject(new Error('Profile query timeout')), 25000) // Increased from 15s to 25s
                 );
 
                 const { data: profile, error: profileError } = await Promise.race([profileQuery, profileTimeout]);
@@ -293,7 +293,7 @@ export const AuthProvider = ({ children }) => {
 
                 const sessionQuery = supabase.auth.getSession();
                 const sessionTimeout = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Session fetch timeout')), 10000)
+                    setTimeout(() => reject(new Error('Session fetch timeout')), 20000) // Increased from 10s to 20s
                 );
 
                 const { data: { session }, error } = await Promise.race([sessionQuery, sessionTimeout]);

@@ -87,7 +87,7 @@ const Transactions = () => {
         try {
             let query = supabase
                 .from('transactions')
-                .select('*', { count: 'exact' })
+                .select('*, profiles:cashier_id(name)', { count: 'exact' })
                 .eq('store_id', currentStore.id);
 
             // Filter Application
@@ -124,6 +124,7 @@ const Transactions = () => {
                 ...t,
                 paymentMethod: t.payment_method,
                 customerName: t.customer_name,
+                cashier: t.profiles?.name || '-', // From joined profiles table
                 // Extract details from payment_details JSONB if available
                 amountPaid: t.payment_details?.amount_paid || t.total,
                 change: t.payment_details?.change || 0,

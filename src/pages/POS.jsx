@@ -365,6 +365,7 @@ const POS = () => {
             cashAmount,
             change,
             cashier: user?.name,
+            cashierId: user?.id, // Add cashier ID for database reference
             status: 'completed',
             shiftId: currentShift?.id,
             customerId: selectedCustomer?.id || null,

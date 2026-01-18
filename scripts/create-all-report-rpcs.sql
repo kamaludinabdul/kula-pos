@@ -145,7 +145,7 @@ BEGIN
             (item->>'name') as p_name,
             COALESCE((item->>'qty')::NUMERIC, 0) as q,
             COALESCE((item->>'price')::NUMERIC, 0) as p,
-            COALESCE((item->>'buyPrice')::NUMERIC, 0) as c
+            COALESCE((item->>'buyPrice')::NUMERIC, (item->>'buy_price')::NUMERIC, 0) as c
         FROM transactions t,
              jsonb_array_elements(t.items) as item
         WHERE t.store_id = p_store_id

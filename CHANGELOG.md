@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.8.18] - 2026-01-19
+### Added
+- **Unit Tests**: Added comprehensive unit tests for `smartCashier.js` (13 tests) and `dataCleanup.js` (5 tests). Total tests: 87.
+- **SQL Scripts**: Added `fix-profile-timeout.sql` to fix profile query timeout issues.
+- **SQL Scripts**: Added `add-logo-column.sql` to add missing logo column to stores table.
+
+### Fixed
+- **RPC Functions**: Fixed `get_product_sales_report` to handle both `buyPrice` (camelCase) and `buy_price` (snake_case) in transaction items JSON.
+- **Profile Query Timeout**: Fixed 25+ second profile fetch timeout caused by complex RLS policies with recursive subqueries. Replaced with simple `USING(true)` policies.
+- **Store Logo**: Fixed logo not persisting after upload - added `logo` field mapping in `updateStore` function in `DataContext.jsx`.
+- **Store Logo**: Added `logo`, `latitude`, `longitude`, and `email` fields to store update mapping.
+- **Store Settings**: Added `printerPaperSize` field mapping from database to frontend.
+- **Receipt**: Fixed store logo not appearing in receipts by adding `logo` field mapping in `fetchStores`.
+
 ## [0.8.17] - 2026-01-08
 ### Added
 - **Purchase Order**: Added "Duplicate PO" (Duplikat) button. Clones items and notes to a new draft, resetting the supplier.

@@ -50,7 +50,7 @@ const CheckoutDialog = ({
     const [transactionDate, setTransactionDate] = useState(new Date()); // NEW: Transaction date
 
     // Check if user can backdate (admin/super_admin AND setting enabled)
-    const canBackdate = (user?.role === 'owner' || user?.role === 'super_admin') && store?.allowBackdateTransaction;
+    const canBackdate = (user?.role === 'owner' || user?.role === 'super_admin') && store?.settings?.allowBackdateTransaction;
 
     // Auto print receipt
     useEffect(() => {
@@ -86,7 +86,7 @@ const CheckoutDialog = ({
         console.log('[CheckoutDialog] Backdate Debug:', {
             canBackdate,
             userRole: user?.role,
-            storeAllowBackdate: store?.allowBackdateTransaction,
+            storeAllowBackdate: store?.settings?.allowBackdateTransaction,
             transactionDate: transactionDate?.toISOString(),
             willUseDate: (canBackdate ? transactionDate : new Date()).toISOString()
         });
