@@ -24,7 +24,7 @@ const NavItem = ({ item, isActive, onClick, className, isExpanded, isLocked }) =
       (isActive || linkActive) && !isLocked
         ? "bg-primary/10 text-primary hover:bg-primary/20"
         : "text-muted-foreground hover:bg-muted hover:text-foreground",
-      !isExpanded && "justify-center px-2",
+      !isExpanded && "justify-center px-0",
       className
     )}
     onClick={(e) => {
