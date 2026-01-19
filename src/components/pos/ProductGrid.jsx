@@ -107,11 +107,11 @@ const ProductGrid = ({ products, onAddToCart, isCartCollapsed }) => {
 
                         <CardContent className="p-2.5 flex flex-col flex-1 gap-1 relative">
                             {/* Fixed height for title to ensure uniform card sizing - Force 2 lines */}
-                            <div className="font-semibold text-xs text-slate-700 line-clamp-2 h-8 leading-4 overflow-hidden" title={product.name}>
+                            <div className="font-semibold text-xs text-slate-700 line-clamp-2 h-8 leading-4 overflow-hidden break-words text-ellipsis" title={product.name}>
                                 {product.name}
                             </div>
                             <div className="mt-auto flex items-center justify-between pt-1">
-                                <span className="font-bold text-indigo-600 text-sm">
+                                <span className="font-bold text-indigo-600 text-sm truncate max-w-full">
                                     Rp {(parseInt(product.sellPrice || product.price) || 0).toLocaleString()}
                                 </span>
                             </div>

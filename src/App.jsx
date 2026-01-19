@@ -86,7 +86,7 @@ const PageLoader = () => (
 
 import { checkPlanAccess, hasFeatureAccess } from './utils/plans';
 // Use a constant to avoid potential issues with JSON import in some environments
-const APP_VERSION = '0.8.17';
+const APP_VERSION = '0.8.18';
 
 const PrivateRoute = ({ children, feature, plan, permission }) => {
   const authContext = useAuth();
@@ -156,12 +156,16 @@ const PrivateRoute = ({ children, feature, plan, permission }) => {
 
   // 4. Feature and Plan Access
   if (feature) {
-    // If no active store selected, force to stores page
+    // If no active store selected, force to stores page (Only for Super Admin/Owner with no store)
     if (!currentStore) {
-      return <Navigate to="/stores" replace />;
+      if (role === 'super_admin' || !user.store_id) {
+        return <Navigate to="/stores" replace />;
+      }
+      // For staff with store_id but missing currentStore (data/network issue), 
+      // we proceed to avoid redirect loop. DataContext/UI handles missing data.
     }
 
-    const currentPlan = (currentStore.plan || 'free').toLowerCase();
+    const currentPlan = (currentStore?.plan || 'free').toLowerCase();
     const dynamicPlans = dataContext.plans || {};
 
     // Check Plan & Feature Access
@@ -214,6 +218,10 @@ const RootRedirect = () => {
 
   // Only redirect to /stores if user truly has no store after loading is complete
   if (!currentStore) {
+    // If user implies they have a store (store_id exists), go to dashboard
+    if (user.store_id) {
+      return <Navigate to="/dashboard" replace />;
+    }
     return <Navigate to="/stores" replace />;
   }
 

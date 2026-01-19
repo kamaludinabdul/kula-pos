@@ -16,7 +16,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function checkStoresSchema() {
     console.log("Checking Stores Schema...");
-    const { data, error } = await supabase.from('stores').select('*').limit(1);
+    const { data } = await supabase.from('stores').select('*').limit(1);
 
     if (data && data.length > 0) {
         console.log("Store Columns:", Object.keys(data[0]));

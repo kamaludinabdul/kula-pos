@@ -29,7 +29,7 @@ async function debugSchema() {
     if (!stores.length) return;
     const storeId = stores[0].id;
 
-    const { data, error } = await supabase
+    const { data } = await supabase
         .from('cash_flow')
         .select('*')
         .eq('store_id', storeId)

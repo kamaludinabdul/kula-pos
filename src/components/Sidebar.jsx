@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
-const APP_VERSION = '0.8.17';
+const APP_VERSION = '0.8.18';
 import { checkPlanAccess, hasFeatureAccess } from '../utils/plans';
 import UpgradeAlert from './UpgradeAlert';
 
@@ -37,7 +37,7 @@ const NavItem = ({ item, isActive, onClick, className, isExpanded, isLocked }) =
     }}
     title={!isExpanded ? item.label : undefined}
   >
-    <div className="flex items-center gap-3 flex-1 overflow-hidden">
+    <div className={cn("flex items-center gap-3 shrink-0", isExpanded ? "flex-1 overflow-hidden" : "justify-center")}>
       {item.icon && <item.icon size={20} className="shrink-0" />}
       {isExpanded && <span className="truncate">{item.label}</span>}
     </div>

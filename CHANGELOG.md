@@ -9,6 +9,7 @@
 ### Fixed
 - **RPC Functions**: Fixed `get_product_sales_report` to handle both `buyPrice` (camelCase) and `buy_price` (snake_case) in transaction items JSON.
 - **Profile Query Timeout**: Fixed 25+ second profile fetch timeout caused by complex RLS policies with recursive subqueries. Replaced with simple `USING(true)` policies.
+- **Sidebar**: Fixed icon alignment in collapsed state (icons were not properly centered).
 - **Store Logo**: Fixed logo not persisting after upload - added `logo` field mapping in `updateStore` function in `DataContext.jsx`.
 - **Store Logo**: Added `logo`, `latitude`, `longitude`, and `email` fields to store update mapping.
 - **Store Settings**: Added `printerPaperSize` field mapping from database to frontend.

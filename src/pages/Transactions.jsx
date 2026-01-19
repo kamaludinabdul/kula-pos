@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
-import { useShift } from '../context/ShiftContext';
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -28,7 +28,7 @@ const Transactions = () => {
     // user unused
     const { user, checkPermission } = useAuth();
     const { voidTransaction, processRefund, currentStore } = useData();
-    const { addCashMovement } = useShift();
+
 
     // -- Local Data State (Pagination) --
     const [transactionsList, setTransactionsList] = useState([]);
@@ -166,8 +166,8 @@ const Transactions = () => {
             try {
                 console.log("Transactions: Fetching Summary for store", storeId);
                 // Use date-fns for robust date range calculation
-                const start = startOfDay(datePickerDate.from);
-                const end = endOfDay(datePickerDate.to || datePickerDate.from);
+                const start = startOfDay(new Date(dateFromStr));
+                const end = endOfDay(dateToStr ? new Date(dateToStr) : new Date(dateFromStr));
 
                 // Use a broader select to ensure we get all needed fields
                 let query = supabase
@@ -240,7 +240,6 @@ const Transactions = () => {
             }
         }, 600);
         return () => clearTimeout(timer);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [storeId, searchTerm, statusFilter, paymentMethodFilter, dateFromStr, dateToStr, itemsPerPage, fetchTransactions]);
 
     const handlePageChange = (page) => {
@@ -595,9 +594,9 @@ const Transactions = () => {
                     />
                 </div>
 
-                <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-[130px]">
+                        <SelectTrigger className="w-[130px] max-w-full flex-1 md:flex-none">
                             <SelectValue placeholder="Status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -608,7 +607,7 @@ const Transactions = () => {
                     </Select>
 
                     <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
-                        <SelectTrigger className="w-[150px]">
+                        <SelectTrigger className="w-[150px] max-w-full flex-1 md:flex-none">
                             <SelectValue placeholder="Tipe Bayar" />
                         </SelectTrigger>
                         <SelectContent>
@@ -625,7 +624,7 @@ const Transactions = () => {
                             placeholder="Cari ID Transaksi..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-8"
+                            className="pl-8 w-full"
                         />
                     </div>
                 </div>
