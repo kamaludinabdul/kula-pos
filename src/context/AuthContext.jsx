@@ -123,8 +123,9 @@ export const AuthProvider = ({ children }) => {
                 console.error(`Auth: Profile fetch failed after ${((performance.now() - startTime) / 1000).toFixed(1)}s:`, err.message);
 
                 // Retry on AbortError (Supabase internal abort)
-                if ((err.name === 'AbortError' || err.message?.includes('aborted')) && retryCount < MAX_RETRIES) {
-                    console.log(`Auth: AbortError detected, retrying in ${RETRY_DELAY}ms... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+                if ((err.name === 'AbortError' || err.message?.includes('aborted') ||
+                    err.message === 'Profile query timeout' || err.message === 'Store query timeout') && retryCount < MAX_RETRIES) {
+                    console.log(`Auth: ${err.message} detected, retrying in ${RETRY_DELAY}ms... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
                     await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
                     profilePromiseRef.current = null; // Clear promise to allow retry
                     return fetchUserProfile(userId, retryCount + 1);

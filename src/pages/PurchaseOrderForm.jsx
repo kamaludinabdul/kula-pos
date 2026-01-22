@@ -363,7 +363,7 @@ const PurchaseOrderForm = () => {
             const results = products.filter(p =>
                 p.name.toLowerCase().includes(term) ||
                 (p.barcode && p.barcode.includes(term))
-            ).slice(0, 5); // Limit to 5
+            ).slice(0, 50); // Limit to 50
             setSearchResults(results);
         } else {
             setSearchResults([]);
