@@ -42,7 +42,7 @@ const Dashboard = () => {
     const { user } = useAuth();
     const [selectedTransaction, setSelectedTransaction] = useState(null);
     const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
-    const { currentStore, products: rawProducts, customers: rawCustomers } = useData();
+    const { currentStore, products: rawProducts, customers: rawCustomers, summary } = useData();
     const products = useMemo(() => Array.isArray(rawProducts) ? rawProducts : [], [rawProducts]);
     const customers = useMemo(() => Array.isArray(rawCustomers) ? rawCustomers : [], [rawCustomers]);
 
@@ -197,10 +197,18 @@ const Dashboard = () => {
     }, [dashboardStats, customers, dateRange]);
 
     const stockCounts = useMemo(() => {
+        // Use summary data if available (faster/optimized)
+        if (summary && typeof summary.outOfStock !== 'undefined') {
+            return {
+                outOfStock: summary.outOfStock || 0,
+                lowStock: summary.lowStock || 0
+            };
+        }
+
         const outOfStock = products.filter(p => (p.stock || 0) <= 0).length;
         const lowStock = products.filter(p => (p.stock || 0) > 0 && (p.stock || 0) <= (p.minStock || 10)).length;
         return { outOfStock, lowStock };
-    }, [products]);
+    }, [products, summary]);
 
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 

@@ -74,6 +74,7 @@ export const DataProvider = ({ children }) => {
     const [plans, setPlans] = useState(PLANS);
     const [loading, setLoading] = useState(true);
     const [storesLoading, setStoresLoading] = useState(true);
+    const [summary, setSummary] = useState({ totalProducts: 0, totalStock: 0, totalValue: 0 });
     const [lastFetchError, setLastFetchError] = useState(null);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -522,6 +523,9 @@ export const DataProvider = ({ children }) => {
                         console.log("DataContext: Initial snapshot loaded successfully");
                         if (snapshot.categories && Array.isArray(snapshot.categories)) {
                             setCategories(snapshot.categories);
+                        }
+                        if (snapshot.summary) {
+                            setSummary(snapshot.summary);
                         }
                     }
                 } catch (e) {
@@ -2381,6 +2385,8 @@ export const DataProvider = ({ children }) => {
             updateSalesTarget,
             deleteSalesTarget,
             lastFetchError,
+            summary,
+            stats: summary,
             isOnline,
             storesLoading,
             recalculateProductStats,

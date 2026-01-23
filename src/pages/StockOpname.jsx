@@ -12,8 +12,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 const StockOpname = () => {
-    const { products, currentStore, refreshData } = useData();
+    const { products, currentStore, refreshData, fetchAllProducts } = useData();
     const activeStoreId = currentStore?.id;
+
+    // Fetch all products for stock opname
+    useEffect(() => {
+        if (activeStoreId && products.length === 0) {
+            fetchAllProducts(activeStoreId);
+        }
+    }, [activeStoreId, products.length, fetchAllProducts]);
     const [searchTerm, setSearchTerm] = useState('');
     const [opnameData, setOpnameData] = useState({});
     const [notes, setNotes] = useState('');

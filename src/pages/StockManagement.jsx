@@ -28,7 +28,14 @@ import {
 } from "../components/ui/dropdown-menu";
 
 const StockManagement = () => {
-    const { products, addStockBatch, reduceStockFIFO, bulkUpdateStock, deleteProduct } = useData();
+    const { products, addStockBatch, reduceStockFIFO, bulkUpdateStock, deleteProduct, fetchAllProducts, activeStoreId } = useData();
+
+    // Fetch all products for stock management
+    React.useEffect(() => {
+        if (activeStoreId && products.length === 0) {
+            fetchAllProducts(activeStoreId);
+        }
+    }, [activeStoreId, products.length, fetchAllProducts]);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
     const [selectedProduct, setSelectedProduct] = useState(null);

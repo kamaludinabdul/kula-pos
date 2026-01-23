@@ -49,18 +49,13 @@ export const AuthProvider = ({ children }) => {
                 console.log('Auth: Step 1: Fetching profile...');
                 const profileStart = performance.now();
 
-                // Add a timeout for the profile query
-                const profileQuery = supabase
+                // Fetch profile directly without Promise.race to avoid AbortError
+                const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', userId)
                     .single();
 
-                const profileTimeout = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Profile query timeout')), 25000) // Increased from 15s to 25s
-                );
-
-                const { data: profile, error: profileError } = await Promise.race([profileQuery, profileTimeout]);
                 console.log(`Auth: Profile query took: ${((performance.now() - profileStart) / 1000).toFixed(1)}s`);
 
                 if (profileError) {
@@ -73,19 +68,13 @@ export const AuthProvider = ({ children }) => {
                     console.log('Auth: Step 2: Fetching store...');
                     const storeStart = performance.now();
 
-                    // Add a timeout for the store query to prevent indefinite hanging
-                    const storeQuery = supabase
-                        .from('stores')
-                        .select('*')
-                        .eq('id', profile.store_id)
-                        .single();
-
-                    const timeoutPromise = new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('Store query timeout')), 10000)
-                    );
-
                     try {
-                        const { data: store, error: storeError } = await Promise.race([storeQuery, timeoutPromise]);
+                        const { data: store, error: storeError } = await supabase
+                            .from('stores')
+                            .select('*')
+                            .eq('id', profile.store_id)
+                            .single();
+
                         console.log(`Auth: Store query took: ${((performance.now() - storeStart) / 1000).toFixed(1)}s`);
 
                         if (!storeError && store) {
@@ -304,12 +293,7 @@ export const AuthProvider = ({ children }) => {
                 console.log("Auth: Checking initial session...", retryCount > 0 ? `(retry ${retryCount})` : '');
                 const startTime = performance.now();
 
-                const sessionQuery = supabase.auth.getSession();
-                const sessionTimeout = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Session fetch timeout')), 20000) // Increased from 10s to 20s
-                );
-
-                const { data: { session }, error } = await Promise.race([sessionQuery, sessionTimeout]);
+                const { data: { session }, error } = await supabase.auth.getSession();
                 const sessionTime = performance.now() - startTime;
                 console.log(`Auth: Session check complete (${sessionTime.toFixed(0)}ms):`, session ? "Logged in" : "No session", error);
                 if (error) throw error;

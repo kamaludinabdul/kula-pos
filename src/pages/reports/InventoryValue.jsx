@@ -7,9 +7,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 
 const InventoryValue = () => {
-    const { products } = useData();
+    const { products, summary, fetchAllProducts, activeStoreId } = useData();
+
+    // Trigger full products fetch for detailed table
+    React.useEffect(() => {
+        if (activeStoreId) {
+            fetchAllProducts(activeStoreId);
+        }
+    }, [activeStoreId, fetchAllProducts]);
 
     const stats = useMemo(() => {
+        // Use pre-calculated summary if products list is not yet loaded
+        if (products.length === 0 && summary) {
+            return {
+                totalStock: summary.totalStock || 0,
+                totalCapital: summary.totalValue || 0,
+                potentialRevenue: 0, // Not currently in summary snapshot
+                potentialProfit: 0
+            };
+        }
+
         let totalStock = 0;
         let totalCapital = 0; // Total Modal (Buy Price * Stock)
         let potentialRevenue = 0; // Potensi Pendapatan (Sell Price * Stock)
@@ -29,7 +46,7 @@ const InventoryValue = () => {
         const potentialProfit = potentialRevenue - totalCapital;
 
         return { totalStock, totalCapital, potentialRevenue, potentialProfit };
-    }, [products]);
+    }, [products, summary]);
 
     const handleExport = () => {
         const dataToExport = products

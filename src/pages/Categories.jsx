@@ -82,8 +82,15 @@ const Categories = () => {
     };
 
     // Get product count for each category
-    const getProductCount = React.useCallback((categoryName) => {
+    const getProductCount = React.useCallback((category) => {
+        // Optimization: Use pre-calculated productCount from snapshot if available
+        if (category && typeof category.productCount !== 'undefined') {
+            return category.productCount;
+        }
+
+        const categoryName = typeof category === 'object' ? category.name : category;
         const nameToCheck = typeof categoryName === 'object' && categoryName?.name ? categoryName.name : categoryName;
+
         return products.filter(p => {
             // Handle product category being array or single value, and potentially objects
             if (Array.isArray(p.category)) {
@@ -205,7 +212,7 @@ const Categories = () => {
                                     <TableCell className="font-medium">
                                         {typeof category.name === 'object' && category.name?.name ? category.name.name : category.name}
                                     </TableCell>
-                                    <TableCell>{getProductCount(category.name)} produk</TableCell>
+                                    <TableCell>{getProductCount(category)} produk</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex justify-end gap-2">
                                             {checkPermission('categories.update') && (
