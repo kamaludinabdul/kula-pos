@@ -668,7 +668,16 @@ const Products = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {currentProducts.length === 0 ? (
+                        {isLoading ? (
+                            <TableRow>
+                                <TableCell colSpan={10} className="h-24 text-center">
+                                    <div className="flex items-center justify-center gap-2">
+                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                        <span>Loading products...</span>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ) : currentProducts.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                                     No products found
@@ -826,7 +835,7 @@ const Products = () => {
 
             <Pagination
                 currentPage={currentPage}
-                totalItems={sortedProducts.length}
+                totalItems={totalItems}
                 itemsPerPage={itemsPerPage}
                 onPageChange={setCurrentPage}
                 onItemsPerPageChange={setItemsPerPage}
@@ -887,7 +896,7 @@ const Products = () => {
             <BarcodeLabelDialog
                 isOpen={isBarcodeDialogOpen}
                 onClose={() => setIsBarcodeDialogOpen(false)}
-                products={products.filter(p => selectedProducts.includes(p.id))}
+                products={currentProducts.filter(p => selectedProducts.includes(p.id))}
             />
         </div >
     );

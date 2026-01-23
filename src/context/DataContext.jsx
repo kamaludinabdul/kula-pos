@@ -647,7 +647,6 @@ export const DataProvider = ({ children }) => {
         } finally {
             isFetchingRef.current = false;
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, activeStoreId, fetchStockMovements]);
 
     useEffect(() => {
@@ -1373,10 +1372,14 @@ export const DataProvider = ({ children }) => {
                 return { success: false, error: "Pelanggan dengan nomor HP ini sudah terdaftar." };
             }
 
+            // Map to snake_case for Supabase
             const newCustomer = {
                 id: customerId,
-                ...customerData,
                 store_id: activeStoreId,
+                name: customerData.name,
+                phone: customerData.phone,
+                email: customerData.email || null,
+                address: customerData.address || null,
                 total_spent: 0,
                 debt: 0,
                 loyalty_points: 0,
@@ -1391,7 +1394,7 @@ export const DataProvider = ({ children }) => {
 
             if (error) throw error;
 
-            // Optimistic update with mapping
+            // Optimistic update with camelCase mapping for consistency
             const processedNewCustomer = {
                 ...data,
                 loyaltyPoints: data.loyalty_points || 0,
@@ -1415,9 +1418,20 @@ export const DataProvider = ({ children }) => {
 
     const updateCustomer = async (id, data) => {
         try {
+            // Map to snake_case for Supabase
+            const updateData = {};
+            if (data.name !== undefined) updateData.name = data.name;
+            if (data.phone !== undefined) updateData.phone = data.phone;
+            if (data.email !== undefined) updateData.email = data.email === '' ? null : data.email;
+            if (data.address !== undefined) updateData.address = data.address === '' ? null : data.address;
+
+            // Handle loyalty points if passed (camelCase or snake_case)
+            if (data.loyaltyPoints !== undefined) updateData.loyalty_points = data.loyaltyPoints;
+            if (data.loyalty_points !== undefined) updateData.loyalty_points = data.loyalty_points;
+
             const { error } = await supabase
                 .from('customers')
-                .update(data)
+                .update(updateData)
                 .eq('id', id);
 
             if (error) throw error;
@@ -1429,7 +1443,8 @@ export const DataProvider = ({ children }) => {
                         ...cust,
                         ...data,
                         // Ensure critical fields are mapped if passed in update data
-                        loyaltyPoints: data.loyalty_points !== undefined ? data.loyalty_points : (data.loyaltyPoints !== undefined ? data.loyaltyPoints : cust.loyaltyPoints)
+                        loyaltyPoints: updateData.loyalty_points !== undefined ? updateData.loyalty_points : cust.loyaltyPoints,
+                        loyalty_points: updateData.loyalty_points !== undefined ? updateData.loyalty_points : cust.loyalty_points
                     };
                 }
                 return cust;
@@ -1828,19 +1843,31 @@ export const DataProvider = ({ children }) => {
     const addSupplier = async (supplierData) => {
         if (!activeStoreId) return { success: false, error: 'No active store' };
         try {
+            // Map camelCase to snake_case for Supabase
+            const dbData = {
+                store_id: activeStoreId,
+                name: supplierData.name,
+                contact_person: supplierData.contactPerson || supplierData.contact_person,
+                phone: supplierData.phone,
+                email: supplierData.email,
+                address: supplierData.address,
+                notes: supplierData.notes
+            };
+
             const { data, error } = await supabase
                 .from('suppliers')
-                .insert({
-                    ...supplierData,
-                    store_id: activeStoreId
-                })
+                .insert(dbData)
                 .select()
                 .single();
 
             if (error) throw error;
 
-            // Optimistic update
-            setSuppliers(prev => [...prev, data]);
+            // Optimistic update (map back to camelCase for frontend state)
+            const newSupplier = {
+                ...data,
+                contactPerson: data.contact_person
+            };
+            setSuppliers(prev => [...prev, newSupplier]);
             return { success: true, id: data.id };
         } catch (error) {
             console.error("Error adding supplier:", error);
@@ -1850,9 +1877,18 @@ export const DataProvider = ({ children }) => {
 
     const updateSupplier = async (id, data) => {
         try {
+            // Map camelCase to snake_case
+            const dbUpdates = {};
+            if (data.name) dbUpdates.name = data.name;
+            if (data.contactPerson || data.contact_person) dbUpdates.contact_person = data.contactPerson || data.contact_person;
+            if (data.phone) dbUpdates.phone = data.phone;
+            if (data.email) dbUpdates.email = data.email;
+            if (data.address) dbUpdates.address = data.address;
+            if (data.notes) dbUpdates.notes = data.notes;
+
             const { error } = await supabase
                 .from('suppliers')
-                .update(data)
+                .update(dbUpdates)
                 .eq('id', id);
 
             if (error) throw error;

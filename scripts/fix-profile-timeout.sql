@@ -22,6 +22,12 @@ DROP POLICY IF EXISTS "Enable insert for authenticated users" ON public.profiles
 DROP POLICY IF EXISTS "Enable update for authenticated users" ON public.profiles;
 DROP POLICY IF EXISTS "Enable delete for authenticated users" ON public.profiles;
 
+-- Drop simple policies if they already exist (to allow re-running script)
+DROP POLICY IF EXISTS "profiles_select_simple" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_insert_simple" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_update_simple" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_delete_simple" ON public.profiles;
+
 -- 2. Ensure RLS is enabled
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
