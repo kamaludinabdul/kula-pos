@@ -172,7 +172,7 @@ const Transactions = () => {
                 // Use a broader select to ensure we get all needed fields
                 let query = supabase
                     .from('transactions')
-                    .select('*')
+                    .select('id, total, status, payment_method')
                     .eq('store_id', storeId)
                     .gte('date', start.toISOString())
                     .lte('date', end.toISOString());

@@ -409,6 +409,80 @@ export const DataProvider = ({ children }) => {
 
 
 
+    // Helper to fetch products separately (Now exposed)
+    const fetchAllProducts = useCallback(async (storeId = activeStoreId) => {
+        if (!storeId) return [];
+        const phase2Start = performance.now();
+        try {
+            console.log("DataContext: Fetching ALL products for POS/Cache...");
+            const productsQuery = supabase
+                .from('products')
+                .select('*, categories(id, name)')
+                .eq('store_id', storeId)
+                .eq('is_deleted', false)
+                .limit(2000); // Consider increasing this or handling pagination if catalog > 2000
+
+            const { data, error } = await productsQuery;
+            if (error) throw error;
+
+            const processed = data.map(p => ({
+                ...p,
+                buyPrice: p.buy_price,
+                sellPrice: p.sell_price,
+                minStock: p.min_stock,
+                discountType: p.discount_type,
+                isUnlimited: p.is_unlimited,
+                purchaseUnit: p.purchase_unit,
+                conversionToUnit: p.conversion_to_unit,
+                rackLocation: p.rack_location,
+                imageUrl: p.image_url,
+                categoryId: p.category_id,
+                storeId: p.store_id,
+                isDeleted: p.is_deleted,
+                createdAt: p.created_at,
+                pricingType: p.pricing_type,
+                pricingTiers: p.pricing_tiers,
+                isBundlingEnabled: p.is_bundling_enabled,
+                price: p.sell_price,
+                category: p.categories?.name || null
+            }));
+            setProducts(processed);
+            console.log(`DataContext: fetchAllProducts took: ${((performance.now() - phase2Start) / 1000).toFixed(2)}s`);
+
+            // Update cache
+            offlineService.cacheData(storeId, processed || [], categories || [], []);
+
+            return processed;
+        } catch (e) {
+            console.error('DataContext: Failed to fetch products:', e);
+            return [];
+        }
+    }, [activeStoreId, categories]);
+
+    // New RPC-based Pagination
+    const fetchProductsPage = useCallback(async ({ page, pageSize, search = '', category = 'all', satuanPO = 'all', sortKey = 'name', sortDir = 'asc' }) => {
+        if (!activeStoreId) return { data: [], total: 0 };
+
+        try {
+            const { data, error } = await supabase.rpc('get_products_page', {
+                p_store_id: activeStoreId,
+                p_page: page,
+                p_page_size: pageSize,
+                p_search: search,
+                p_category: category,
+                p_satuan_po: satuanPO,
+                p_sort_key: sortKey,
+                p_sort_dir: sortDir
+            });
+
+            if (error) throw error;
+            return data; // { data: [...], total: 100 }
+        } catch (e) {
+            console.error("DataContext: fetchProductsPage error:", e);
+            throw e;
+        }
+    }, [activeStoreId]);
+
     const fetchData = useCallback(async (shouldSetLoading = false) => {
         if (!user) {
             setLoading(false);
@@ -421,14 +495,14 @@ export const DataProvider = ({ children }) => {
         }
 
         isFetchingRef.current = true;
-        if (shouldSetLoading) setLoading(true);
+        if (shouldSetLoading) setLoading(true); // Only show loading for the very first critical part
         try {
-            console.log("DataContext: Fetching data for user:", user?.email, "Role:", user?.role, "StoreId:", activeStoreId, "State:", { productsCount: products.length, categoriesCount: categories.length });
+            console.log("DataContext: Fetching data for user:", user?.email, "Role:", user?.role, "StoreId:", activeStoreId);
 
             if (activeStoreId) {
                 setLastFetchError(null);
 
-                // --- PHASE 1: INITIAL SNAPSHOT ---
+                // --- PHASE 1: INITIAL SNAPSHOT (CRITICAL - Awaited) ---
                 const phase1Start = performance.now();
                 try {
                     console.log("DataContext: Starting Phase 1 (Snapshot)...");
@@ -455,68 +529,17 @@ export const DataProvider = ({ children }) => {
                 }
                 console.log(`DataContext: Phase 1 (Snapshot) took: ${((performance.now() - phase1Start) / 1000).toFixed(2)}s`);
 
-                // --- PHASE 2: CRITICAL DATA (Products) ---
-                const phase2Start = performance.now();
-                const fetchedProducts = await (async () => {
-                    try {
-                        console.log("DataContext: Starting Phase 2 (Products)...");
-                        const productsQuery = supabase
-                            .from('products')
-                            .select('*, categories(id, name)')
-                            .eq('store_id', activeStoreId)
-                            .eq('is_deleted', false)
-                            .limit(2000);
-
-                        const productsTimeout = new Promise((_, reject) =>
-                            setTimeout(() => reject(new Error('Products fetch timeout')), 15000)
-                        );
-
-                        const { data, error } = await Promise.race([productsQuery, productsTimeout]);
-                        if (error) throw error;
-
-                        const processed = data.map(p => ({
-                            ...p,
-                            buyPrice: p.buy_price,
-                            sellPrice: p.sell_price,
-                            minStock: p.min_stock,
-                            discountType: p.discount_type,
-                            isUnlimited: p.is_unlimited,
-                            purchaseUnit: p.purchase_unit,
-                            conversionToUnit: p.conversion_to_unit,
-                            rackLocation: p.rack_location,
-                            imageUrl: p.image_url,
-                            categoryId: p.category_id,
-                            storeId: p.store_id,
-                            isDeleted: p.is_deleted,
-                            createdAt: p.created_at,
-                            pricingType: p.pricing_type,
-                            pricingTiers: p.pricing_tiers,
-                            isBundlingEnabled: p.is_bundling_enabled,
-                            price: p.sell_price,
-                            category: p.categories?.name || null
-                        }));
-                        setProducts(processed);
-                        return processed;
-                    } catch (e) {
-                        console.error('DataContext: Failed to fetch products:', e);
-                        return [];
-                    }
-                })();
-                console.log(`DataContext: Phase 2 (Products) took: ${((performance.now() - phase2Start) / 1000).toFixed(2)}s`);
-
-                // Unblock UI for POS
+                // --- KEY CHANGE: Stop Loading Here ---
                 if (shouldSetLoading) setLoading(false);
 
-                // Update Offline Cache
-                if (fetchedProducts?.length > 0) {
-                    offlineService.cacheData(activeStoreId, fetchedProducts || [], categories || [], []);
-                }
+                // --- PHASE 2: PRODUCTS (REMOVED FROM DEFAULT FETCH) ---
+                // We no longer fetch all 2000 products by default.
+                // Pages that need it (POS) must call fetchAllProducts().
 
                 // --- PHASE 3: BACKGROUND DATA (Reports, History, Customers) ---
                 console.log("DataContext: Starting Phase 3 (Background Data)...");
                 const phase3Start = performance.now();
-
-                await Promise.all([
+                Promise.all([
                     safeFetchSupabase({
                         supabase, activeStoreId,
                         tableName: 'transactions',
@@ -603,6 +626,7 @@ export const DataProvider = ({ children }) => {
                 ]).catch(err => console.error("DataContext: Phase 3 failed:", err));
                 console.log(`DataContext: Phase 3 (Background) took: ${((performance.now() - phase3Start) / 1000).toFixed(2)}s`);
 
+
             } else {
                 setCategories([]);
                 setProducts([]);
@@ -610,24 +634,17 @@ export const DataProvider = ({ children }) => {
                 setCustomers([]);
                 setStockMovements([]);
                 setSalesTargets([]);
+                // Also stop loading if no store
+                if (shouldSetLoading) setLoading(false);
             }
         } catch (error) {
             console.error("DataContext: Failed to fetch data from Supabase:", error);
             setLastFetchError(error.message);
 
-            // Fallback to Offline Cache
-            if (activeStoreId) {
-                console.log("DataContext: Attempting to load from offline cache...");
-                const cached = await offlineService.loadFromCache(activeStoreId);
-                if (cached.products.length > 0) {
-                    setProducts(cached.products);
-                    setCategories(cached.categories);
-                    setCustomers(cached.customers);
-                    console.log("DataContext: Loaded from offline cache:", cached.products.length, "products");
-                }
-            }
+            // Fallback to Offline Cache (Products might need fetchAllProducts call now)
+            // We can check local storage directly or just leave it empty until POS loads
+            if (shouldSetLoading) setLoading(false);
         } finally {
-            setLoading(false);
             isFetchingRef.current = false;
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1626,7 +1643,8 @@ export const DataProvider = ({ children }) => {
                 p_type: transactionData.type || 'sale',
                 p_rental_session_id: transactionData.rental_session_id || null,
                 p_points_earned: transactionData.pointsEarned || 0,
-                p_date: transactionData.date || new Date().toISOString()
+                p_date: transactionData.date || new Date().toISOString(),
+                p_shift_id: transactionData.shiftId || null
             });
 
             if (error) throw error;
@@ -2287,6 +2305,8 @@ export const DataProvider = ({ children }) => {
             addStore,
             updateStore,
             deleteStore,
+            fetchAllProducts,
+            fetchProductsPage,
             updateStoreSettings,
             resetDatabase,
             suppliers, addSupplier, updateSupplier, deleteSupplier,

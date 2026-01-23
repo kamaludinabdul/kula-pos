@@ -75,11 +75,19 @@ const Dashboard = () => {
     const [customStartDate, setCustomStartDate] = useState('');
     const [customEndDate, setCustomEndDate] = useState('');
 
-    // Local State for Dashboard Data
-    const [fetchedTransactions, setFetchedTransactions] = useState([]);
+    // Local State for Dashboard Data from RPC
+    const [dashboardStats, setDashboardStats] = useState({
+        totalSales: 0,
+        totalTransactions: 0,
+        avgOrder: 0,
+        chartData: [],
+        categoryData: [],
+        topProducts: [],
+        recentTransactions: []
+    });
     const [isLoading, setIsLoading] = useState(false);
 
-    // Fetch Data Effect
+    // Fetch Data Effect (RPC)
     useEffect(() => {
         const fetchDashboardData = async () => {
             if (!currentStore?.id) return;
@@ -111,20 +119,30 @@ const Dashboard = () => {
                     end = now;
                 }
 
-                const { data, error } = await supabase
-                    .from('transactions')
-                    .select('*')
-                    .eq('store_id', currentStore.id)
-                    .gte('date', start.toISOString())
-                    .lte('date', end.toISOString())
-                    .order('date', { ascending: false });
+                // Call the RPC
+                const { data, error } = await supabase.rpc('get_dashboard_stats', {
+                    p_store_id: currentStore.id,
+                    p_start_date: start.toISOString(),
+                    p_end_date: end.toISOString(),
+                    p_period: dateRange === 'today' ? 'hour' : 'day'
+                });
 
                 if (error) throw error;
 
-                setFetchedTransactions(data || []);
+                if (data) {
+                    setDashboardStats({
+                        totalSales: Number(data.totalSales) || 0,
+                        totalTransactions: Number(data.totalTransactions) || 0,
+                        avgOrder: Number(data.avgOrder) || 0,
+                        chartData: data.chartData || [],
+                        categoryData: data.categoryData || [],
+                        topProducts: data.topProducts || [],
+                        recentTransactions: data.recentTransactions || []
+                    });
+                }
 
             } catch (error) {
-                console.error("Error fetching dashboard data:", error);
+                console.error("Error fetching dashboard stats:", error);
             } finally {
                 setIsLoading(false);
             }
@@ -133,55 +151,29 @@ const Dashboard = () => {
         fetchDashboardData();
     }, [dateRange, customStartDate, customEndDate, currentStore]);
 
-    // Use fetched data instead of filtering global
-    // IMPORTANT: Only include successful transactions (completed/success)
-    // Exclude: void, cancelled, refunded, dibatalkan
-    const filteredTransactions = fetchedTransactions.filter(t => {
-        const status = (t.status || '').toLowerCase();
-        // Only count completed/successful transactions
-        return status === 'completed' || status === 'success' || status === '';
-    });
-
     const chartData = useMemo(() => {
         if (!canViewFinancials) return [];
-        if (filteredTransactions.length === 0) return [];
 
+        let data = dashboardStats.chartData || [];
+
+        // If 'today', fill in missing hours for a nice 0-23 graph
         if (dateRange === 'today') {
-            const hours = Array.from({ length: 24 }, (_, i) => ({
-                name: `${i.toString().padStart(2, '0')}:00`,
-                hour: i,
-                total: 0
-            }));
-
-            filteredTransactions.forEach(t => {
-                const tDate = new Date(t.date);
-                const hour = tDate.getHours();
-                if (hours[hour]) {
-                    hours[hour].total += (t.total || 0);
-                }
+            const fullHours = Array.from({ length: 24 }, (_, i) => {
+                const hourLabel = `${i.toString().padStart(2, '0')}:00`;
+                const found = data.find(d => d.name === hourLabel);
+                return {
+                    name: hourLabel,
+                    total: found ? found.total : 0
+                };
             });
-
-            return hours;
-        } else {
-            const grouped = {};
-            filteredTransactions.forEach(t => {
-                const tDate = new Date(t.date);
-                const dateKey = tDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-                if (!grouped[dateKey]) {
-                    grouped[dateKey] = { name: dateKey, total: 0, date: tDate };
-                }
-                grouped[dateKey].total += (t.total || 0);
-            });
-
-            return Object.values(grouped).sort((a, b) => a.date - b.date);
+            return fullHours;
         }
-    }, [filteredTransactions, dateRange, canViewFinancials]);
+
+        return data;
+    }, [dashboardStats.chartData, dateRange, canViewFinancials]);
 
     const stats = useMemo(() => {
-        // filteredTransactions already excludes void/cancelled at line 138
-        const totalSales = filteredTransactions.reduce((sum, t) => sum + (t.total || 0), 0);
-        const totalTransactions = filteredTransactions.length;
-        const avgOrder = totalTransactions > 0 ? totalSales / totalTransactions : 0;
+        const { totalSales, totalTransactions, avgOrder } = dashboardStats;
 
         let newCustomersCount = 0;
         if (customers.length > 0) {
@@ -191,7 +183,7 @@ const Dashboard = () => {
                 start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                 end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
             } else {
-                // Simplified for brevity, rely on dateRange logic
+                // Simplified, just approximation for "current period" logic or fallback
                 start = new Date(0);
                 end = now;
             }
@@ -202,7 +194,7 @@ const Dashboard = () => {
         }
 
         return { totalSales, totalTransactions, avgOrder, newCustomers: newCustomersCount };
-    }, [filteredTransactions, customers, dateRange]);
+    }, [dashboardStats, customers, dateRange]);
 
     const stockCounts = useMemo(() => {
         const outOfStock = products.filter(p => (p.stock || 0) <= 0).length;
@@ -210,94 +202,12 @@ const Dashboard = () => {
         return { outOfStock, lowStock };
     }, [products]);
 
-    const categoryData = useMemo(() => {
-        if (!canViewFinancials) return [];
-        if (!filteredTransactions.length || !products.length) return [];
-        const catMap = {};
-        filteredTransactions.forEach(t => {
-            // Skip voided transactions
-            if (t.status === 'void' || t.status === 'cancelled') return;
-            if (t.items && Array.isArray(t.items)) {
-                t.items.forEach(item => {
-                    // FIX: Robust ID check
-                    const pId = item.id || item.productId;
-                    const product = products.find(p => p.id === pId) || {};
-                    const category = product.category || 'Uncategorized';
-                    if (!catMap[category]) catMap[category] = 0;
-
-                    const qty = Number(item.qty || item.quantity || 0);
-                    // FIX: Check item.total (POS format) as well as subtotal
-                    const lineTotal = Number(item.total || item.subtotal || (qty * (item.price || 0)) || 0);
-                    catMap[category] += lineTotal;
-                });
-            }
-        });
-        return Object.entries(catMap)
-            .map(([name, value]) => ({ name, value }))
-            .sort((a, b) => b.value - a.value);
-    }, [filteredTransactions, products, canViewFinancials]);
-
-    const topSellingData = useMemo(() => {
-        if (!canViewFinancials) return { allTime: [], monthly: [] };
-
-        // 1. All Time: Based on 'sold' field in products
-        const allTime = [...products]
-            .sort((a, b) => (b.sold || 0) - (a.sold || 0))
-            .slice(0, 10)
-            .map(p => ({
-                id: p.id,
-                name: p.name,
-                sold: p.sold || 0,
-                revenue: (p.sold || 0) * (p.sellPrice || 0) // Estimate
-            }));
-
-        // 2. Monthly: Aggregated from FETCHED transactions (which are already filtered by dateRange)
-        // If dateRange is NOT month, we might not have the right data here if we rely solely on filteredTransactions.
-        // However, usually Dashboard defaults to 'today' or 'week'.
-        // To show "This Month" accurately regardless of dateRange, we need a separate calculation or rely on what we have.
-        // Current constraint: avoiding extra heavy fetches.
-        // Strategy: We will show "Top Products for Selected Period" based on `filteredTransactions`.
-        // Rename tab to "Periode Ini" vs "Selamanya".
-
-        const periodStats = {};
-        filteredTransactions.forEach(t => {
-            // Skip voided transactions
-            if (t.status === 'void' || t.status === 'cancelled') return;
-            if (t.items && Array.isArray(t.items)) {
-                t.items.forEach(item => {
-                    // FIX: Use item.id (based on POS logic) or item.productId as fallback
-                    const pId = item.id || item.productId;
-                    if (!pId) return;
-
-                    if (!periodStats[pId]) {
-                        periodStats[pId] = {
-                            id: pId,
-                            name: item.productName || item.name || 'Unknown',
-                            sold: 0,
-                            revenue: 0
-                        };
-                    }
-
-                    // FIX: Force number parsing and fallback. POS uses 'total' for line item total.
-                    const qty = Number(item.qty || item.quantity || 0);
-                    const subtotal = Number(item.total || item.subtotal || (qty * (item.price || 0)) || 0);
-
-                    periodStats[pId].sold += qty;
-                    periodStats[pId].revenue += subtotal;
-                });
-            }
-        });
-
-        const periodTop = Object.values(periodStats)
-            .sort((a, b) => b.sold - a.sold)
-            .slice(0, 10);
-
-        return { allTime, period: periodTop };
-
-    }, [products, filteredTransactions, canViewFinancials]);
-
     const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
-    const recentTransactions = filteredTransactions.slice(0, 5);
+
+    // Use data directly from RPC
+    const categoryData = dashboardStats.categoryData || [];
+    const recentTransactions = dashboardStats.recentTransactions || [];
+    const topProducts = dashboardStats.topProducts || [];
 
     return (
         <div className="p-4 space-y-4 md:space-y-6">
@@ -464,15 +374,15 @@ const Dashboard = () => {
                 {canViewFinancials ? (
                     <Card className="col-span-1 h-full">
                         <CardHeader className="p-4 md:p-6 pb-2">
-                            <CardTitle className="text-sm md:text-lg">Produk Terlaris</CardTitle>
+                            <CardTitle className="text-sm md:text-lg">Produk Terlaris (Periode Ini)</CardTitle>
                         </CardHeader>
                         <CardContent className="p-4 md:p-6 pt-0">
-                            {topSellingData.period.length === 0 ? (
+                            {topProducts.length === 0 ? (
                                 <p className="text-muted-foreground text-center py-8 text-sm">Tidak ada data penjualan periode ini.</p>
                             ) : (
                                 <div className="grid gap-2 max-h-[300px] overflow-y-auto pr-1">
-                                    {topSellingData.period.map((item, index) => (
-                                        <div key={item.id} className="flex items-center justify-between p-2 rounded-lg border bg-slate-50/50">
+                                    {topProducts.map((item, index) => (
+                                        <div key={index} className="flex items-center justify-between p-2 rounded-lg border bg-slate-50/50">
                                             <div className="flex items-center gap-3">
                                                 <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold ${index < 3 ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'}`}>
                                                     {index + 1}
@@ -483,7 +393,7 @@ const Dashboard = () => {
                                                 </div>
                                             </div>
                                             <div className="font-semibold text-sm">
-                                                Rp {item.revenue.toLocaleString()}
+                                                Rp {(item.revenue || 0).toLocaleString()}
                                             </div>
                                         </div>
                                     ))}

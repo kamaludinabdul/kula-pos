@@ -256,8 +256,20 @@ export const AuthProvider = ({ children }) => {
                 return;
             }
             console.error("Error loading profile:", error);
-            // Re-throw so caller can handle
-            throw error;
+
+            // CRITICAL CHANGE: Do NOT re-throw. 
+            // If we re-throw, checkingInitialSession might catch it and we might end up in a weird state.
+            // If this fails, we should probably retry or keep loading true?
+            // For now, if profile fails, we shouldn't just logout unless it's a 401?
+            // But supabase-js handles 401. This is likely network or timeout.
+            // Let's NOT logout, but we can't set user.
+            // This leaves us in limbo. Ideally we have a "Retry" UI.
+            // But to solve the "Redirect to Login" issue, we must NOT let loading=false happen 
+            // while user is null IF simple network error.
+            if (requestId === fetchRequestId.current) {
+                // We could throw specific error to let caller decide
+                throw error;
+            }
         }
     }, [fetchUserProfile, logout]);
 
@@ -327,9 +339,25 @@ export const AuthProvider = ({ children }) => {
                     if (isMounted) completeLoading();
                     return;
                 }
+
                 console.error("Auth: Error checking initial session:", error);
+
+                // If we failed to load profile, but session existed?
+                // The error catch block here catches BOTH session query error AND loadUserSession error.
+                // If loadUserSession failed (e.g. Profile query timeout), we definitely do NOT want to set loading=false 
+                // because that will redirect to login (since user is null).
+                // Instead, we should probably RETRY?
+
+                if (retryCount < MAX_RETRIES) {
+                    console.log(`Auth: Error occurred, retrying... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * 2));
+                    return checkInitialSession(retryCount + 1);
+                }
+
                 hasInitializedRef.current = true;
-                if (isMounted) completeLoading(); // Force complete on error
+                // Only force complete if we really ran out of retries.
+                // This might still redirect to login, but at least we tried hard.
+                if (isMounted) completeLoading();
             }
         };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -40,19 +40,34 @@ import {
 const Products = () => {
     const navigate = useNavigate();
     const { checkPermission } = useAuth();
-    const { products, deleteProduct, bulkAddProducts, categories } = useData();
+    const { deleteProduct, bulkAddProducts, categories, fetchProductsPage, fetchAllProducts, activeStoreId } = useData();
 
+    // Server-side state
+    const [currentProducts, setCurrentProducts] = useState([]);
+    const [totalItems, setTotalItems] = useState(0);
+    const [isLoading, setIsLoading] = useState(false);
+
+    // Filters & Pagination
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('all');
-    const [filterSatuanPO, setFilterSatuanPO] = useState('all'); // New Filter State
+    const [filterSatuanPO, setFilterSatuanPO] = useState('all');
+
+    // Debounce Search
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    useEffect(() => {
+        const handler = setTimeout(() => setDebouncedSearch(searchTerm), 500);
+        return () => clearTimeout(handler);
+    }, [searchTerm]);
 
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
+    const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'desc' });
+
+    // Modal States
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [productToDelete, setProductToDelete] = useState(null);
     const [importResult, setImportResult] = useState(null);
     const [isImportResultOpen, setIsImportResultOpen] = useState(false);
-    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
     const [isBarcodeDialogOpen, setIsBarcodeDialogOpen] = useState(false);
     const [selectedProducts, setSelectedProducts] = useState([]);
 
@@ -60,12 +75,52 @@ const Products = () => {
     const [isImporting, setIsImporting] = useState(false);
     const [importProgress, setImportProgress] = useState({ step: '', current: 0, total: 0 });
 
-    // Toggle select all
+    // Fetch Products (Server Side)
+    const loadProducts = useCallback(async () => {
+        if (!fetchProductsPage) return;
+        setIsLoading(true);
+        try {
+            const { data, total } = await fetchProductsPage({
+                page: currentPage,
+                pageSize: itemsPerPage,
+                search: debouncedSearch,
+                category: selectedCategory,
+                satuanPO: filterSatuanPO,
+                sortKey: sortConfig.key || 'name',
+                sortDir: sortConfig.direction
+            });
+            setCurrentProducts(data || []);
+            setTotalItems(total || 0);
+        } catch (error) {
+            console.error("Failed to load products:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [fetchProductsPage, currentPage, itemsPerPage, debouncedSearch, selectedCategory, filterSatuanPO, sortConfig]);
+
+    // Reload when filters change
+    useEffect(() => {
+        loadProducts();
+    }, [loadProducts]);
+
+    // Reset page when filter changes (except pagination itself)
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [debouncedSearch, selectedCategory, filterSatuanPO]);
+
+    // Toggle select all (Current Page Only)
     const handleSelectAll = (checked) => {
         if (checked) {
-            setSelectedProducts(currentProducts.map(p => p.id));
+            // Add all IDs from current page that aren't already selected
+            const newIds = currentProducts.map(p => p.id);
+            setSelectedProducts(prev => {
+                const combined = [...new Set([...prev, ...newIds])];
+                return combined;
+            });
         } else {
-            setSelectedProducts([]);
+            // Deselect all IDs from current page
+            const currentIds = currentProducts.map(p => p.id);
+            setSelectedProducts(prev => prev.filter(id => !currentIds.includes(id)));
         }
     };
 
@@ -91,6 +146,7 @@ const Products = () => {
             await deleteProduct(productId);
         }
         setSelectedProducts([]);
+        loadProducts(); // Refresh
     };
 
     // Sorting function
@@ -102,100 +158,43 @@ const Products = () => {
         setSortConfig({ key, direction });
     };
 
-    // Filter products
-    const filteredProducts = products.filter(product => {
-        const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (product.barcode && product.barcode.includes(searchTerm));
-
-        let matchesCategory = true;
-        if (selectedCategory !== 'all') {
-            if (Array.isArray(product.category)) {
-                const categoryNames = product.category.map(c => (typeof c === 'object' && c?.name) ? c.name : c);
-                matchesCategory = categoryNames.includes(selectedCategory);
-            } else {
-                const categoryName = (typeof product.category === 'object' && product.category?.name) ? product.category.name : product.category;
-                matchesCategory = categoryName === selectedCategory;
-            }
+    // Export CSV (Fetch All First)
+    const handleExportCSV = async () => {
+        setIsLoading(true);
+        try {
+            const allProducts = await fetchAllProducts(activeStoreId);
+            const csv = Papa.unparse(allProducts);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'products.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (e) {
+            console.error("Export failed", e);
+        } finally {
+            setIsLoading(false);
         }
+    };
 
-        // Filter by Satuan PO
-        let matchesSatuanPO = true;
-        if (filterSatuanPO !== 'all') {
-            const hasSatuanPO = product.purchaseUnit && product.conversionToUnit > 0;
-            if (filterSatuanPO === 'yes') {
-                matchesSatuanPO = hasSatuanPO;
-            } else if (filterSatuanPO === 'no') {
-                matchesSatuanPO = !hasSatuanPO;
-            }
+    // Export Excel (Fetch All First)
+    const handleExportExcel = async () => {
+        setIsLoading(true);
+        try {
+            const allProducts = await fetchAllProducts(activeStoreId);
+            const worksheet = XLSX.utils.json_to_sheet(allProducts);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
+            XLSX.writeFile(workbook, "products.xlsx");
+        } catch (e) {
+            console.error("Export failed", e);
+        } finally {
+            setIsLoading(false);
         }
-
-        return matchesSearch && matchesCategory && matchesSatuanPO;
-    });
-
-    // Sort products
-    const sortedProducts = [...filteredProducts].sort((a, b) => {
-        if (!sortConfig.key) return 0;
-
-        let aValue, bValue;
-
-        switch (sortConfig.key) {
-            case 'name':
-                aValue = a.name.toLowerCase();
-                bValue = b.name.toLowerCase();
-                break;
-            case 'buyPrice':
-                aValue = parseFloat(a.buyPrice) || 0;
-                bValue = parseFloat(b.buyPrice) || 0;
-                break;
-            case 'sellPrice':
-                aValue = parseFloat(a.sellPrice || a.price) || 0;
-                bValue = parseFloat(b.sellPrice || b.price) || 0;
-                break;
-            case 'profit':
-                aValue = (parseFloat(a.sellPrice || a.price) || 0) - (parseFloat(a.buyPrice) || 0);
-                bValue = (parseFloat(b.sellPrice || b.price) || 0) - (parseFloat(b.buyPrice) || 0);
-                break;
-            case 'stock':
-                aValue = parseInt(a.stock) || 0;
-                bValue = parseInt(b.stock) || 0;
-                break;
-            case 'discount':
-                aValue = parseFloat(a.discount) || 0;
-                bValue = parseFloat(b.discount) || 0;
-                break;
-            case 'category': {
-                const getCatName = (cat) => {
-                    if (Array.isArray(cat)) {
-                        return cat.map(c => (typeof c === 'object' && c?.name) ? c.name : c).join(', ');
-                    }
-                    return (typeof cat === 'object' && cat?.name) ? cat.name : cat;
-                };
-                aValue = String(getCatName(a.category) || '').toLowerCase();
-                bValue = String(getCatName(b.category) || '').toLowerCase();
-                break;
-            }
-            default:
-                return 0;
-        }
-
-        if (aValue < bValue) {
-            return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-            return sortConfig.direction === 'asc' ? 1 : -1;
-        }
-        return 0;
-    });
-
-    // Pagination Logic
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentProducts = sortedProducts.slice(indexOfFirstItem, indexOfLastItem);
-
-    // Reset page when filter changes
-    useEffect(() => {
-        setTimeout(() => setCurrentPage(1), 0);
-    }, [searchTerm, selectedCategory, filterSatuanPO]);
+    };
 
 
     const handleEdit = (product) => {
@@ -211,21 +210,11 @@ const Products = () => {
         if (productToDelete) {
             await deleteProduct(productToDelete.id);
             setProductToDelete(null);
+            loadProducts(); // Refresh
         }
     };
 
-    const handleExportCSV = () => {
-        const csv = Papa.unparse(filteredProducts);
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', 'products.csv');
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
+
 
     const handleImportCSV = (event) => {
         const file = event.target.files[0];
@@ -254,6 +243,7 @@ const Products = () => {
                                 message: `Successfully imported ${result.count} products! ${result.skipped > 0 ? `(${result.skipped} duplicates skipped)` : ''}`,
                                 success: true
                             });
+                            loadProducts(); // Refresh list after import
                         } else {
                             setImportResult({
                                 title: "Import Failed",
@@ -361,6 +351,7 @@ const Products = () => {
 
                         setImportProgress({ step: 'Selesai!', current: 100, total: 100 });
 
+
                         // Small delay to show completion
                         await new Promise(resolve => setTimeout(resolve, 500));
                         setIsImporting(false);
@@ -371,6 +362,7 @@ const Products = () => {
                                 message: `Berhasil mengimport ${result.count} produk! ${result.skipped > 0 ? `(${result.skipped} duplikat dilewati)` : ''}`,
                                 success: true
                             });
+                            loadProducts(); // Refresh list
                         } else {
                             setImportResult({
                                 title: "Import Gagal",
@@ -408,12 +400,7 @@ const Products = () => {
 
 
 
-    const handleExportExcel = () => {
-        const worksheet = XLSX.utils.json_to_sheet(filteredProducts);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
-        XLSX.writeFile(workbook, "products.xlsx");
-    };
+
 
     return (
         <div className="p-4 space-y-6">
@@ -724,6 +711,7 @@ const Products = () => {
                                                         <img
                                                             src={getOptimizedImage(product.image, { width: 40, quality: 50 })}
                                                             alt=""
+                                                            loading="lazy"
                                                             className="w-full h-full object-cover"
                                                         />
                                                     </div>
