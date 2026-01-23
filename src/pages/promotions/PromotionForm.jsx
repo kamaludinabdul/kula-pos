@@ -257,6 +257,31 @@ const PromotionForm = () => {
                                     )}
                                 </div>
 
+                                {/* Selected Items List */}
+                                {formData.target_ids.length > 0 && (
+                                    <div className="space-y-2 pt-2">
+                                        <Label className="text-xs text-muted-foreground">Produk Terpilih ({formData.target_ids.length})</Label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {formData.target_ids.map(id => {
+                                                const product = products.find(p => p.id === id);
+                                                if (!product) return null;
+                                                return (
+                                                    <div key={id} className="flex items-center gap-1 bg-primary/10 text-primary text-xs px-2 py-1 rounded-full border border-primary/20">
+                                                        <span>{product.name}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); toggleProduct(id); }}
+                                                            className="hover:bg-primary/20 rounded-full p-0.5"
+                                                        >
+                                                            <X className="h-3 w-3" />
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {bundleItems.length > 0 && (
                                     <div className="flex flex-col gap-2 border-t pt-4">
                                         <div className="flex items-center justify-between">
