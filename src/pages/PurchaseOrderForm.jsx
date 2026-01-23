@@ -45,10 +45,18 @@ const PurchaseOrderForm = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { toast } = useToast();
-    const { suppliers, products, addPurchaseOrder, updatePurchaseOrder, purchaseOrders, stores, activeStoreId } = useData();
+    const { suppliers, products, addPurchaseOrder, updatePurchaseOrder, purchaseOrders, stores, activeStoreId, fetchAllProducts } = useData();
 
     const isEditMode = !!id;
     const [loading, setLoading] = useState(false);
+
+    // Ensure we have products (fix for partial list bug)
+    useEffect(() => {
+        if (fetchAllProducts && activeStoreId) {
+            console.log("[PurchaseOrderForm] Fetching all products for search...");
+            fetchAllProducts(activeStoreId);
+        }
+    }, [activeStoreId, fetchAllProducts]);
 
     // Form State
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);

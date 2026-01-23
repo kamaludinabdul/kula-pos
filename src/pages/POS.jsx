@@ -35,6 +35,7 @@ const POS = () => {
     } = useData();
 
     // Ensure we have products for the POS (since DataContext no longer fetches them globally by default)
+    // Ensure we have products for the POS (since DataContext no longer fetches them globally by default)
     useEffect(() => {
         if (fetchAllProducts && currentStore?.id && products.length === 0) {
             console.log("[POS] Fetching all products...");
