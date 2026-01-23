@@ -219,23 +219,41 @@ const PromotionForm = () => {
                         {/* Bundle Specific Selection */}
                         {formData.type === 'bundle' && (
                             <div className="space-y-4 border p-4 rounded-md bg-slate-50">
-                                <Label>Pilih Produk untuk Dibundling</Label>
+                                <div className="flex justify-between items-center">
+                                    <Label>Pilih Produk untuk Dibundling</Label>
+                                    <div className="relative w-1/2">
+                                        <Search className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
+                                        <Input
+                                            placeholder="Cari produk..."
+                                            className="h-8 pl-7 text-xs bg-white"
+                                            value={productSearch}
+                                            onChange={(e) => setProductSearch(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
                                 <div className="max-h-60 overflow-y-auto border rounded bg-white p-2 space-y-2">
-                                    {products.map(product => (
-                                        <div
-                                            key={product.id}
-                                            className={`flex items-center justify-between p-2 rounded cursor-pointer border ${formData.target_ids.includes(product.id) ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-slate-50'}`}
-                                            onClick={() => toggleProduct(product.id)}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <div className={`w-4 h-4 border rounded flex items-center justify-center ${formData.target_ids.includes(product.id) ? 'bg-primary border-primary' : 'border-slate-300'}`}>
-                                                    {formData.target_ids.includes(product.id) && <div className="w-2 h-2 bg-white rounded-full" />}
+                                    {products
+                                        .filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()))
+                                        .map(product => (
+                                            <div
+                                                key={product.id}
+                                                className={`flex items-center justify-between p-2 rounded cursor-pointer border ${formData.target_ids.includes(product.id) ? 'border-primary bg-primary/5' : 'border-transparent hover:bg-slate-50'}`}
+                                                onClick={() => toggleProduct(product.id)}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-4 h-4 border rounded flex items-center justify-center ${formData.target_ids.includes(product.id) ? 'bg-primary border-primary' : 'border-slate-300'}`}>
+                                                        {formData.target_ids.includes(product.id) && <div className="w-2 h-2 bg-white rounded-full" />}
+                                                    </div>
+                                                    <span className="text-sm font-medium">{product.name}</span>
                                                 </div>
-                                                <span className="text-sm font-medium">{product.name}</span>
+                                                <span className="text-xs text-muted-foreground">Rp {(product.sell_price || product.sellPrice || 0).toLocaleString()}</span>
                                             </div>
-                                            <span className="text-xs text-muted-foreground">Rp {(product.sell_price || product.sellPrice || 0).toLocaleString()}</span>
+                                        ))}
+                                    {products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).length === 0 && (
+                                        <div className="text-center py-4 text-muted-foreground text-xs">
+                                            Tidak ada produk ditemukan
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
 
                                 {bundleItems.length > 0 && (
