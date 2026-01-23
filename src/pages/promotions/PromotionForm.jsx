@@ -16,11 +16,18 @@ import FormattedNumberInput from '../../components/ui/FormattedNumberInput';
 // import { SmartDatePicker } from '../../components/SmartDatePicker'; // Unused or use native
 
 const PromotionForm = () => {
-    const { currentStore, products } = useData();
+    const { currentStore, products, fetchAllProducts } = useData();
     const navigate = useNavigate();
     const { id } = useParams();
     const [searchParams] = useSearchParams();
     const { toast } = useToast();
+
+    // Ensure we have products to select from
+    useEffect(() => {
+        if (currentStore?.id) {
+            fetchAllProducts(currentStore.id);
+        }
+    }, [currentStore?.id, fetchAllProducts]);
 
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
