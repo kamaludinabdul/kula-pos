@@ -9,7 +9,7 @@ import { Label } from '../../components/ui/label';
 import { Switch } from '../../components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Loader2, ArrowLeft, Plus, X, Calculator, Sparkles } from 'lucide-react';
+import { Loader2, ArrowLeft, Plus, X, Calculator, Sparkles, Search } from 'lucide-react';
 import { useToast } from '../../components/ui/use-toast';
 import FormattedNumberInput from '../../components/ui/FormattedNumberInput';
 // import { ProductPicker } from '../../components/ProductPicker'; // Unused
