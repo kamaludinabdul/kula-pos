@@ -1865,9 +1865,10 @@ export const DataProvider = ({ children }) => {
             // Optimistic update (map back to camelCase for frontend state)
             const newSupplier = {
                 ...data,
-                contactPerson: data.contact_person
+                contactPerson: data.contact_person,
+                storeId: data.store_id
             };
-            setSuppliers(prev => [...prev, newSupplier]);
+            setSuppliers(prev => [newSupplier, ...prev]); // Prepend to show at top
             return { success: true, id: data.id };
         } catch (error) {
             console.error("Error adding supplier:", error);
