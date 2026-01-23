@@ -30,6 +30,7 @@ const PromotionForm = () => {
     }, [currentStore?.id, fetchAllProducts]);
 
     const [loading, setLoading] = useState(false);
+    const [productSearch, setProductSearch] = useState('');
     const [formData, setFormData] = useState({
         name: '',
         description: '',
