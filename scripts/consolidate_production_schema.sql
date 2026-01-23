@@ -66,6 +66,11 @@ DO $$ BEGIN
     ALTER TABLE public.shift_movements ADD COLUMN IF NOT EXISTS expense_group TEXT DEFAULT 'operational';
 END $$;
 
+-- 1.6 SUPPLIERS
+DO $$ BEGIN
+    ALTER TABLE public.suppliers ADD COLUMN IF NOT EXISTS notes TEXT;
+END $$;
+
 -- 2. AUDIT LOGS (If missing)
 -- =====================================================================================
 CREATE TABLE IF NOT EXISTS public.audit_logs (

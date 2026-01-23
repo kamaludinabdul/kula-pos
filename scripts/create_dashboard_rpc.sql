@@ -64,31 +64,9 @@ BEGIN
         ) stats;
     END IF;
 
-    -- 3. Category Stats (From JSONB items)
-    -- Requires unpacking the JSONB items array
-    SELECT jsonb_agg(cat_stats) INTO v_category_stats
-    FROM (
-        SELECT 
-            p.category, -- We might need to join with products if category name isn't in items, but let's assume we link via product_id or simple aggregation
-            -- If items json doesn't have category, we rely on products table join.
-            -- This query assumes we perform a join or the item json has it.
-            -- Let's do a robust join with products table for accuracy.
-            COALESCE(prod.category_id::text, 'Uncategorized') as category_id, -- Simplification
-            SUM((item->>'qty')::numeric * (item->>'price')::numeric) as value
-        FROM transactions t,
-             jsonb_array_elements(items) as item
-        LEFT JOIN products prod ON prod.id = (item->>'id')::UUID
-        WHERE t.store_id = p_store_id 
-          AND t.date >= p_start_date 
-          AND t.date <= p_end_date
-          AND t.status IN ('completed', 'success')
-        GROUP BY 1
-        ORDER BY 2 DESC
-        LIMIT 5
-    ) cat_stats;
-    
-    -- Optimize Category Stats: The above might be slow with joins. 
-    -- Alternative: Use category name from products if referenced, or just grouped by product logic.
+    -- 3. Category Stats
+    -- Use category name from products/categories table
+
     -- Let's retry a cleaner version returning simple names if possible.
     -- Note: 'categories' table has names. 
     
