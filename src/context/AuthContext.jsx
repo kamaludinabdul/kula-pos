@@ -2,10 +2,44 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../supabase';
 import { normalizePermissions, getPermissionsForRole } from '../utils/permissions';
+import { safeSupabaseQuery } from '../utils/supabaseHelper';
 
 const AuthContext = createContext(null);
 
 const DEFAULT_IDLE_TIMEOUT = 30 * 60 * 1000; // 30 Minutes
+
+/**
+ * Helper to check if a JWT token is expired
+ * Returns true if expired or invalid, false if still valid
+ */
+const isTokenExpired = (token) => {
+    if (!token) return true;
+    try {
+        // JWT format: header.payload.signature
+        const parts = token.split('.');
+        if (parts.length !== 3) return true;
+
+        // Decode the payload (base64url)
+        const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+
+        if (!payload.exp) return true;
+
+        // exp is in seconds, Date.now() is in milliseconds
+        // Add 60 second buffer to avoid edge cases
+        const expiryTime = payload.exp * 1000;
+        const now = Date.now();
+        const isExpired = now >= (expiryTime - 60000);
+
+        if (isExpired) {
+            console.log(`Auth: Token expired at ${new Date(expiryTime).toISOString()}, current time: ${new Date(now).toISOString()}`);
+        }
+
+        return isExpired;
+    } catch (e) {
+        console.warn("Auth: Failed to parse JWT expiry:", e.message);
+        return true; // Assume expired if we can't parse
+    }
+};
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -30,7 +64,7 @@ export const AuthProvider = ({ children }) => {
     }, [user]);
 
     // --- Profile Fetching Helper ---
-    const fetchUserProfile = useCallback(async (userId, retryCount = 0) => {
+    const fetchUserProfile = useCallback(async (userId, accessToken, retryCount = 0) => {
         const MAX_RETRIES = 3;
         const RETRY_DELAY = 500;
 
@@ -44,72 +78,81 @@ export const AuthProvider = ({ children }) => {
             console.log('Fetching profile for:', userId, retryCount > 0 ? `(retry ${retryCount})` : '');
             const startTime = performance.now();
 
+            // Add a small delay to allow the environment/connection to settle from previous aborts
+            await new Promise(resolve => setTimeout(resolve, 50));
+
             try {
                 // Step 1: Fetch profile only (faster than join)
                 console.log('Auth: Step 1: Fetching profile...');
                 const profileStart = performance.now();
 
-                // Fetch profile directly without Promise.race to avoid AbortError
-                const { data: profile, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', userId)
-                    .single();
+                const profile = await safeSupabaseQuery({
+                    tableName: 'profiles',
+                    queryBuilder: (q) => q.eq('id', userId).single(),
+                    accessToken,
+                    timeout: 15000,
+                    fallbackParams: `?id=eq.${userId}&select=*`
+                });
 
                 console.log(`Auth: Profile query took: ${((performance.now() - profileStart) / 1000).toFixed(1)}s`);
 
-                if (profileError) {
-                    console.error("Auth: Error fetching user profile:", profileError);
-                    throw profileError;
+                if (!profile) {
+                    console.warn("Auth: No profile found for user:", userId);
+                    return null;
                 }
 
                 // Step 2: Fetch store if profile has store_id
-                if (profile.store_id) {
+                if (profile?.store_id) {
                     console.log('Auth: Step 2: Fetching store...');
                     const storeStart = performance.now();
 
                     try {
-                        const { data: store, error: storeError } = await supabase
-                            .from('stores')
-                            .select('*')
-                            .eq('id', profile.store_id)
-                            .single();
+                        const store = await safeSupabaseQuery({
+                            tableName: 'stores',
+                            queryBuilder: (q) => q.eq('id', profile.store_id).single(),
+                            accessToken,
+                            timeout: 10000,
+                            fallbackParams: `?id=eq.${profile.store_id}&select=*`
+                        });
 
-                        console.log(`Auth: Store query took: ${((performance.now() - storeStart) / 1000).toFixed(1)}s`);
-
-                        if (!storeError && store) {
+                        if (store) {
                             profile.stores = store;
-                        } else if (storeError) {
-                            console.warn("Auth: Error fetching store detail:", storeError);
                         }
                     } catch (err) {
-                        console.warn("Auth: Store fetch skipped or timed out:", err.message);
-                        // We continue, as DataContext can retry later
+                        console.warn("Auth: Store fetch exception:", err.message);
                     }
+                    console.log(`Auth: Store query took: ${((performance.now() - storeStart) / 1000).toFixed(1)}s`);
                 }
 
                 console.log(`Total profile fetch took: ${((performance.now() - startTime) / 1000).toFixed(1)}s`);
 
                 // Hydrate permissions with FALLBACK for legacy users
-                let effectivePermissions = profile.permissions;
-                if (!effectivePermissions || effectivePermissions.length === 0) {
-                    effectivePermissions = getPermissionsForRole(profile.role);
-                }
-
-                const normalized = normalizePermissions(effectivePermissions ? { [profile.role]: effectivePermissions } : null);
-                if (normalized[profile.role]) {
-                    profile.permissions = normalized[profile.role];
-                } else {
-                    profile.permissions = effectivePermissions || [];
-                }
-
                 if (profile) {
+                    let effectivePermissions = profile.permissions;
+                    if (!effectivePermissions || effectivePermissions.length === 0) {
+                        effectivePermissions = getPermissionsForRole(profile.role);
+                    }
+
+                    const normalized = normalizePermissions(effectivePermissions ? { [profile.role]: effectivePermissions } : null);
+                    if (normalized[profile.role]) {
+                        profile.permissions = normalized[profile.role];
+                    } else {
+                        profile.permissions = effectivePermissions || [];
+                    }
+
                     profile.storeId = profile.store_id;
                 }
 
                 return profile;
             } catch (err) {
-                console.error(`Auth: Profile fetch failed after ${((performance.now() - startTime) / 1000).toFixed(1)}s:`, err.message);
+                // Downgrade "AbortError" logs to WARN if we are going to retry
+                const isAbort = err.name === 'AbortError' || err.message?.includes('aborted') || err.message === 'Profile query timeout' || err.message === 'Store query timeout';
+
+                if (isAbort && retryCount < MAX_RETRIES) {
+                    console.warn(`Auth: Profile fetch aborted/timed-out after ${((performance.now() - startTime) / 1000).toFixed(1)}s:`, err.message);
+                } else {
+                    console.error(`Auth: Profile fetch failed after ${((performance.now() - startTime) / 1000).toFixed(1)}s:`, err.message);
+                }
 
                 // Retry on AbortError (Supabase internal abort)
                 if ((err.name === 'AbortError' || err.message?.includes('aborted') ||
@@ -117,7 +160,7 @@ export const AuthProvider = ({ children }) => {
                     console.log(`Auth: ${err.message} detected, retrying in ${RETRY_DELAY}ms... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
                     await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
                     profilePromiseRef.current = null; // Clear promise to allow retry
-                    return fetchUserProfile(userId, retryCount + 1);
+                    return fetchUserProfile(userId, accessToken, retryCount + 1);
                 }
 
                 throw err;
@@ -152,19 +195,25 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     // --- Profile Loading Logic ---
-    const loadUserSession = useCallback(async (userId, requestId) => {
+    const loadUserSession = useCallback(async (userId, accessToken, requestId) => {
+        // Settle delay to avoid "storm" collisions
+        await new Promise(r => setTimeout(r, 50));
         console.log("Loading user session for:", userId);
         try {
-            const profile = await fetchUserProfile(userId);
+            const profile = await fetchUserProfile(userId, accessToken);
 
             // Only update if this is still the latest request (or if it's a coalesced request that finished)
             // With request coalescing, multiple calls might await the same promise.
             // When it resolves, we want the LATEST one to update the state.
             if (requestId !== fetchRequestId.current) {
-                console.log(`Request ID mismatch (Current: ${fetchRequestId.current}, This: ${requestId}). Checking if we should proceed...`);
-                // If the content is valid, we might still want to use it if the user hasn't changed.
-                // But for strict correctness, let's allow only the latest ID to write state.
-                return;
+                console.log(`Auth: Request ID mismatch (Current: ${fetchRequestId.current}, This: ${requestId}). Checking if we should proceed...`);
+                // If we already have a user, this stale request is definitely ignored
+                if (userRef.current) {
+                    console.warn("Auth: User already exists, ignoring stale profile load.");
+                    return;
+                }
+                // If we DON'T have a user, we accept this one to unblock the app
+                console.log("Auth: Current user is null, accepting valid profile from stale Request ID to unblock navigation.");
             }
 
             if (!profile) {
@@ -271,10 +320,10 @@ export const AuthProvider = ({ children }) => {
         // Increased from 5s because Supabase can be slow (especially with cold starts)
         const _safetyTimeout = setTimeout(() => {
             if (isMounted && !loadingCompleted) {
-                console.warn("Auth: Safety timeout triggered after 15s, completing loading");
+                console.warn("Auth: Safety timeout triggered after 20s, completing loading");
                 setLoading(false);
             }
-        }, 15000); // Reduced from 60s to 15s
+        }, 20000); // Increased to 20s for SDK bypass reliability
 
         // Helper to mark loading as completed normally
         const completeLoading = () => {
@@ -283,12 +332,55 @@ export const AuthProvider = ({ children }) => {
         };
 
         const checkInitialSession = async (retryCount = 0) => {
-            const MAX_RETRIES = 3;
+            const MAX_RETRIES = 5;
             const RETRY_DELAY = 300;
+            const requestId = ++fetchRequestId.current;
+
+            // --- EMERGENCY RECOVERY (PHASE 8) ---
+            // If the environment is killing the SDK, we probe localStorage directly
+            if (retryCount === 0) {
+                try {
+                    const rawAuth = localStorage.getItem('kula-pos-auth');
+                    if (rawAuth) {
+                        const parsed = JSON.parse(rawAuth);
+                        const token = parsed?.access_token;
+                        const userId = parsed?.user?.id;
+
+                        if (token && userId) {
+                            // Check if token is expired before attempting Emergency Recovery
+                            if (isTokenExpired(token)) {
+                                console.log("Auth: Emergency Recovery skipped - token expired. Clearing stale session.");
+                                localStorage.removeItem('kula-pos-auth');
+                                // Don't set hasInitializedRef, let normal auth flow handle it
+                            } else {
+                                console.log("Auth: Emergency Session Recovery triggered (Found valid storage hint)");
+                                // Pre-emptively lock initialization
+                                hasInitializedRef.current = true;
+
+                                try {
+                                    // Try to load the session using the raw token immediately
+                                    await loadUserSession(userId, token, requestId);
+                                    console.log("Auth: Emergency Recovery SUCCESS!");
+                                    if (isMounted) completeLoading();
+                                    return; // EXIT EARLY - WE ARE SAVED!
+                                } catch (emergencyError) {
+                                    console.warn("Auth: Emergency Recovery attempt failed, falling back to normal loop:", emergencyError.message);
+                                    // Don't return, let the normal loop try (maybe SDK recovers)
+                                }
+                            }
+                        }
+                    }
+                } catch (storageError) {
+                    console.warn("Auth: Emergency probe failed:", storageError.message);
+                }
+            }
+
+            // Increased initial delay significantly for hard-refresh stabilization
+            await new Promise(r => setTimeout(r, 500));
 
             if (hasInitializedRef.current && retryCount === 0) return;
-            if (retryCount === 0) hasInitializedRef.current = true; // LOCK IMMEDIATELY to prevent double execution in Strict Mode
-            const requestId = ++fetchRequestId.current;
+            if (retryCount === 0) hasInitializedRef.current = true;
+
             try {
                 console.log("Auth: Checking initial session...", retryCount > 0 ? `(retry ${retryCount})` : '');
                 const startTime = performance.now();
@@ -300,7 +392,7 @@ export const AuthProvider = ({ children }) => {
 
                 if (session?.user) {
                     const profileStart = performance.now();
-                    await loadUserSession(session.user.id, requestId);
+                    await loadUserSession(session.user.id, session.access_token, requestId);
                     console.log(`Auth: Initial profile loaded (${(performance.now() - profileStart).toFixed(0)}ms)`);
                     // CRITICAL: Complete loading after profile is loaded for logged-in users!
                     if (isMounted) completeLoading();
@@ -313,14 +405,17 @@ export const AuthProvider = ({ children }) => {
             } catch (error) {
                 // If aborted, retry before giving up
                 if ((error.name === 'AbortError' || error.message?.includes('aborted')) && retryCount < MAX_RETRIES) {
-                    console.log(`Auth: Session check aborted, retrying in ${RETRY_DELAY}ms... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
-                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+                    const delay = (retryCount * 200) + 300;
+                    console.log(`Auth: Session check aborted, retrying in ${delay}ms... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
                     return checkInitialSession(retryCount + 1);
                 }
 
                 if (error.name === 'AbortError' || error.message?.includes('aborted')) {
-                    console.warn("Auth: Initial session check aborted after retries.");
-                    if (isMounted) completeLoading();
+                    console.warn("Auth: Initial session check aborted after retries. Patiently waiting for onAuthStateChange to fire...");
+                    // DO NOT completeLoading here! 
+                    // Let onAuthStateChange or safetyTimeout handle it.
+                    // This prevents premature redirect to /login.
                     return;
                 }
 
@@ -334,13 +429,14 @@ export const AuthProvider = ({ children }) => {
 
                 if (retryCount < MAX_RETRIES) {
                     console.log(`Auth: Error occurred, retrying... (attempt ${retryCount + 1}/${MAX_RETRIES})`);
-                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * 2));
+                    await new Promise(resolve => setTimeout(resolve, 600));
                     return checkInitialSession(retryCount + 1);
                 }
 
                 hasInitializedRef.current = true;
-                // Only force complete if we really ran out of retries.
-                // This might still redirect to login, but at least we tried hard.
+                // Only force complete if we really ran out of retries and it's NOT an abort.
+                // (Already handled AbortError above)
+                console.error("Auth: Final session check failure, completing loading.");
                 if (isMounted) completeLoading();
             }
         };
@@ -352,8 +448,10 @@ export const AuthProvider = ({ children }) => {
             console.log(`Auth: State Change Event: ${event}`);
 
             if (session?.user) {
-                if (hasInitializedRef.current && event === 'INITIAL_SESSION') {
-                    console.log("Auth: Ignoring redundant INITIAL_SESSION event");
+                // If we already initialized with this exact user, skip redundant load
+                // (Prevents ID mismatch race during Emergency Recovery)
+                if (hasInitializedRef.current && userRef.current?.id === session.user.id && event !== 'TOKEN_REFRESHED') {
+                    console.log(`Auth: Session already active for ${session.user.id}, skipping redundant ${event} load`);
                     return;
                 }
 
@@ -363,7 +461,7 @@ export const AuthProvider = ({ children }) => {
                     const requestId = ++fetchRequestId.current;
                     hasInitializedRef.current = true;
                     try {
-                        await loadUserSession(session.user.id, requestId);
+                        await loadUserSession(session.user.id, session.access_token, requestId);
                     } catch (err) {
                         console.error("Auth: Failed to load user session in listener:", err);
                     }

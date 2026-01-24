@@ -4,6 +4,7 @@ import { Users, Plus, Edit2, Trash2, Shield, User, Circle, History, Eye, EyeOff 
 import { supabase } from '../supabase';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
+import { safeSupabaseQuery } from '../utils/supabaseHelper';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -54,16 +55,22 @@ const Staff = () => {
         }
 
         const fetchInitialData = async () => {
-            const { data: users } = await supabase.from('profiles').select('*').eq('store_id', activeStoreId);
+            const users = await safeSupabaseQuery({
+                tableName: 'profiles',
+                queryBuilder: (q) => q.eq('store_id', activeStoreId),
+                fallbackParams: `?store_id=eq.${activeStoreId}`
+            });
+
             if (users) {
-                // Profiles just need id, name, email, role, etc. which are usually already mostly camelCase except for snake case cols like store_id
-                // But let's map standard ones if needed or keep as is if we don't access snake_case specifically
-                // Looking at usage: staff.name, staff.email, staff.role. These are fine.
-                // But let's map store_id just in case.
                 setStaffList(users.map(u => ({ ...u, storeId: u.store_id, petCareAccess: u.pet_care_access })));
             }
 
-            const { data: shifts } = await supabase.from('shifts').select('*').eq('store_id', activeStoreId).eq('status', 'active');
+            const shifts = await safeSupabaseQuery({
+                tableName: 'shifts',
+                queryBuilder: (q) => q.eq('store_id', activeStoreId).eq('status', 'active'),
+                fallbackParams: `?store_id=eq.${activeStoreId}&status=eq.active`
+            });
+
             if (shifts) {
                 setActiveShifts(shifts.map(s => ({
                     ...s,
@@ -262,15 +269,13 @@ const Staff = () => {
         setHistoryPage(1);
 
         try {
-            const { data, error } = await supabase
-                .from('audit_logs')
-                .select('*')
-                .eq('user_id', staff.id)
-                .eq('user_id', staff.id)
-                .order('created_at', { ascending: false })
-                .limit(100);
-
-            if (error) throw error;
+            const data = await safeSupabaseQuery({
+                tableName: 'audit_logs',
+                queryBuilder: (q) => q.eq('user_id', staff.id)
+                    .order('created_at', { ascending: false })
+                    .limit(100),
+                fallbackParams: `?user_id=eq.${staff.id}&order=created_at.desc&limit=100`
+            });
             setStaffHistory(data || []);
         } catch (error) {
             console.error("Error fetching login history:", error);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabase';
+import { safeSupabaseRpc } from '../../utils/supabaseHelper';
 import { TrendingUp, Package, Download } from 'lucide-react';
 import { exportToCSV } from '../../lib/utils';
 import { exportTopSellingToPDF } from '../../lib/pdfExport';
@@ -36,14 +37,15 @@ const TopSellingProducts = () => {
             const queryEndDate = new Date(endDate);
             queryEndDate.setHours(23, 59, 59, 999);
 
-            // Call the high-performance RPC
-            const { data, error } = await supabase.rpc('get_product_sales_report', {
-                p_store_id: currentStore.id,
-                p_start_date: startDate.toISOString(),
-                p_end_date: queryEndDate.toISOString()
+            // Call the high-performance RPC via Safe Helper
+            const data = await safeSupabaseRpc({
+                rpcName: 'get_product_sales_report',
+                params: {
+                    p_store_id: currentStore.id,
+                    p_start_date: startDate.toISOString(),
+                    p_end_date: queryEndDate.toISOString()
+                }
             });
-
-            if (error) throw error;
 
             // Map and sort
             let productsArray = (data || []).map(row => ({

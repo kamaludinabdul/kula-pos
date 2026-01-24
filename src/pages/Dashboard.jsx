@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Input } from '../components/ui/input';
 import { supabase } from '../supabase';
 import DashboardCharts from './dashboard-components/DashboardCharts';
+import { safeSupabaseRpc } from '../utils/supabaseHelper';
 
 
 
@@ -119,15 +120,16 @@ const Dashboard = () => {
                     end = now;
                 }
 
-                // Call the RPC
-                const { data, error } = await supabase.rpc('get_dashboard_stats', {
-                    p_store_id: currentStore.id,
-                    p_start_date: start.toISOString(),
-                    p_end_date: end.toISOString(),
-                    p_period: dateRange === 'today' ? 'hour' : 'day'
+                // Call the RPC via Safe Helper
+                const data = await safeSupabaseRpc({
+                    rpcName: 'get_dashboard_stats',
+                    params: {
+                        p_store_id: currentStore.id,
+                        p_start_date: start.toISOString(),
+                        p_end_date: end.toISOString(),
+                        p_period: dateRange === 'today' ? 'hour' : 'day'
+                    }
                 });
-
-                if (error) throw error;
 
                 if (data) {
                     setDashboardStats({

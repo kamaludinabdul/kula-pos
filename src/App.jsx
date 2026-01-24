@@ -112,7 +112,7 @@ const PrivateRoute = ({ children, feature, plan, permission }) => {
   }
 
   const { user, loading } = authContext;
-  const { currentStore, loading: dataLoading, storesLoading } = dataContext;
+  const { currentStore, loading: dataLoading, storesLoading, loadingMessage } = dataContext;
 
   // 1. Initial Loading State
   if (loading || dataLoading || storesLoading) {
@@ -120,7 +120,10 @@ const PrivateRoute = ({ children, feature, plan, permission }) => {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-white text-black z-50">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mb-4"></div>
-        <p className="font-medium">Memuat Data...</p>
+        <p className="font-medium text-lg text-slate-800">Memuat Data...</p>
+        {loadingMessage && (
+          <p className="text-sm text-blue-600 mt-1 animate-pulse font-medium italic">{loadingMessage}</p>
+        )}
 
         {/* Subtle diagnostic info for debugging blank screens */}
         <div className="mt-4 text-[10px] text-gray-300 font-mono">
@@ -200,31 +203,30 @@ const PrivateRoute = ({ children, feature, plan, permission }) => {
 };
 
 const RootRedirect = () => {
-  const { user } = useAuth();
-  const { currentStore, loading: dataLoading, storesLoading } = useData();
+  const { user, loading: authLoading } = useAuth();
+  const { loading: dataLoading, storesLoading } = useData();
+
+  // CRITICAL: Wait for auth to finish loading first
+  if (authLoading) {
+    return <PageLoader />;
+  }
 
   if (!user) return <Navigate to="/login" />;
 
   const role = user.role?.toLowerCase();
+  console.log('[RootRedirect] User loaded:', { role, storeId: user.store_id });
+
+  // Super admin goes to stores to select/manage
   if (role === 'super_admin') {
     return <Navigate to="/stores" replace />;
   }
 
-  // Wait for data context to finish loading before deciding redirect
-  // This prevents incorrect redirect to /stores during initial load
+  // Wait for data context to finish loading before redirecting
   if (dataLoading || storesLoading) {
     return <PageLoader />;
   }
 
-  // Only redirect to /stores if user truly has no store after loading is complete
-  if (!currentStore) {
-    // If user implies they have a store (store_id exists), go to dashboard
-    if (user.store_id) {
-      return <Navigate to="/dashboard" replace />;
-    }
-    return <Navigate to="/stores" replace />;
-  }
-
+  // All other users (owner, admin, staff) go directly to dashboard
   return <Navigate to="/dashboard" replace />;
 };
 

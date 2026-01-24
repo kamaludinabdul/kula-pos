@@ -13,6 +13,7 @@ import * as XLSX from 'xlsx';
 import { getDateRange } from '../../lib/utils';
 import { SmartDatePicker } from '../../components/SmartDatePicker';
 import { supabase } from '../../supabase';
+import { safeSupabaseQuery, safeSupabaseRpc } from '../../utils/supabaseHelper';
 
 const SalesPerformanceReport = () => {
     const { salesTargets, currentStore } = useData(); // Removed transactions
@@ -46,13 +47,14 @@ const SalesPerformanceReport = () => {
                 const endDateTime = new Date(endDate);
                 endDateTime.setHours(23, 59, 59, 999);
 
-                const { data, error } = await supabase.rpc('get_sales_person_ranking', {
-                    p_store_id: currentStore.id,
-                    p_start_date: startDate.toISOString(),
-                    p_end_date: endDateTime.toISOString()
+                const data = await safeSupabaseRpc({
+                    rpcName: 'get_sales_person_ranking',
+                    params: {
+                        p_store_id: currentStore.id,
+                        p_start_date: startDate.toISOString(),
+                        p_end_date: endDateTime.toISOString()
+                    }
                 });
-
-                if (error) throw error;
 
                 const processed = (data || []).map(row => ({
                     id: row.sales_person_id,
@@ -93,14 +95,13 @@ const SalesPerformanceReport = () => {
                 const startDate = new Date(targetYear, targetMonth - 1, 1);
                 const endDate = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999); // last day of month
 
-                const { data, error } = await supabase
-                    .from('transactions')
-                    .select('*')
-                    .eq('store_id', currentStore.id)
-                    .gte('date', startDate.toISOString())
-                    .lte('date', endDate.toISOString());
-
-                if (error) throw error;
+                const data = await safeSupabaseQuery({
+                    tableName: 'transactions',
+                    queryBuilder: (q) => q.eq('store_id', currentStore.id)
+                        .gte('date', startDate.toISOString())
+                        .lte('date', endDate.toISOString()),
+                    fallbackParams: `?store_id=eq.${currentStore.id}&date=gte.${startDate.toISOString()}&date=lte.${endDate.toISOString()}`
+                });
 
                 // Map to camelCase for consistency
                 const mappedData = (data || []).map(t => ({

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { supabase } from '../supabase';
+import { safeSupabaseQuery, safeSupabaseRpc } from '../utils/supabaseHelper';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -36,13 +37,11 @@ const StockOpname = () => {
     const fetchOpnameHistory = React.useCallback(async () => {
         setLoadingHistory(true);
         try {
-            const { data, error } = await supabase
-                .from('stock_opname_sessions')
-                .select('*')
-                .order('created_at', { ascending: historySortOrder === 'desc' })
-                .limit(20);
-
-            if (error) throw error;
+            const data = await safeSupabaseQuery({
+                tableName: 'stock_opname_sessions',
+                queryBuilder: (q) => q.order('created_at', { ascending: historySortOrder === 'asc' }).limit(20),
+                fallbackParams: `?order=created_at.${historySortOrder === 'desc' ? 'desc' : 'asc'}&limit=20`
+            });
 
             const mappedHistory = (data || []).map(session => ({
                 id: session.id,
@@ -186,13 +185,14 @@ const StockOpname = () => {
                 return;
             }
 
-            const { data: result, error } = await supabase.rpc('process_opname_session', {
-                p_store_id: activeStoreId,
-                p_notes: notes || '',
-                p_records: opnameRecords
+            const result = await safeSupabaseRpc({
+                rpcName: 'process_opname_session',
+                params: {
+                    p_store_id: activeStoreId,
+                    p_notes: notes || '',
+                    p_records: opnameRecords
+                }
             });
-
-            if (error) throw error;
             if (!result.success) throw new Error(result.error);
 
             // Refresh global data to reflect stock changes

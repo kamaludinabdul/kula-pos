@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { SmartDatePicker } from '../../components/SmartDatePicker';
 import { getDateRange } from '../../lib/utils';
 import { supabase } from '../../supabase';
+import { safeSupabaseRpc } from '../../utils/supabaseHelper';
 
 const CategorySales = () => {
     const { currentStore } = useData(); // Removed transactions
@@ -37,11 +38,14 @@ const CategorySales = () => {
                 const endDateTime = new Date(endDate);
                 endDateTime.setHours(23, 59, 59, 999);
 
-                // Call the high-performance RPC
-                const { data, error } = await supabase.rpc('get_product_sales_report', {
-                    p_store_id: currentStore.id,
-                    p_start_date: startDate.toISOString(),
-                    p_end_date: endDateTime.toISOString()
+                // Call the high-performance RPC via Safe Helper
+                const data = await safeSupabaseRpc({
+                    rpcName: 'get_product_sales_report',
+                    params: {
+                        p_store_id: currentStore.id,
+                        p_start_date: startDate.toISOString(),
+                        p_end_date: endDateTime.toISOString()
+                    }
                 });
 
                 if (error) throw error;

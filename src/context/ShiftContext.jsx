@@ -4,6 +4,7 @@ import { supabase } from '../supabase';
 import { sendMessage } from '../services/telegram';
 import { useAuth } from './AuthContext';
 import { useData } from './DataContext';
+import { safeSupabaseQuery, safeSupabaseRpc } from '../utils/supabaseHelper';
 
 const ShiftContext = createContext(null);
 
@@ -22,30 +23,27 @@ export const ShiftProvider = ({ children }) => {
 
         const fetchActiveShift = async () => {
             try {
-                const { data, error } = await supabase
-                    .from('shifts')
-                    .select('*')
-                    .eq('store_id', activeStoreId)
-                    .eq('status', 'active')
-                    .order('start_time', { ascending: false })
-                    .limit(1)
-                    .maybeSingle();
+                const data = await safeSupabaseQuery({
+                    tableName: 'shifts',
+                    queryBuilder: (q) => q.eq('store_id', activeStoreId)
+                        .eq('status', 'active')
+                        .order('start_time', { ascending: false })
+                        .limit(1)
+                        .maybeSingle(),
+                    fallbackParams: `?store_id=eq.${activeStoreId}&status=eq.active&order=start_time.desc&limit=1`
+                });
 
-                if (error) {
-                    console.error('Error fetching active shift:', error);
+                const shiftData = Array.isArray(data) ? data[0] : (data || null);
+                if (shiftData) {
+                    setCurrentShift({
+                        ...shiftData,
+                        startTime: shiftData.start_time,
+                        initialCash: shiftData.initial_cash,
+                        cashierName: shiftData.cashier_name,
+                        storeId: shiftData.store_id
+                    });
                 } else {
-                    const shiftData = data || null;
-                    if (shiftData) {
-                        setCurrentShift({
-                            ...shiftData,
-                            startTime: shiftData.start_time,
-                            initialCash: shiftData.initial_cash,
-                            cashierName: shiftData.cashier_name,
-                            storeId: shiftData.store_id
-                        });
-                    } else {
-                        setCurrentShift(null);
-                    }
+                    setCurrentShift(null);
                 }
             } catch (err) {
                 console.error('Unexpected error fetching shift:', err);
@@ -137,12 +135,13 @@ export const ShiftProvider = ({ children }) => {
         if (!currentShift || !activeStoreId) return null;
 
         try {
-            const { data, error } = await supabase.rpc('get_shift_summary', {
-                p_store_id: activeStoreId,
-                p_shift_id: currentShift.id
+            const data = await safeSupabaseRpc({
+                rpcName: 'get_shift_summary',
+                params: {
+                    p_store_id: activeStoreId,
+                    p_shift_id: currentShift.id
+                }
             });
-
-            if (error) throw error;
 
             // Merge with currentShift existing fields (like initial_cash, total_cash_in, etc)
             return {

@@ -6,46 +6,36 @@ import { normalizePermissions } from '../utils/permissions';
 import { checkPlanLimit, PLAN_LIMITS } from '../utils/planLimits';
 import { offlineService } from '../services/offlineService';
 import { PLANS } from '../utils/plans';
+import { safeSupabaseQuery, safeSupabaseRpc } from '../utils/supabaseHelper';
 
 const DataContext = createContext(null);
 
-// Helper to safely fetch and log errors
-// We use an object signature { tableName, setterFn, queryBuilder, processFn }
-// to make it more resilient to minification parameter-shifting.
 const safeFetchSupabase = async (options) => {
-    const { supabase, activeStoreId, tableName, setterFn, queryBuilder, processFn } = options || {};
+    const { activeStoreId, tableName, setterFn, queryBuilder, processFn } = options || {};
 
-    if (!supabase || !tableName || !setterFn) {
+    if (!tableName || !setterFn) {
         console.error("safeFetchSupabase: missing required options", { tableName, hasSetter: !!setterFn });
         return [];
     }
 
     try {
-        let query = supabase.from(tableName).select('*').eq('store_id', activeStoreId);
+        const data = await safeSupabaseQuery({
+            tableName,
+            queryBuilder: (q) => {
+                let baseQuery = q.eq('store_id', activeStoreId);
+                if (queryBuilder && typeof queryBuilder === 'function') {
+                    baseQuery = queryBuilder(baseQuery);
+                }
+                return baseQuery;
+            },
+            processFn,
+            fallbackParams: `?store_id=eq.${activeStoreId}&select=*`
+        });
 
-        // Robust check: only call if it exists and is a function
-        if (queryBuilder && typeof queryBuilder === 'function') {
-            query = queryBuilder(query);
+        if (setterFn && data) {
+            setterFn(data);
         }
-
-        const { data, error } = await query;
-        if (error) throw error;
-
-        // Robust check: ensure data is an array before processing
-        let processed = data;
-        if (Array.isArray(data)) {
-            if (typeof processFn === 'function') {
-                processed = processFn(data);
-            }
-        } else {
-            console.warn(`safeFetchSupabase: Data for ${tableName} is not an array:`, data);
-            processed = [];
-        }
-
-        if (typeof setterFn === 'function') {
-            setterFn(processed || []);
-        }
-        return processed || [];
+        return data || [];
     } catch (e) {
         console.error(`Failed to fetch ${tableName}:`, e);
         return [];
@@ -55,7 +45,7 @@ const safeFetchSupabase = async (options) => {
 export const DataProvider = ({ children }) => {
     // Debug log to verify if the latest code is running
     useEffect(() => {
-        console.log("DataContext: v0.8.20-robust-fetch (" + new Date().toLocaleTimeString() + ")");
+        console.log("DataContext: v0.8.23-sdk-health-tracking (" + new Date().toLocaleTimeString() + ")");
     }, []);
 
     const { user, checkPermission } = useAuth();
@@ -74,6 +64,7 @@ export const DataProvider = ({ children }) => {
     const [plans, setPlans] = useState(PLANS);
     const [loading, setLoading] = useState(true);
     const [storesLoading, setStoresLoading] = useState(true);
+    const [loadingMessage, setLoadingMessage] = useState("");
     const [summary, setSummary] = useState({ totalProducts: 0, totalStock: 0, totalValue: 0 });
     const [lastFetchError, setLastFetchError] = useState(null);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -410,50 +401,50 @@ export const DataProvider = ({ children }) => {
 
 
 
-    // Helper to fetch products separately (Now exposed)
     const fetchAllProducts = useCallback(async (storeId = activeStoreId) => {
         if (!storeId) return [];
         const phase2Start = performance.now();
         try {
             console.log("DataContext: Fetching ALL products for POS/Cache...");
-            const productsQuery = supabase
-                .from('products')
-                .select('*, categories(id, name)')
-                .eq('store_id', storeId)
-                .eq('is_deleted', false)
-                .limit(2000); // Consider increasing this or handling pagination if catalog > 2000
 
-            const { data, error } = await productsQuery;
-            if (error) throw error;
+            const processed = await safeSupabaseQuery({
+                tableName: 'products',
+                queryBuilder: (q) => q.select('*, categories(id, name)')
+                    .eq('store_id', storeId)
+                    .eq('is_deleted', false)
+                    .limit(2000),
+                timeout: 20000,
+                fallbackParams: `?store_id=eq.${storeId}&is_deleted=eq.false&select=*,categories(id,name)`,
+                processFn: (data) => (data || []).map(p => ({
+                    ...p,
+                    buyPrice: p.buy_price,
+                    sellPrice: p.sell_price,
+                    minStock: p.min_stock,
+                    discountType: p.discount_type,
+                    isUnlimited: p.is_unlimited,
+                    purchaseUnit: p.purchase_unit,
+                    conversionToUnit: p.conversion_to_unit,
+                    rackLocation: p.rack_location,
+                    imageUrl: p.image_url,
+                    categoryId: p.category_id,
+                    storeId: p.store_id,
+                    isDeleted: p.is_deleted,
+                    createdAt: p.created_at,
+                    pricingType: p.pricing_type,
+                    pricingTiers: p.pricing_tiers,
+                    isBundlingEnabled: p.is_bundling_enabled,
+                    price: p.sell_price,
+                    category: p.categories?.name || null
+                }))
+            });
 
-            const processed = data.map(p => ({
-                ...p,
-                buyPrice: p.buy_price,
-                sellPrice: p.sell_price,
-                minStock: p.min_stock,
-                discountType: p.discount_type,
-                isUnlimited: p.is_unlimited,
-                purchaseUnit: p.purchase_unit,
-                conversionToUnit: p.conversion_to_unit,
-                rackLocation: p.rack_location,
-                imageUrl: p.image_url,
-                categoryId: p.category_id,
-                storeId: p.store_id,
-                isDeleted: p.is_deleted,
-                createdAt: p.created_at,
-                pricingType: p.pricing_type,
-                pricingTiers: p.pricing_tiers,
-                isBundlingEnabled: p.is_bundling_enabled,
-                price: p.sell_price,
-                category: p.categories?.name || null
-            }));
-            setProducts(processed);
+            setProducts(processed || []);
             console.log(`DataContext: fetchAllProducts took: ${((performance.now() - phase2Start) / 1000).toFixed(2)}s`);
 
             // Update cache
             offlineService.cacheData(storeId, processed || [], categories || [], []);
 
-            return processed;
+            return processed || [];
         } catch (e) {
             console.error('DataContext: Failed to fetch products:', e);
             return [];
@@ -465,19 +456,21 @@ export const DataProvider = ({ children }) => {
         if (!activeStoreId) return { data: [], total: 0 };
 
         try {
-            const { data, error } = await supabase.rpc('get_products_page', {
-                p_store_id: activeStoreId,
-                p_page: page,
-                p_page_size: pageSize,
-                p_search: search,
-                p_category: category,
-                p_satuan_po: satuanPO,
-                p_sort_key: sortKey,
-                p_sort_dir: sortDir
+            const data = await safeSupabaseRpc({
+                rpcName: 'get_products_page',
+                params: {
+                    p_store_id: activeStoreId,
+                    p_page: page,
+                    p_page_size: pageSize,
+                    p_search: search,
+                    p_category: category,
+                    p_satuan_po: satuanPO,
+                    p_sort_key: sortKey,
+                    p_sort_dir: sortDir
+                }
             });
 
-            if (error) throw error;
-            return data; // { data: [...], total: 100 }
+            return data || { data: [], total: 0 };
         } catch (e) {
             console.error("DataContext: fetchProductsPage error:", e);
             throw e;
@@ -495,6 +488,18 @@ export const DataProvider = ({ children }) => {
             return;
         }
 
+        // --- PHASE 10: Extended Settle Delay ---
+        // We show a message and wait for the browser to stabilize
+        if (shouldSetLoading) {
+            setLoading(true);
+            setLoadingMessage("Menyiapkan koneksi aman...");
+        }
+
+        await new Promise(r => setTimeout(r, 1000));
+        if (shouldSetLoading) setLoadingMessage("Mengoptimalkan kecepatan data...");
+        await new Promise(r => setTimeout(r, 2000));
+        if (shouldSetLoading) setLoadingMessage("");
+
         isFetchingRef.current = true;
         if (shouldSetLoading) setLoading(true); // Only show loading for the very first critical part
         try {
@@ -507,19 +512,14 @@ export const DataProvider = ({ children }) => {
                 const phase1Start = performance.now();
                 try {
                     console.log("DataContext: Starting Phase 1 (Snapshot)...");
-                    const snapshotQuery = supabase.rpc('get_store_initial_snapshot', {
-                        p_store_id: activeStoreId
+
+                    const snapshot = await safeSupabaseRpc({
+                        rpcName: 'get_store_initial_snapshot',
+                        params: { p_store_id: activeStoreId },
+                        timeout: 15000
                     });
 
-                    const snapshotTimeout = new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('Snapshot RPC timeout')), 10000)
-                    );
-
-                    const { data: snapshot, error: snapshotError } = await Promise.race([snapshotQuery, snapshotTimeout]);
-
-                    if (snapshotError) {
-                        console.warn("DataContext: Initial snapshot RPC error:", snapshotError);
-                    } else if (snapshot) {
+                    if (snapshot) {
                         console.log("DataContext: Initial snapshot loaded successfully");
                         if (snapshot.categories && Array.isArray(snapshot.categories)) {
                             setCategories(snapshot.categories);
@@ -529,7 +529,7 @@ export const DataProvider = ({ children }) => {
                         }
                     }
                 } catch (e) {
-                    console.warn("DataContext: Initial snapshot RPC failed:", e);
+                    console.warn("DataContext: Initial snapshot failed:", e);
                 }
                 console.log(`DataContext: Phase 1 (Snapshot) took: ${((performance.now() - phase1Start) / 1000).toFixed(2)}s`);
 
@@ -655,23 +655,31 @@ export const DataProvider = ({ children }) => {
 
     useEffect(() => {
         const fetchPlans = async () => {
-            const { data, error } = await supabase.from('subscription_plans').select('*');
-            if (!error && data) {
-                const plansMap = {};
-                data.forEach(p => {
-                    // Map snake_case to camelCase for frontend
-                    plansMap[p.id] = {
-                        ...p,
-                        maxProducts: p.max_products,
-                        maxUsers: p.max_staff,
-                        maxStores: p.max_stores,
-                        label: p.name,
-                        priceId: p.price_id,
-                        price: p.price || 0,
-                        originalPrice: p.original_price
-                    };
+            try {
+                const data = await safeSupabaseQuery({
+                    tableName: 'subscription_plans',
+                    queryBuilder: (q) => q.select('*'),
+                    fallbackParams: ''
                 });
-                setPlans(plansMap);
+
+                if (data) {
+                    const plansMap = {};
+                    data.forEach(p => {
+                        plansMap[p.id] = {
+                            ...p,
+                            maxProducts: p.max_products,
+                            maxUsers: p.max_staff,
+                            maxStores: p.max_stores,
+                            label: p.name,
+                            priceId: p.price_id,
+                            price: p.price || 0,
+                            originalPrice: p.original_price
+                        };
+                    });
+                    setPlans(plansMap);
+                }
+            } catch (e) {
+                console.error("DataContext: fetchPlans error:", e);
             }
         };
         fetchPlans();
@@ -748,12 +756,19 @@ export const DataProvider = ({ children }) => {
                 return;
             }
 
-            let query = supabase.from('stores').select('*');
-            if (user.role !== 'super_admin' && activeStoreId) {
-                query = query.eq('id', activeStoreId);
-            }
-            const { data, error } = await query;
-            if (!error && data) {
+            const data = await safeSupabaseQuery({
+                tableName: 'stores',
+                queryBuilder: (q) => {
+                    let base = q.select('*');
+                    if (user.role !== 'super_admin' && activeStoreId) {
+                        base = base.eq('id', activeStoreId);
+                    }
+                    return base;
+                },
+                fallbackParams: user.role !== 'super_admin' && activeStoreId ? `?id=eq.${activeStoreId}` : ''
+            });
+
+            if (data) {
                 setStores(data.map(s => ({
                     ...s,
                     // Map snake_case to camelCase for frontend compatibility
@@ -2338,6 +2353,7 @@ export const DataProvider = ({ children }) => {
             activeStoreId,
             currentStore,
             loading,
+            loadingMessage,
             promotions,
             refreshTransactions: () => fetchData(false),
             refreshProducts: () => fetchData(false),

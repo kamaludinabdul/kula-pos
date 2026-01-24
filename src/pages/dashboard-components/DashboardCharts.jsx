@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { supabase } from '../../supabase';
+import { safeSupabaseQuery } from '../../utils/supabaseHelper';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 
@@ -44,25 +45,25 @@ const DashboardCharts = ({ currentStore }) => {
                 endOfYear.setHours(23, 59, 59, 999);
 
                 // 1. Fetch Transactions
-                const { data: transactions, error: transError } = await supabase
-                    .from('transactions')
-                    .select('date, total, items, status') // Added status to select
-                    .eq('store_id', currentStore.id)
-                    .gte('date', startOfYear.toISOString())
-                    .lte('date', endOfYear.toISOString());
-
-                if (transError) throw transError;
+                const transactions = await safeSupabaseQuery({
+                    tableName: 'transactions',
+                    queryBuilder: (q) => q.select('date, total, items, status')
+                        .eq('store_id', currentStore.id)
+                        .gte('date', startOfYear.toISOString())
+                        .lte('date', endOfYear.toISOString()),
+                    fallbackParams: `?store_id=eq.${currentStore.id}&date=gte.${startOfYear.toISOString()}&date=lte.${endOfYear.toISOString()}&select=date,total,items,status`
+                });
 
                 // 2. Fetch Cash Flow (Expenses)
-                const { data: expenses, error: cashError } = await supabase
-                    .from('cash_flow')
-                    .select('date, amount, expense_group')
-                    .eq('store_id', currentStore.id)
-                    .eq('type', 'out')
-                    .gte('date', startOfYear.toISOString())
-                    .lte('date', endOfYear.toISOString());
-
-                if (cashError) throw cashError;
+                const expenses = await safeSupabaseQuery({
+                    tableName: 'cash_flow',
+                    queryBuilder: (q) => q.select('date, amount, expense_group')
+                        .eq('store_id', currentStore.id)
+                        .eq('type', 'out')
+                        .gte('date', startOfYear.toISOString())
+                        .lte('date', endOfYear.toISOString()),
+                    fallbackParams: `?store_id=eq.${currentStore.id}&type=eq.out&date=gte.${startOfYear.toISOString()}&date=lte.${endOfYear.toISOString()}&select=date,amount,expense_group`
+                });
 
                 // Process Transactions
                 transactions.forEach(t => {

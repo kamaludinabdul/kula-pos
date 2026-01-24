@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../supabase';
+import { safeSupabaseQuery } from '../../utils/supabaseHelper';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -50,27 +51,21 @@ const CashFlow = () => {
         setLoading(true);
         try {
             // 1. Fetch from Cash Flow (Back Office)
-            const cashFlowQuery = supabase
-                .from('cash_flow')
-                .select('*')
-                .eq('store_id', currentStore.id)
-                .order('date', { ascending: false })
-                .order('created_at', { ascending: false });
+            const cashData = await safeSupabaseQuery({
+                tableName: 'cash_flow',
+                queryBuilder: (q) => q.eq('store_id', currentStore.id)
+                    .order('date', { ascending: false })
+                    .order('created_at', { ascending: false }),
+                fallbackParams: `?store_id=eq.${currentStore.id}&order=date.desc,created_at.desc`
+            });
 
             // 2. Fetch from Shift Movements (POS Petty Cash - Out only)
-            const shiftQuery = supabase
-                .from('shift_movements')
-                .select('*')
-                .eq('store_id', currentStore.id)
-                .eq('type', 'out'); // Only expenses from POS
-
-            const [cashRes, shiftRes] = await Promise.all([cashFlowQuery, shiftQuery]);
-
-            if (cashRes.error) throw cashRes.error;
-            if (shiftRes.error) throw shiftRes.error;
-
-            const cashData = cashRes.data || [];
-            const shiftData = shiftRes.data || [];
+            const shiftData = await safeSupabaseQuery({
+                tableName: 'shift_movements',
+                queryBuilder: (q) => q.eq('store_id', currentStore.id)
+                    .eq('type', 'out'),
+                fallbackParams: `?store_id=eq.${currentStore.id}&type=eq.out`
+            });
 
             // Combine and Map Data
             const allTransactions = [
@@ -209,12 +204,11 @@ const CashFlow = () => {
             if (!currentStore?.id) return;
             try {
                 // 1. Total Sales (Transactions)
-                const { data: transData, error: transError } = await supabase
-                    .from('transactions')
-                    .select('total, status')
-                    .eq('store_id', currentStore.id);
-
-                if (transError) throw transError;
+                const transData = await safeSupabaseQuery({
+                    tableName: 'transactions',
+                    queryBuilder: (q) => q.select('total, status').eq('store_id', currentStore.id),
+                    fallbackParams: `?store_id=eq.${currentStore.id}&select=total,status`
+                });
 
                 let totalSales = 0;
                 transData.forEach(data => {
@@ -224,12 +218,11 @@ const CashFlow = () => {
                 });
 
                 // 2. Total Cash Flow
-                const { data: cashData, error: cashError } = await supabase
-                    .from('cash_flow')
-                    .select('amount, type')
-                    .eq('store_id', currentStore.id);
-
-                if (cashError) throw cashError;
+                const cashData = await safeSupabaseQuery({
+                    tableName: 'cash_flow',
+                    queryBuilder: (q) => q.select('amount, type').eq('store_id', currentStore.id),
+                    fallbackParams: `?store_id=eq.${currentStore.id}&select=amount,type`
+                });
 
                 let totalCashIn = 0;
                 let totalCashOut = 0;

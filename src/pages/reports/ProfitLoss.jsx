@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '../../components/ui/label';
 import { Input } from '../../components/ui/input';
 import { supabase } from '../../supabase';
+import { safeSupabaseQuery, safeSupabaseRpc } from '../../utils/supabaseHelper';
 import { Calendar } from 'lucide-react';
 
 import jsPDF from 'jspdf';
@@ -97,26 +98,29 @@ const ProfitLoss = () => {
                 const endDateStr = end.toISOString();
 
                 // 1. Fetch Transactions for the table
-                const { data: transData, error: transError } = await supabase
-                    .from('transactions')
-                    .select('*')
-                    .eq('store_id', currentStore.id)
-                    .gte('date', startDateStr)
-                    .lte('date', endDateStr)
-                    .order('date', { ascending: false })
-                    .limit(100);
-
-                if (transError) throw transError;
-                setTransactions(transData || []);
-
-                // 2. Fetch Aggregated Stats via RPC (Server-side calculation)
-                const { data: reportStats, error: statsError } = await supabase.rpc('get_profit_loss_report', {
-                    p_store_id: currentStore.id,
-                    p_start_date: startDateStr,
-                    p_end_date: endDateStr
+                const transData = await safeSupabaseQuery({
+                    tableName: 'transactions',
+                    queryBuilder: (q) => q.eq('store_id', currentStore.id)
+                        .gte('date', startDateStr)
+                        .lte('date', endDateStr)
+                        .order('date', { ascending: false })
+                        .limit(100),
+                    fallbackParams: `?store_id=eq.${currentStore.id}&date=gte.${startDateStr}&date=lte.${endDateStr}&order=date.desc&limit=100`
                 });
 
-                if (!statsError && reportStats) {
+                setTransactions(transData || []);
+
+                // 2. Fetch Aggregated Stats via RPC
+                const reportStats = await safeSupabaseRpc({
+                    rpcName: 'get_profit_loss_report',
+                    params: {
+                        p_store_id: currentStore.id,
+                        p_start_date: startDateStr,
+                        p_end_date: endDateStr
+                    }
+                });
+
+                if (reportStats) {
                     setStats(prev => ({
                         ...prev,
                         totalSales: reportStats.total_sales || 0,
