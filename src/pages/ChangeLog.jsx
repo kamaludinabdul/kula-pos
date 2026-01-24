@@ -2,7 +2,7 @@ import React from 'react';
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { GitCommit, Tag, Calendar } from 'lucide-react';
-const APP_VERSION = "0.8.18";
+const APP_VERSION = "0.8.19";
 
 // This data would ideally come from a database or a markdown file
 // For now, we'll maintain it here as a structured constant
