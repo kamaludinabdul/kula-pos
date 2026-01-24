@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
-import { supabase } from '../supabase';
 import { safeSupabaseQuery, safeSupabaseRpc } from '../utils/supabaseHelper';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';

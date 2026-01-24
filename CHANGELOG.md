@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.8.19] - 2026-01-24
+### Fixed
+- **Linting**: Fixed 12 lint errors across multiple files including `DataContext.jsx`, `CategorySales.jsx`, `Dashboard.jsx`, and others.
+- **Data Cleanup**: Removed unused `supabase` imports and resolved undefined `error` variables.
+
+
 ## [0.8.18] - 2026-01-19
 ### Added
 - **Unit Tests**: Added comprehensive unit tests for `smartCashier.js` (13 tests) and `dataCleanup.js` (5 tests). Total tests: 87.

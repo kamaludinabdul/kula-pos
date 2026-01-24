@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Input } from '../components/ui/input';
-import { supabase } from '../supabase';
 import DashboardCharts from './dashboard-components/DashboardCharts';
 import { safeSupabaseRpc } from '../utils/supabaseHelper';
 

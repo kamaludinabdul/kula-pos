@@ -12,7 +12,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
 import { Label } from '../../components/ui/label';
 import { Input } from '../../components/ui/input';
-import { supabase } from '../../supabase';
 import { safeSupabaseQuery, safeSupabaseRpc } from '../../utils/supabaseHelper';
 import { Calendar } from 'lucide-react';
 

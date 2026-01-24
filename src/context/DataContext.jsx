@@ -797,8 +797,6 @@ export const DataProvider = ({ children }) => {
                     logo: s.logo || s.settings?.logo,
                     printerPaperSize: s.settings?.printerPaperSize
                 })));
-            } else if (error) {
-                console.error("Store fetch query error:", error);
             }
         } catch (err) {
             console.error("Store fetch exception:", err);

@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/ca
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { SmartDatePicker } from '../../components/SmartDatePicker';
 import { getDateRange } from '../../lib/utils';
-import { supabase } from '../../supabase';
 import { safeSupabaseRpc } from '../../utils/supabaseHelper';
 
 const CategorySales = () => {
@@ -47,8 +46,6 @@ const CategorySales = () => {
                         p_end_date: endDateTime.toISOString()
                     }
                 });
-
-                if (error) throw error;
 
                 // Aggregate product data by category for this report
                 const categoryMap = {};

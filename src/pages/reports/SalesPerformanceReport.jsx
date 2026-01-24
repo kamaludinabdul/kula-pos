@@ -12,7 +12,6 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { getDateRange } from '../../lib/utils';
 import { SmartDatePicker } from '../../components/SmartDatePicker';
-import { supabase } from '../../supabase';
 import { safeSupabaseQuery, safeSupabaseRpc } from '../../utils/supabaseHelper';
 
 const SalesPerformanceReport = () => {

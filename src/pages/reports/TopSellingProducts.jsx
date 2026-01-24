@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../../supabase';
 import { safeSupabaseRpc } from '../../utils/supabaseHelper';
 import { TrendingUp, Package, Download } from 'lucide-react';
 import { exportToCSV } from '../../lib/utils';
