@@ -2,11 +2,27 @@ import React from 'react';
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { GitCommit, Tag, Calendar } from 'lucide-react';
-const APP_VERSION = "0.8.19";
+const APP_VERSION = '0.8.20';
 
 // This data would ideally come from a database or a markdown file
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
+    {
+        version: "0.8.20",
+        date: "2026-01-24",
+        type: "minor",
+        title: "Rental Dashboard & F&B Menu UX Improvements",
+        changes: [
+            "Rental: Replaced browser 'confirm' with custom confirmation popup for unit deletion.",
+            "Rental: Fixed z-index layering and focus trap issues in management dialogs.",
+            "Rental: Added automatic UI refresh after unit addition/deletion.",
+            "F&B Menu: Implemented server-side search in ProductSelectorDialog to bypass pagination limits.",
+            "F&B Menu: Auto-load default items on dialog open for immediate browsing.",
+            "F&B Menu: Optimized loading states to reduce UI flickering.",
+            "Stability: Fixed 500 parse errors and build syntax issues in RentalDashboard.jsx.",
+            "Cleanup: Resolved linting errors (unused vars, missing dependencies) across critical files."
+        ]
+    },
     {
         version: "0.8.14",
         date: "2026-01-08",
@@ -319,9 +335,9 @@ const ChangeLog = () => {
                 {CHANGELOG_DATA.map((log, index) => (
                     <div key={index} className="relative pl-8">
                         {/* Timeline Dot */}
-                        <div className={`absolute -left-[5px] top-2 h-2.5 w-2.5 rounded-full border border-white ring-4 ring-white ${log.type === 'major' ? 'bg-indigo-600' :
-                            log.type === 'minor' ? 'bg-blue-500' : 'bg-slate-400'
-                            }`} />
+                        <div className={`absolute - left - [5px] top - 2 h - 2.5 w - 2.5 rounded - full border border - white ring - 4 ring - white ${log.type === 'major' ? 'bg-indigo-600' :
+                                log.type === 'minor' ? 'bg-blue-500' : 'bg-slate-400'
+                            } `} />
 
                         <div className="flex flex-col gap-4">
                             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">

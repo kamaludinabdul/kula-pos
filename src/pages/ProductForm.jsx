@@ -86,38 +86,92 @@ const ProductForm = () => {
         }
     };
 
+
+
     useEffect(() => {
-        if (isEditMode && products.length > 0) {
-            const product = products.find(p => p.id === id);
+        const loadProductData = async () => {
+            if (!isEditMode) return;
+
+            // 1. Try to find in global context first
+            let product = products.find(p => String(p.id) === String(id));
+
+            // 2. If not found, fetch from API
+            if (!product) {
+                try {
+                    const { data, error } = await supabase
+                        .from('products')
+                        .select('*')
+                        .eq('id', id)
+                        .single();
+
+                    if (error) throw error;
+                    if (data) {
+                        // Resolve category name from ID using global categories context
+                        let categoryNames = [];
+                        if (data.category_id && categories.length > 0) {
+                            const foundCat = categories.find(c => c.id === data.category_id);
+                            if (foundCat) {
+                                // handles both object with name property or simple string if context varies
+                                const name = typeof foundCat.name === 'object' && foundCat.name?.name ? foundCat.name.name : foundCat.name;
+                                categoryNames = [name];
+                            }
+                        }
+
+                        // Normalize fetched data (snake_case) to match context structure (camelCase/mixed)
+                        product = {
+                            ...data,
+                            category: categoryNames, // Set the resolved category name array
+                            buyPrice: data.buy_price,
+                            sellPrice: data.sell_price,
+                            minStock: data.min_stock,
+                            discountType: data.discount_type,
+                            stockType: data.stock_type, // Assuming DB has stock_type
+                            purchaseUnit: data.purchase_unit,
+                            conversionToUnit: data.conversion_to_unit || data.conversion_to_unit,
+                            pricingType: data.pricing_type,
+                            isUnlimited: data.is_unlimited,
+                            isBundlingEnabled: data.is_bundling_enabled,
+                            pricingTiers: data.pricing_tiers || []
+                        };
+                    }
+                } catch (err) {
+                    console.error("Error fetching product:", err);
+                    showAlert('Error', 'Gagal memuat data produk.');
+                }
+            }
+
+            // 3. Populate Form
             if (product) {
                 setFormData({
                     type: product.type || 'Default',
                     name: product.name || '',
-                    code: product.code || '',
+                    code: product.code || product.barcode || '', // Handle both code/barcode
                     category: Array.isArray(product.category)
                         ? product.category.map(c => (typeof c === 'object' && c?.name) ? c.name : c)
                         : (product.category ? [(typeof product.category === 'object' && product.category?.name) ? product.category.name : product.category] : []),
-                    buyPrice: product.buyPrice || '',
-                    sellPrice: product.sellPrice || product.price || '',
-                    stockType: product.stockType || 'Barang',
-                    stock: product.stock || '',
-                    minStock: product.minStock || '',
+                    buyPrice: product.buyPrice || product.buy_price || '',
+                    sellPrice: product.sellPrice || product.sell_price || product.price || '',
+                    stockType: product.stockType || product.stock_type || 'Barang',
+                    stock: product.isUnlimited ? '' : (product.stock !== undefined ? product.stock : ''),
+                    minStock: product.minStock || product.min_stock || '',
                     weight: product.weight || '',
                     discount: product.discount || 0,
-                    discountType: product.discountType || 'percent',
-                    shelf: product.shelf || '',
+                    discountType: product.discountType || product.discount_type || 'percent',
+                    shelf: product.shelf || product.rack_location || '', // Handle shelf/rack_location
                     image: product.image || null,
                     unit: product.unit || 'Pcs',
-                    purchaseUnit: product.purchaseUnit || '',
-                    conversionToUnit: product.conversionToUnit || '',
-                    pricingType: product.pricingType || 'fixed',
-                    isUnlimited: product.isUnlimited || false,
-                    isBundlingEnabled: product.isBundlingEnabled || false,
-                    pricingTiers: product.pricingTiers || []
+                    purchaseUnit: product.purchaseUnit || product.purchase_unit || '',
+                    conversionToUnit: product.conversionToUnit || product.conversion_to_unit || '',
+                    pricingType: product.pricingType || product.pricing_type || 'fixed',
+                    isUnlimited: product.isUnlimited || product.is_unlimited || false,
+                    isBundlingEnabled: product.isBundlingEnabled || product.is_bundling_enabled || false,
+                    pricingTiers: product.pricingTiers || product.pricing_tiers || []
                 });
             }
-        }
-    }, [isEditMode, id, products]);
+        };
+
+        loadProductData();
+    }, [isEditMode, id, products, categories]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;

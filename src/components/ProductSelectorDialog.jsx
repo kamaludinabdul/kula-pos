@@ -1,21 +1,78 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
-import { Search, X } from 'lucide-react';
+import { Search, X, Loader2 } from 'lucide-react';
 import { ScrollArea } from '../components/ui/scroll-area';
+import { supabase } from '../supabase';
+import { useData } from '../context/DataContext';
 
-const ProductSelectorDialog = ({ isOpen, onClose, onSelect, products }) => {
+const ProductSelectorDialog = ({ isOpen, onClose, onSelect, products: initialProducts = [] }) => {
+    const { currentStore } = useData();
     const [search, setSearch] = useState('');
-    const [quantities, setQuantities] = useState({}); // Local state untuk qty setiap produk di list
+    const [quantities, setQuantities] = useState({});
+    const [searchResults, setSearchResults] = useState([]);
+    const [isSearching, setIsSearching] = useState(false);
 
-    const filteredProducts = useMemo(() => {
-        return products.filter(p =>
+    // Initial local filter for default view
+    const defaultList = useMemo(() => {
+        return initialProducts.filter(p =>
             p.pricingType !== 'hourly' &&
-            !p.isDeleted &&
-            p.name.toLowerCase().includes(search.toLowerCase())
+            !p.isDeleted
         ).slice(0, 20);
-    }, [products, search]);
+    }, [initialProducts]);
+
+    // Cleanup state on close
+    useEffect(() => {
+        if (!isOpen) {
+            setSearch('');
+            setSearchResults([]);
+            setQuantities({});
+        }
+    }, [isOpen]);
+
+    // Server-side Search Effect
+    useEffect(() => {
+        const performSearch = async () => {
+            if (!currentStore?.id) return;
+
+            setIsSearching(true);
+            try {
+                let query = supabase
+                    .from('products')
+                    .select('*')
+                    .eq('store_id', currentStore.id)
+                    .neq('pricing_type', 'hourly') // Exclude rental rates
+                    .eq('is_deleted', false)
+                    .limit(50); // Fetch more for default view
+
+                if (search.trim()) {
+                    query = query.ilike('name', `%${search}%`);
+                }
+
+                const { data, error } = await query;
+
+                if (error) throw error;
+
+                if (data) {
+                    setSearchResults(data.map(p => ({
+                        ...p,
+                        sellPrice: p.sell_price || p.price || 0,
+                        category: p.category_name || (typeof p.category === 'string' ? p.category : p.category?.name) || '-' // Handle loose schemas
+                    })));
+                }
+            } catch (err) {
+                console.error("Error searching products:", err);
+            } finally {
+                setIsSearching(false);
+            }
+        };
+
+        const timeoutId = setTimeout(performSearch, 300);
+        return () => clearTimeout(timeoutId);
+    }, [search, currentStore?.id, isOpen]); // Added isOpen to refresh on open
+
+    const displayProducts = searchResults.length > 0 || search.trim() ? searchResults : defaultList;
 
     const handleQtyChange = (productId, delta) => {
         setQuantities(prev => {
@@ -28,7 +85,6 @@ const ProductSelectorDialog = ({ isOpen, onClose, onSelect, products }) => {
     const handleAddClick = (product) => {
         const qty = quantities[product.id] || 1;
         onSelect(product, qty);
-        // Reset qty visual ke 1 setelah add
         setQuantities(prev => ({ ...prev, [product.id]: 1 }));
     };
 
@@ -63,12 +119,19 @@ const ProductSelectorDialog = ({ isOpen, onClose, onSelect, products }) => {
 
                 <ScrollArea className="flex-1 -mx-4 px-4 my-2">
                     <div className="space-y-3">
-                        {filteredProducts.length === 0 ? (
+                        {isSearching && displayProducts.length === 0 ? (
+                            <div className="flex justify-center py-8 text-indigo-500">
+                                <Loader2 className="w-6 h-6 animate-spin" />
+                            </div>
+                        ) : displayProducts.length === 0 ? (
                             <div className="text-center py-8 text-muted-foreground">
-                                Tidak ada menu ditemukan.
+                                {search ? `Tidak ada hasil untuk "${search}"` : "Ketik untuk mencari menu..."}
+                                {!search && defaultList.length > 0 && (
+                                    <div className="mt-2 text-xs text-slate-400">Atau pilih dari daftar di bawah (Cache)</div>
+                                )}
                             </div>
                         ) : (
-                            filteredProducts.map(product => {
+                            displayProducts.map(product => {
                                 const qty = quantities[product.id] || 1;
                                 return (
                                     <div
@@ -79,7 +142,7 @@ const ProductSelectorDialog = ({ isOpen, onClose, onSelect, products }) => {
                                             <div className="font-medium">{product.name}</div>
                                             <div className="text-xs text-muted-foreground">{product.category}</div>
                                             <div className="font-semibold text-indigo-600 mt-1">
-                                                Rp {parseInt(product.sellPrice).toLocaleString('id-ID')}
+                                                Rp {parseInt(product.sellPrice || 0).toLocaleString('id-ID')}
                                             </div>
                                         </div>
 

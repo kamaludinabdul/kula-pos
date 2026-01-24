@@ -27,7 +27,6 @@ const formatDuration = (ms) => {
 };
 
 // --- KOMPONEN KARTU UNIT ---
-// --- KOMPONEN KARTU UNIT ---
 const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onViewDetails }) => {
     const [elapsed, setElapsed] = useState(0);
     const [timeLeft, setTimeLeft] = useState(0);
@@ -202,10 +201,11 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
 };
 
 // --- DIALOG MANAJEMEN UNIT ---
-const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products }) => {
+const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products, onRefresh }) => {
     const [name, setName] = useState('');
     const [linkedProductId, setLinkedProductId] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [unitToDelete, setUnitToDelete] = useState(null);
 
     // Filter produk yang tipe hourly
     const hourlyProducts = products.filter(p => p.pricingType === 'hourly');
@@ -229,6 +229,7 @@ const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products }) => {
 
             if (error) throw error;
             setName('');
+            if (onRefresh) onRefresh();
             // Optional Feedback
         } catch (error) {
             console.error("Error adding unit:", error);
@@ -238,18 +239,25 @@ const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products }) => {
         }
     };
 
-    const handleDeleteUnit = async (id) => {
-        if (!confirm("Hapus unit ini?")) return;
+    const handleDeleteUnit = (unit) => {
+        setUnitToDelete(unit);
+    };
+
+    const confirmDelete = async () => {
+        if (!unitToDelete) return;
         try {
             const { error } = await supabase
                 .from('rental_units')
                 .delete()
-                .eq('id', id);
+                .eq('id', unitToDelete.id);
 
             if (error) throw error;
+            setUnitToDelete(null);
+            if (onRefresh) onRefresh();
+            // Auto refresh handled by realtime or parent (units prop)
         } catch (error) {
             console.error("Error deleting unit:", error);
-            alert("Gagal menghapus unit");
+            alert(`Gagal menghapus unit: ${error.message || error.details || 'Unknown error'}`);
         }
     };
 
@@ -367,7 +375,7 @@ const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products }) => {
                                                     variant="ghost"
                                                     size="icon"
                                                     className="text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                                                    onClick={() => handleDeleteUnit(unit.id)}
+                                                    onClick={() => handleDeleteUnit(unit)}
                                                 >
                                                     <Trash2 className="w-5 h-5" />
                                                 </Button>
@@ -384,6 +392,30 @@ const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products }) => {
                         Tutup
                     </Button>
                 </DialogFooter>
+
+                {unitToDelete && (
+                    <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm rounded-lg">
+                        <div className="bg-white p-6 rounded-xl shadow-xl border w-[90%] max-w-sm animate-in fade-in zoom-in duration-200">
+                            <h3 className="text-xl font-bold text-slate-800 mb-2">Hapus {unitToDelete.name}?</h3>
+                            <p className="text-slate-500 text-sm mb-6">Unit akan dihapus permanen. Aksi ini tidak bisa dibatalkan.</p>
+                            <div className="flex justify-end gap-3">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setUnitToDelete(null)}
+                                    className="rounded-xl"
+                                >
+                                    Batal
+                                </Button>
+                                <Button
+                                    onClick={confirmDelete}
+                                    className="bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold"
+                                >
+                                    Ya, Hapus
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </DialogContent>
         </Dialog>
     );
@@ -414,7 +446,7 @@ const RentalSessionDetailsDialog = ({ isOpen, onClose, session, onRemoveItem }) 
                                         <span className="font-bold">Rp {parseInt(item.price * item.qty).toLocaleString()}</span>
                                         <Button
                                             variant="ghost"
-                                            size="sm"
+                                            size="icon"
                                             className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                                             onClick={() => onRemoveItem(session, idx)}
                                         >
@@ -608,6 +640,15 @@ const RentalDashboard = () => {
     const [units, setUnits] = useState([]);
     const [isLoadingUnits, setIsLoadingUnits] = useState(true);
     const [sessions, setSessions] = useState({}); // Map: unitId -> sessionData (Synced)
+    const [extraProducts, setExtraProducts] = useState([]);
+
+    // Merge context products with explicitly fetched extra products for Rental needs
+    const allProducts = React.useMemo(() => {
+        const combined = [...products, ...extraProducts];
+        const unique = new Map();
+        combined.forEach(p => unique.set(p.id, p));
+        return Array.from(unique.values());
+    }, [products, extraProducts]);
 
     // Dialog States
     const [isManageOpen, setIsManageOpen] = useState(false);
@@ -719,6 +760,49 @@ const RentalDashboard = () => {
         }
     }, [currentStore?.id]);
 
+    // Fetch Missing Products for Units
+    useEffect(() => {
+        const loadMissingProducts = async () => {
+            if (units.length === 0) return;
+
+            // Identify product IDs needed
+            const neededIds = units.map(u => u.linked_product_id).filter(id => id);
+
+            // Check which are missing from global context
+            const missingIds = neededIds.filter(id => !products.find(p => p.id === id));
+
+            if (missingIds.length > 0) {
+                try {
+                    // Fetch missing products
+                    const { data, error } = await supabase
+                        .from('products')
+                        .select('*')
+                        .in('id', missingIds)
+                        .eq('store_id', currentStore.id);
+
+                    if (error) throw error;
+
+                    if (data && data.length > 0) {
+                        // Normalize fetched data
+                        const formatted = data.map(p => ({
+                            ...p,
+                            buyPrice: p.buy_price,
+                            sellPrice: p.sell_price,
+                            pricingType: p.pricing_type,
+                            isBundlingEnabled: p.is_bundling_enabled,
+                            pricingTiers: p.pricing_tiers || []
+                        }));
+                        setExtraProducts(formatted);
+                    }
+                } catch (err) {
+                    console.error("Error fetching linked products:", err);
+                }
+            }
+        };
+
+        loadMissingProducts();
+    }, [units, products, currentStore?.id]);
+
     useEffect(() => {
         fetchSessions();
 
@@ -778,7 +862,7 @@ const RentalDashboard = () => {
     };
 
     const handleStartClick = (unit) => {
-        const product = products.find(p => p.id === unit.linked_product_id);
+        const product = allProducts.find(p => p.id === unit.linked_product_id);
         if (!product) {
             alert("Produk tarif tidak ditemukan! Mohon cek pengaturan unit.");
             return;
@@ -793,7 +877,7 @@ const RentalDashboard = () => {
     };
 
     const confirmStart = async () => {
-        const product = products.find(p => p.id === selectedUnit.linked_product_id);
+        const product = allProducts.find(p => p.id === selectedUnit.linked_product_id);
         if (!product) return;
 
         // Calculate Agreed Price (Handling Bundling)
@@ -814,7 +898,7 @@ const RentalDashboard = () => {
         }
 
         try {
-            const { error } = await supabase
+            const { data, error } = await supabase
                 .from('rental_sessions')
                 .insert([{
                     store_id: currentStore.id,
@@ -831,15 +915,23 @@ const RentalDashboard = () => {
                     product_price: Number(product.sellPrice || 0),
                     unit_name: selectedUnit.name,
                     orders: []
-                }]);
+                }])
+                .select()
+                .single();
 
             if (error) throw error;
+
+            // Optimistic Update / Immediate Sync
+            setSessions(prev => ({
+                ...prev,
+                [selectedUnit.id]: data
+            }));
 
             setIsStartOpen(false);
             toast({ title: "Sesi Dimulai", description: `${selectedUnit.name} aktif.` });
         } catch (error) {
             console.error("Failed to start session:", error);
-            alert("Gagal memulai sesi");
+            alert("Gagal memulai sesi: " + error.message);
         }
     };
 
@@ -1100,7 +1192,7 @@ const RentalDashboard = () => {
                     </div>
                 ) : (
                     units.map(unit => {
-                        const product = products.find(p => p.id === unit.linked_product_id);
+                        const product = allProducts.find(p => p.id === unit.linked_product_id);
                         return (
                             <RentalUnitCard
                                 key={unit.id}
@@ -1134,7 +1226,7 @@ const RentalDashboard = () => {
                 isOpen={isStopConfirmOpen}
                 onClose={() => setIsStopConfirmOpen(false)}
                 session={stopSessionData ? sessions[stopSessionData.unit_id] : null}
-                product={products.find(p => p.id === (units.find(u => u.id === stopSessionData?.unit_id)?.linked_product_id))}
+                product={allProducts.find(p => p.id === (units.find(u => u.id === stopSessionData?.unit_id)?.linked_product_id))}
                 onConfirm={handleStopConfirmed}
             />
 
@@ -1309,7 +1401,8 @@ const RentalDashboard = () => {
                 onClose={() => setIsManageOpen(false)}
                 units={units}
                 storeId={currentStore?.id}
-                products={products}
+                products={allProducts}
+                onRefresh={refreshData}
             />
 
             <ProductSelectorDialog
