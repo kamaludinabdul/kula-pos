@@ -93,6 +93,14 @@ const Dashboard = () => {
         const fetchDashboardData = async () => {
             if (!currentStore?.id) return;
 
+            // Validate store ID format (simple check to avoid obvious bad requests)
+            // Even though we fixed the RPC to accept TEXT, it's good practice.
+            // NanoID/UUID are usually > 10 chars.
+            if (String(currentStore.id).length < 5) {
+                console.warn("Dashboard: Invalid store ID skipped:", currentStore.id);
+                return;
+            }
+
             setIsLoading(true);
             try {
                 const now = new Date();
