@@ -91,7 +91,11 @@ export const AuthProvider = ({ children }) => {
                     queryBuilder: (q) => q.eq('id', userId).single(),
                     accessToken,
                     timeout: 15000,
-                    fallbackParams: `?id=eq.${userId}&select=*`
+                    fallbackParams: `?id=eq.${userId}&select=*`,
+                    processFn: (data) => {
+                        if (Array.isArray(data)) return data[0];
+                        return data;
+                    }
                 });
 
                 console.log(`Auth: Profile query took: ${((performance.now() - profileStart) / 1000).toFixed(1)}s`);
@@ -112,7 +116,11 @@ export const AuthProvider = ({ children }) => {
                             queryBuilder: (q) => q.eq('id', profile.store_id).single(),
                             accessToken,
                             timeout: 10000,
-                            fallbackParams: `?id=eq.${profile.store_id}&select=*`
+                            fallbackParams: `?id=eq.${profile.store_id}&select=*`,
+                            processFn: (data) => {
+                                if (Array.isArray(data)) return data[0];
+                                return data;
+                            }
                         });
 
                         if (store) {

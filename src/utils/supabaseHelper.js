@@ -44,7 +44,7 @@ export const getDirectAccessToken = () => {
 
 // Track SDK health - if we see repeated AbortErrors, prefer direct fetch
 let sdkFailureCount = 0;
-const SDK_FAILURE_THRESHOLD = 2;
+const SDK_FAILURE_THRESHOLD = 0; // Force direct fetch immediately
 
 /**
  * A safe wrapper for Supabase table queries.
