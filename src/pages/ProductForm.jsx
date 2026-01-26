@@ -51,6 +51,7 @@ const ProductForm = () => {
         isUnlimited: location.state?.pricingType === 'hourly' ? true : false,
         // Bundling / Paket
         isBundlingEnabled: false,
+        isWholesale: false, // New Wholesale Flag
         pricingTiers: [] // [{ duration: 3, price: 10000 }]
     });
 
@@ -131,6 +132,7 @@ const ProductForm = () => {
                             pricingType: data.pricing_type,
                             isUnlimited: data.is_unlimited,
                             isBundlingEnabled: data.is_bundling_enabled,
+                            isWholesale: data.is_wholesale || false,
                             pricingTiers: data.pricing_tiers || []
                         };
                     }
@@ -165,6 +167,7 @@ const ProductForm = () => {
                     pricingType: product.pricingType || product.pricing_type || 'fixed',
                     isUnlimited: product.isUnlimited || product.is_unlimited || false,
                     isBundlingEnabled: product.isBundlingEnabled || product.is_bundling_enabled || false,
+                    isWholesale: product.isWholesale || product.is_wholesale || false,
                     pricingTiers: product.pricingTiers || product.pricing_tiers || []
                 });
             }
@@ -318,6 +321,7 @@ const ProductForm = () => {
             isUnlimited: formData.isUnlimited,
             stock: formData.isUnlimited ? 999999 : Number(formData.stock),
             isBundlingEnabled: formData.isBundlingEnabled,
+            isWholesale: formData.isWholesale,
             pricingTiers: formData.pricingTiers.map(t => ({ duration: Number(t.duration), price: Number(t.price) })).filter(t => t.duration > 0 && t.price >= 0)
         };
 
@@ -752,6 +756,44 @@ const ProductForm = () => {
                                         </div>
                                     </div>
 
+                                    {/* Strategy Selector (Only for Fixed Price) */}
+                                    {formData.isBundlingEnabled && formData.pricingType === 'fixed' && (
+                                        <div className="flex gap-4 p-3 bg-slate-50 border rounded-md">
+                                            <div className="flex items-center space-x-2">
+                                                <input
+                                                    type="radio"
+                                                    id="strategyBundle"
+                                                    name="pricingStrategy"
+                                                    checked={!formData.isWholesale}
+                                                    onChange={() => setFormData(prev => ({ ...prev, isWholesale: false }))}
+                                                    className="w-4 h-4 text-indigo-600 cursor-pointer"
+                                                />
+                                                <Label htmlFor="strategyBundle" className="cursor-pointer">
+                                                    Mode Paket (Bundling)
+                                                    <span className="block text-xs text-muted-foreground font-normal">
+                                                        Beli 3 = Rp 10rb (Total)
+                                                    </span>
+                                                </Label>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <input
+                                                    type="radio"
+                                                    id="strategyWholesale"
+                                                    name="pricingStrategy"
+                                                    checked={formData.isWholesale}
+                                                    onChange={() => setFormData(prev => ({ ...prev, isWholesale: true }))}
+                                                    className="w-4 h-4 text-green-600 cursor-pointer"
+                                                />
+                                                <Label htmlFor="strategyWholesale" className="cursor-pointer">
+                                                    Mode Grosir (Bertingkat)
+                                                    <span className="block text-xs text-muted-foreground font-normal">
+                                                        Beli &ge;3 = Rp 3000/pcs
+                                                    </span>
+                                                </Label>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {formData.isBundlingEnabled && (
                                         <div className="bg-indigo-50/50 p-4 rounded-lg border border-indigo-100 space-y-3">
                                             <div className="flex items-center justify-between">
@@ -801,9 +843,11 @@ const ProductForm = () => {
                                                                 />
                                                             </div>
                                                             <div className="flex-1">
-                                                                <Label className="text-xs text-muted-foreground mb-1 block">Harga Paket</Label>
+                                                                <Label className="text-xs text-muted-foreground mb-1 block">
+                                                                    {formData.isWholesale ? 'Harga Satuan (Per Pcs)' : 'Harga Paket (Total)'}
+                                                                </Label>
                                                                 <div className="relative">
-                                                                    <span className="absolute left-3 top-2 text-muted-foreground text-sm">Rp</span>
+                                                                    <span className="absolute left-3 top-2.5 text-xs text-muted-foreground">Rp</span>
                                                                     <Input
                                                                         type="number"
                                                                         value={tier.price}
@@ -815,8 +859,8 @@ const ProductForm = () => {
                                                                                 return { ...prev, pricingTiers: newTiers };
                                                                             });
                                                                         }}
-                                                                        className="pl-9 h-9"
-                                                                        placeholder="10000"
+                                                                        placeholder={formData.isWholesale ? "37000" : "10000"}
+                                                                        className="h-9 pl-8"
                                                                     />
                                                                 </div>
                                                             </div>
