@@ -241,7 +241,10 @@ const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products, onRefres
             if (error) throw error;
             setName('');
 
-            // Feedback & Refresh
+            // Immediate UI Refresh
+            if (onRefresh) onRefresh();
+
+            // Feedback & Reload
             toast({
                 title: "Unit Berhasil Ditambahkan",
                 description: `${name} telah disimpan. Halaman akan dimuat ulang...`,
