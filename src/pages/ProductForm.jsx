@@ -605,10 +605,12 @@ const ProductForm = () => {
                                         <Select
                                             value={formData.pricingType || 'fixed'}
                                             onValueChange={(val) => {
-                                                let newUnit = prev.unit;
-                                                if (val === 'hourly') newUnit = 'Jam';
-                                                if (val === 'daily') newUnit = 'Hari';
-                                                setFormData(prev => ({ ...prev, pricingType: val, unit: newUnit }));
+                                                setFormData(prev => {
+                                                    let newUnit = prev.unit;
+                                                    if (val === 'hourly') newUnit = 'Jam';
+                                                    if (val === 'daily') newUnit = 'Hari';
+                                                    return { ...prev, pricingType: val, unit: newUnit };
+                                                });
                                             }}
                                         >
                                             <SelectTrigger>
