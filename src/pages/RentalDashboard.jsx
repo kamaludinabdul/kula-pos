@@ -1329,78 +1329,95 @@ const RentalDashboard = () => {
 
                         {billingMode === 'fixed' && (
                             <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                                <Label>Durasi Main (Jam)</Label>
-                                <div className="flex items-center gap-2">
-                                    <Input
-                                        type="number"
-                                        min="0.5"
-                                        step="0.5"
-                                        value={fixedDuration}
-                                        onChange={(e) => setFixedDuration(e.target.value)}
-                                        className="w-24 font-bold text-center"
-                                    />
-                                    <span className="text-sm text-muted-foreground">Jam</span>
-                                    <div className="ml-auto text-sm font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
-                                        Selesai: {(() => {
-                                            const now = new Date();
-                                            now.setHours(now.getHours() + parseFloat(fixedDuration || 0));
-                                            return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                                        })()}
-                                    </div>
-                                </div>
-                                {/* Quick Presets */}
-                                <div className="flex gap-2 mt-2">
-                                    {[1, 2, 3, 4, 5].map(hr => (
-                                        <Button
-                                            key={hr}
-                                            type="button"
-                                            variant={fixedDuration == hr ? "default" : "outline"}
-                                            size="sm"
-                                            onClick={() => setFixedDuration(hr)}
-                                            className="h-7 text-xs"
-                                        >
-                                            {hr} Jam
-                                        </Button>
-                                    ))}
-                                </div>
-
-                                {/* Bundling Info Preview */}
                                 {(() => {
                                     const prod = products.find(p => p.id === selectedUnit?.linked_product_id);
-                                    if (prod && prod.isBundlingEnabled) {
-                                        const dur = parseFloat(fixedDuration);
-                                        const tier = prod.pricingTiers?.find(t => parseFloat(t.duration) === dur);
-                                        const normalPrice = dur * parseInt(prod.sellPrice);
+                                    const isDaily = prod?.pricingType === 'daily';
+                                    const unitLabel = isDaily ? 'Hari' : 'Jam';
+                                    const unitValue = isDaily ? 24 : 1; // 1 unit = N hours
 
-                                        if (tier) {
-                                            return (
-                                                <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md text-sm">
-                                                    <div className="flex justify-between items-center text-green-800 font-bold">
-                                                        <span>✨ Paket {dur} Jam:</span>
-                                                        <span>Rp {parseInt(tier.price).toLocaleString()}</span>
-                                                    </div>
-                                                    <div className="text-xs text-muted-foreground line-through mt-1 text-right">
-                                                        Normal: Rp {normalPrice.toLocaleString()}
-                                                    </div>
+                                    return (
+                                        <>
+                                            <Label>Durasi Main ({unitLabel})</Label>
+                                            <div className="flex items-center gap-2">
+                                                <Input
+                                                    type="number"
+                                                    min="0.5"
+                                                    step="0.5"
+                                                    value={fixedDuration}
+                                                    onChange={(e) => setFixedDuration(e.target.value)}
+                                                    className="w-24 font-bold text-center"
+                                                />
+                                                <span className="text-sm text-muted-foreground">{unitLabel}</span>
+                                                <div className="ml-auto text-sm font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
+                                                    Selesai: {(() => {
+                                                        const now = new Date();
+                                                        // Calculate hours to add: Duration * UnitValue (24 or 1)
+                                                        const hoursToAdd = parseFloat(fixedDuration || 0) * unitValue;
+                                                        now.setHours(now.getHours() + hoursToAdd);
+
+                                                        // If daily, show date + time. If hourly, just time.
+                                                        const options = isDaily
+                                                            ? { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }
+                                                            : { hour: '2-digit', minute: '2-digit' };
+                                                        return now.toLocaleString('id-ID', options);
+                                                    })()}
                                                 </div>
-                                            );
-                                        } else {
-                                            return (
-                                                <div className="mt-3 p-3 bg-slate-50 border rounded-md text-sm flex justify-between">
-                                                    <span className="text-muted-foreground">Total Estimasi:</span>
-                                                    <span className="font-semibold">Rp {normalPrice.toLocaleString()}</span>
-                                                </div>
-                                            );
-                                        }
-                                    } else if (prod) {
-                                        const normalPrice = parseFloat(fixedDuration) * parseInt(prod.sellPrice);
-                                        return (
-                                            <div className="mt-3 p-3 bg-slate-50 border rounded-md text-sm flex justify-between">
-                                                <span className="text-muted-foreground">Total Estimasi:</span>
-                                                <span className="font-semibold">Rp {normalPrice.toLocaleString()}</span>
                                             </div>
-                                        );
-                                    }
+                                            {/* Quick Presets */}
+                                            <div className="flex gap-2 mt-2">
+                                                {[1, 2, 3, 4, 5].map(val => (
+                                                    <Button
+                                                        key={val}
+                                                        type="button"
+                                                        variant={fixedDuration == val ? "default" : "outline"}
+                                                        size="sm"
+                                                        onClick={() => setFixedDuration(val)}
+                                                        className="h-7 text-xs"
+                                                    >
+                                                        {val} {unitLabel}
+                                                    </Button>
+                                                ))}
+                                            </div>
+
+                                            {/* Bundling Info Preview */}
+                                            {(() => {
+                                                if (prod && prod.isBundlingEnabled) {
+                                                    const dur = parseFloat(fixedDuration);
+                                                    const tier = prod.pricingTiers?.find(t => parseFloat(t.duration) === dur);
+                                                    const normalPrice = dur * parseInt(prod.sellPrice);
+
+                                                    if (tier) {
+                                                        return (
+                                                            <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md text-sm">
+                                                                <div className="flex justify-between items-center text-green-800 font-bold">
+                                                                    <span>✨ Paket {dur} {unitLabel}:</span>
+                                                                    <span>Rp {parseInt(tier.price).toLocaleString()}</span>
+                                                                </div>
+                                                                <div className="text-xs text-muted-foreground line-through mt-1 text-right">
+                                                                    Normal: Rp {normalPrice.toLocaleString()}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    } else {
+                                                        return (
+                                                            <div className="mt-3 p-3 bg-slate-50 border rounded-md text-sm flex justify-between">
+                                                                <span className="text-muted-foreground">Total Estimasi:</span>
+                                                                <span className="font-semibold">Rp {normalPrice.toLocaleString()}</span>
+                                                            </div>
+                                                        );
+                                                    }
+                                                } else if (prod) {
+                                                    const normalPrice = parseFloat(fixedDuration) * parseInt(prod.sellPrice);
+                                                    return (
+                                                        <div className="mt-3 p-3 bg-slate-50 border rounded-md text-sm flex justify-between">
+                                                            <span className="text-muted-foreground">Total Estimasi:</span>
+                                                            <span className="font-semibold">Rp {normalPrice.toLocaleString()}</span>
+                                                        </div>
+                                                    );
+                                                }
+                                            })()}
+                                        </>
+                                    );
                                 })()}
                             </div>
                         )}
