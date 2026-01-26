@@ -661,18 +661,13 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product }) => {
 const RentalDashboard = () => {
     const {
         products,
-        stores,
         currentStore,
         activeStoreId,
-        fetchData,
-        fetchAllProducts, /* Add fetchAllProducts */
-        addTransaction,
-        addCustomer,
+        fetchAllProducts,
         refreshData,
-        loading: contextLoading,
-        user, /* Restore user */
-        customers, /* Restore customers */
-        processSale /* Restore processSale */
+        user,
+        customers,
+        processSale
     } = useData();
     const navigate = useNavigate();
     const { toast } = useToast();
