@@ -655,7 +655,10 @@ const RentalDashboard = () => {
         addTransaction,
         addCustomer,
         refreshData,
-        loading: contextLoading
+        loading: contextLoading,
+        user, /* Restore user */
+        customers, /* Restore customers */
+        processSale /* Restore processSale */
     } = useData();
     const navigate = useNavigate();
     const { toast } = useToast();
