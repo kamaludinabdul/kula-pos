@@ -216,7 +216,7 @@ const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products, onRefres
     const [unitToDelete, setUnitToDelete] = useState(null);
 
     // Filter produk yang tipe hourly
-    const hourlyProducts = products.filter(p => p.pricingType === 'hourly');
+    const hourlyProducts = products.filter(p => p.pricingType === 'hourly' || p.pricingType === 'daily');
 
     const handleAddUnit = async () => {
         if (!storeId) {
