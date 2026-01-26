@@ -654,6 +654,7 @@ const RentalDashboard = () => {
         fetchAllProducts, /* Add fetchAllProducts */
         addTransaction,
         addCustomer,
+        refreshData,
         loading: contextLoading
     } = useData();
     const navigate = useNavigate();
