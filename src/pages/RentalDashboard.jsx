@@ -20,9 +20,15 @@ import { printReceiptBrowser } from '../lib/receiptHelper';
 
 // Helper Format Durasi
 const formatDuration = (ms) => {
-    const seconds = Math.floor((ms / 1000) % 60);
-    const minutes = Math.floor((ms / (1000 * 60)) % 60);
-    const hours = Math.floor((ms / (1000 * 60 * 60)));
+    const totalSeconds = Math.floor(ms / 1000);
+    const days = Math.floor(totalSeconds / (3600 * 24));
+    const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (days > 0) {
+        return `${days}d ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
@@ -155,7 +161,7 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
                         )}
                         {session?.billing_mode === 'fixed' && (
                             <Badge variant="outline" className="mt-1 bg-white border-indigo-200 text-indigo-700 text-[10px] h-5">
-                                Paket {session.target_duration} Jam
+                                Paket {session.target_duration} {product?.pricingType === 'daily' ? 'Hari' : 'Jam'}
                             </Badge>
                         )}
                     </div>
