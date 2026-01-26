@@ -565,10 +565,23 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product }) => {
         // If 'fixed' mode and NOT overtime, use agreed total
         if (session.billing_mode === 'fixed' && session.agreed_total !== null && session.agreed_total !== undefined) {
             const targetDuration = parseFloat(session.target_duration || 0);
-            if (hrs <= targetDuration) {
+
+            // Compare correct units (Days vs Days OR Hours vs Hours)
+            let consumedDuration = hrs;
+            if (product && product.pricingType === 'daily') {
+                consumedDuration = Math.ceil(hrs / 24);
+            }
+
+            if (consumedDuration <= targetDuration) {
                 return session.agreed_total;
             }
-            return hrs * basePrice;
+            // If Overtime: Base Price * Consumed Duration (in correct unit)
+            return consumedDuration * basePrice;
+        }
+
+        // Open Billing
+        if (product && product.pricingType === 'daily') {
+            return Math.ceil(hrs / 24) * basePrice;
         }
         return hrs * basePrice;
     });
