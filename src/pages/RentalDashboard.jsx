@@ -988,7 +988,7 @@ const RentalDashboard = () => {
                     status: 'active',
                     billing_mode: billingMode,
                     target_duration: billingMode === 'fixed' ? finalDuration : null,
-                    target_end_time: billingMode === 'fixed' ? new Date(Date.now() + (finalDuration * 60 * 60 * 1000)).toISOString() : null,
+                    target_end_time: billingMode === 'fixed' ? new Date(Date.now() + (finalDuration * (product.pricingType === 'daily' ? 24 : 1) * 60 * 60 * 1000)).toISOString() : null,
                     agreed_total: billingMode === 'fixed' ? agreedTotal : null,
                     product_id: product.id,
                     product_price: Number(product.sellPrice || 0),
