@@ -309,7 +309,7 @@ const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products, onRefres
                                             hourlyProducts.map(p => (
                                                 <SelectItem key={p.id} value={p.id} className="cursor-pointer focus:bg-indigo-50 py-3">
                                                     <span className="font-medium text-slate-700">{p.name}</span>
-                                                    <span className="ml-2 text-indigo-600 font-bold">- Rp {parseInt(p.sellPrice || 0).toLocaleString()}/jam</span>
+                                                    <span className="ml-2 text-indigo-600 font-bold">- Rp {parseInt(p.sellPrice || 0).toLocaleString()}/{p.pricingType === 'daily' ? 'hari' : 'jam'}</span>
                                                 </SelectItem>
                                             ))
                                         )}
@@ -325,7 +325,7 @@ const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products, onRefres
                                 <Button
                                     onClick={handleAddUnit}
                                     disabled={!name || !linkedProductId || isSubmitting}
-                                    className="h-14 px-10 w-full md:w-auto bg-[#A5AFFB] hover:bg-[#8D96E0] text-white font-bold rounded-xl shadow-[0_4px_14px_0_rgba(165,175,251,0.39)] transition-all active:scale-95 disabled:opacity-50 text-base"
+                                    className="h-14 px-10 w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 disabled:bg-slate-300 disabled:opacity-70 text-base"
                                 >
                                     {isSubmitting ? (
                                         <Loader2 className="w-5 h-5 animate-spin" />
