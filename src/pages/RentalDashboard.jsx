@@ -175,7 +175,8 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
                         <div className="text-center py-8 text-muted-foreground bg-slate-50 rounded-lg border border-dashed">
                             <p>Siap Digunakan</p>
                             <p className="text-xs font-medium text-slate-900 mt-1">
-                                Tarif: Rp {parseInt(product?.sellPrice || 0).toLocaleString('id-ID')} / jam
+                                Tarif: Rp {parseInt(product?.sellPrice || 0).toLocaleString('id-ID')} / {product?.pricingType === 'daily' ? 'hari' : 'jam'}
+
                             </p>
                         </div>
                     )}
