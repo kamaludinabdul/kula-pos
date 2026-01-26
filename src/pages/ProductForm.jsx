@@ -371,7 +371,7 @@ const ProductForm = () => {
     };
 
     return (
-        <div className="p-6 space-y-6 max-w-5xl mx-auto pb-24">
+        <div className="p-6 space-y-6 w-full mx-auto pb-24">
             <header className="flex items-center gap-4">
                 <Button variant="outline" size="icon" onClick={() => navigate('/products')}>
                     <ArrowLeft className="h-4 w-4" />
