@@ -26,6 +26,46 @@ const formatDuration = (ms) => {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
+// Helper: Hitung Harga Terbaik (Smart Bundling)
+const calculateBestPrice = (durationData, product) => {
+    let duration = parseFloat(durationData || 0);
+    if (!product) return 0;
+
+    const basePrice = parseInt(product.sellPrice || 0);
+
+    // Jika tidak ada bundling, hitung flat
+    if (!product.isBundlingEnabled || !product.pricingTiers || product.pricingTiers.length === 0) {
+        return duration * basePrice;
+    }
+
+    let totalPrice = 0;
+    let remainingDuration = duration;
+
+    // 1. Sort tier dari durasi terpanjang ke terpendek
+    const sortedTiers = [...product.pricingTiers]
+        .map(t => ({ duration: parseFloat(t.duration), price: parseFloat(t.price) }))
+        .sort((a, b) => b.duration - a.duration);
+
+    // 2. Greedy Algorithm: Ambil paket terbesar yang muat
+    for (const tier of sortedTiers) {
+        if (remainingDuration >= tier.duration) {
+            const count = Math.floor(remainingDuration / tier.duration);
+            totalPrice += count * tier.price;
+            remainingDuration -= count * tier.duration;
+
+            // Fix floating point issues (e.g. 0.199999)
+            remainingDuration = parseFloat(remainingDuration.toFixed(2));
+        }
+    }
+
+    // 3. Sisa durasi dihitung harga normal
+    if (remainingDuration > 0) {
+        totalPrice += remainingDuration * basePrice;
+    }
+
+    return totalPrice;
+};
+
 // --- KOMPONEN KARTU UNIT ---
 const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onViewDetails }) => {
     const [elapsed, setElapsed] = useState(0);
@@ -926,15 +966,8 @@ const RentalDashboard = () => {
 
         if (billingMode === 'fixed') {
             finalDuration = parseFloat(fixedDuration);
-            // Check Bundling
-            const tiers = product.pricingTiers || [];
-            const matchedTier = product.isBundlingEnabled ? tiers.find(t => parseFloat(t.duration) === finalDuration) : null;
-
-            if (matchedTier) {
-                agreedTotal = parseFloat(matchedTier.price);
-            } else {
-                agreedTotal = finalDuration * parseInt(product.sellPrice);
-            }
+            // Use Smart Bundling Logic
+            agreedTotal = calculateBestPrice(finalDuration, product);
         }
 
         try {
@@ -1379,35 +1412,31 @@ const RentalDashboard = () => {
                                                 ))}
                                             </div>
 
-                                            {/* Bundling Info Preview */}
+                                            {/* Bundling Info Preview (Smart Calc) */}
                                             {(() => {
-                                                if (prod && prod.isBundlingEnabled) {
-                                                    const dur = parseFloat(fixedDuration);
-                                                    const tier = prod.pricingTiers?.find(t => parseFloat(t.duration) === dur);
-                                                    const normalPrice = dur * parseInt(prod.sellPrice);
+                                                const prod = products.find(p => p.id === selectedUnit?.linked_product_id);
+                                                if (!prod) return null;
 
-                                                    if (tier) {
-                                                        return (
-                                                            <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md text-sm">
-                                                                <div className="flex justify-between items-center text-green-800 font-bold">
-                                                                    <span>✨ Paket {dur} {unitLabel}:</span>
-                                                                    <span>Rp {parseInt(tier.price).toLocaleString()}</span>
-                                                                </div>
-                                                                <div className="text-xs text-muted-foreground line-through mt-1 text-right">
-                                                                    Normal: Rp {normalPrice.toLocaleString()}
-                                                                </div>
+                                                const dur = parseFloat(fixedDuration);
+                                                const bestPrice = calculateBestPrice(dur, prod);
+                                                const normalPrice = dur * parseInt(prod.sellPrice);
+
+                                                // Cek apakah lebih hemat?
+                                                const isCheaper = bestPrice < normalPrice;
+
+                                                if (isCheaper) {
+                                                    return (
+                                                        <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md text-sm">
+                                                            <div className="flex justify-between items-center text-green-800 font-bold">
+                                                                <span>✨ Harga Paket (Hemat):</span>
+                                                                <span>Rp {bestPrice.toLocaleString()}</span>
                                                             </div>
-                                                        );
-                                                    } else {
-                                                        return (
-                                                            <div className="mt-3 p-3 bg-slate-50 border rounded-md text-sm flex justify-between">
-                                                                <span className="text-muted-foreground">Total Estimasi:</span>
-                                                                <span className="font-semibold">Rp {normalPrice.toLocaleString()}</span>
+                                                            <div className="text-xs text-muted-foreground line-through mt-1 text-right">
+                                                                Normal: Rp {normalPrice.toLocaleString()}
                                                             </div>
-                                                        );
-                                                    }
-                                                } else if (prod) {
-                                                    const normalPrice = parseFloat(fixedDuration) * parseInt(prod.sellPrice);
+                                                        </div>
+                                                    );
+                                                } else {
                                                     return (
                                                         <div className="mt-3 p-3 bg-slate-50 border rounded-md text-sm flex justify-between">
                                                             <span className="text-muted-foreground">Total Estimasi:</span>
