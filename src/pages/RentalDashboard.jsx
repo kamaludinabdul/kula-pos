@@ -1500,6 +1500,8 @@ const RentalDashboard = () => {
                     setIsCheckoutOpen(false);
                     setPaymentSession(null);
                     setPaymentSuccess(false);
+                    fetchSessions();
+                    refreshData();
                 }}
                 store={{ ...currentStore, ...(currentStore?.settings || {}) }}
                 user={user}
