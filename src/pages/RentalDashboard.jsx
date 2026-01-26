@@ -645,9 +645,26 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product }) => {
 };
 
 const RentalDashboard = () => {
-    const { products, currentStore, user, customers, refreshData, processSale } = useData();
+    const {
+        products,
+        stores,
+        currentStore,
+        activeStoreId,
+        fetchData,
+        fetchAllProducts, /* Add fetchAllProducts */
+        addTransaction,
+        addCustomer,
+        loading: contextLoading
+    } = useData();
     const navigate = useNavigate();
     const { toast } = useToast();
+
+    // Fetch Products on Mount (Ensure we have fresh products)
+    useEffect(() => {
+        if (activeStoreId) {
+            fetchAllProducts(activeStoreId);
+        }
+    }, [activeStoreId, fetchAllProducts]);
 
     // States
     const [units, setUnits] = useState([]);
