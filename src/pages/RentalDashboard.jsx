@@ -340,7 +340,7 @@ const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products, onRefres
                 <div className="grid gap-6 py-2">
                     {/* Form Tambah - Refined to match image */}
                     <div className="bg-slate-50/50 p-6 rounded-xl border border-slate-100 shadow-sm transition-all">
-                        <div className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr_auto] gap-x-6 gap-y-4 items-center">
+                        <div className="grid grid-cols-1 md:grid-cols-[1fr_1.2fr_auto] gap-x-6 gap-y-4 items-end">
                             <div className="space-y-2.5">
                                 <Label className="text-sm font-bold text-slate-800">Nama Unit / Meja</Label>
                                 <Input
@@ -1354,8 +1354,17 @@ const RentalDashboard = () => {
                                     <SelectValue placeholder="Pilih Mode" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="open">Open Billing (Per Jam - Berjalan)</SelectItem>
-                                    <SelectItem value="fixed">Fixed Duration (Tembak Paket/Jam)</SelectItem>
+                                    {(() => {
+                                        const prod = products.find(p => p.id === selectedUnit?.linked_product_id);
+                                        const isDaily = prod?.pricingType === 'daily';
+                                        const label = isDaily ? 'Hari' : 'Jam';
+                                        return (
+                                            <>
+                                                <SelectItem value="open">Open Billing (Per {label} - Berjalan)</SelectItem>
+                                                <SelectItem value="fixed">Fixed Duration (Tembak Paket/{label})</SelectItem>
+                                            </>
+                                        );
+                                    })()}
                                 </SelectContent>
                             </Select>
                         </div>
