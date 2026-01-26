@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { calculateAssociations, getSmartRecommendations } from '../utils/smartCashier';
-import { calculateCartTotals } from '../lib/cartLogic';
+import { calculateCartTotals, calculateWholesaleUnitPrice } from '../lib/cartLogic';
 
 export const usePOS = () => {
     const { products, transactions, currentStore } = useData();
@@ -47,28 +47,44 @@ export const usePOS = () => {
             }
 
             if (existing) {
-                return prev.map((item) =>
-                    item.id === product.id ? { ...item, qty: nextQty } : item
-                );
+                return prev.map((item) => {
+                    if (item.id === product.id) {
+                        const newQty = item.qty + 1;
+                        // Recalculate price if wholesale
+                        let newPrice = item.price;
+                        if (item.isWholesale) {
+                            newPrice = calculateWholesaleUnitPrice(item, newQty);
+                        }
+                        return { ...item, qty: newQty, price: newPrice };
+                    }
+                    return item;
+                });
             }
             // Calculate initial discount per unit
             const unitPrice = parseInt(product.sellPrice || product.price) || 0;
             const pDiscount = parseFloat(product.discount) || 0;
             const pDiscountType = product.discountType || 'percent';
 
+            // Check initial wholesale price (usually base, but for robustness)
+            // Note: quantity is 1 here
+            let finalUnitPrice = unitPrice;
+            if (product.isWholesale) {
+                finalUnitPrice = calculateWholesaleUnitPrice(product, 1);
+            }
+
             let initialDiscountAmount = 0;
             if (pDiscount > 0) {
                 if (pDiscountType === 'fixed') {
                     initialDiscountAmount = pDiscount;
                 } else {
-                    initialDiscountAmount = unitPrice * (pDiscount / 100);
+                    initialDiscountAmount = finalUnitPrice * (pDiscount / 100);
                 }
             }
 
             return [...prev, {
                 ...product,
                 qty: 1,
-                price: unitPrice,
+                price: finalUnitPrice,
                 discount: initialDiscountAmount
             }];
         });
@@ -89,7 +105,13 @@ export const usePOS = () => {
                         return item; // Stock limit reached
                     }
 
-                    return { ...item, qty: newQty };
+                    // Recalculate Price if Wholesale
+                    let newPrice = item.price;
+                    if (item.isWholesale) {
+                        newPrice = calculateWholesaleUnitPrice(item, newQty);
+                    }
+
+                    return { ...item, qty: newQty, price: newPrice };
                 }
                 return item;
             }).filter((item) => item.qty > 0)

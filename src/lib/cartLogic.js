@@ -61,6 +61,33 @@ export const calculateCartTotals = (cart, discountType, discountValue, taxRate =
     };
 };
 
+// Helper: Hitung Harga Satuan berdasarkan Grosir (Wholesale)
+// Logic: Jika Qty >= Tier MinQty, maka Harga Satuan = Tier Price.
+// Ambil tier dengan MinQty terbesar yang masih masuk logic (Threshold).
+export const calculateWholesaleUnitPrice = (product, qty) => {
+    const basePrice = parseInt(product.sellPrice || product.price) || 0;
+
+    // Safety check
+    if (!product.isWholesale || !product.pricingTiers || product.pricingTiers.length === 0) {
+        return basePrice;
+    }
+
+    // 1. Sort Tiers: Largest Qty (Duration) first
+    // Note: product.pricingTiers stores 'duration' as 'minQty' for wholesale context
+    const sortedTiers = [...product.pricingTiers]
+        .map(t => ({ minQty: parseFloat(t.duration), price: parseFloat(t.price) }))
+        .sort((a, b) => b.minQty - a.minQty);
+
+    // 2. Find the first tier that matches the quantity threshold
+    const matchedTier = sortedTiers.find(t => qty >= t.minQty);
+
+    if (matchedTier) {
+        return matchedTier.price;
+    }
+
+    return basePrice;
+};
+
 export const calculateChange = (total, amountPaid) => {
     const paid = parseFloat(amountPaid) || 0;
     const due = parseFloat(total) || 0;
