@@ -311,7 +311,7 @@ const ProductForm = () => {
             discount: Number(formData.discount),
 
             price: Number(formData.sellPrice), // Legacy support
-            unit: formData.pricingType === 'hourly' ? 'Jam' : formData.unit,
+            unit: formData.pricingType === 'hourly' ? 'Jam' : (formData.pricingType === 'daily' ? 'Hari' : formData.unit),
             purchaseUnit: formData.purchaseUnit,
             conversionToUnit: formData.conversionToUnit ? Number(formData.conversionToUnit) : null,
             pricingType: formData.pricingType,
@@ -604,7 +604,12 @@ const ProductForm = () => {
                                         </div>
                                         <Select
                                             value={formData.pricingType || 'fixed'}
-                                            onValueChange={(val) => setFormData(prev => ({ ...prev, pricingType: val, unit: val === 'hourly' ? 'Jam' : prev.unit }))}
+                                            onValueChange={(val) => {
+                                                let newUnit = prev.unit;
+                                                if (val === 'hourly') newUnit = 'Jam';
+                                                if (val === 'daily') newUnit = 'Hari';
+                                                setFormData(prev => ({ ...prev, pricingType: val, unit: newUnit }));
+                                            }}
                                         >
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Pilih Model" />
@@ -612,6 +617,7 @@ const ProductForm = () => {
                                             <SelectContent>
                                                 <SelectItem value="fixed">Harga Tetap (Jual Putus)</SelectItem>
                                                 <SelectItem value="hourly">Rental / Durasi (Per Jam)</SelectItem>
+                                                <SelectItem value="daily">Rental / Durasi (Per Hari)</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -637,7 +643,9 @@ const ProductForm = () => {
                                     )}
                                     <div className="space-y-2">
                                         <div className="flex items-center h-6">
-                                            <Label htmlFor="sellPrice">{formData.pricingType === 'hourly' ? 'Tarif Per Jam' : 'Harga Jual'} <span className="text-destructive">*</span></Label>
+                                            <Label htmlFor="sellPrice">
+                                                {formData.pricingType === 'hourly' ? 'Tarif Per Jam' : (formData.pricingType === 'daily' ? 'Tarif Per Hari' : 'Harga Jual')} <span className="text-destructive">*</span>
+                                            </Label>
                                         </div>
                                         <div className="relative">
                                             <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">Rp</span>
@@ -724,8 +732,8 @@ const ProductForm = () => {
                                         <div className="flex-1">
                                             <Label className="text-base font-semibold">Harga Bundling / Paket</Label>
                                             <p className="text-sm text-muted-foreground mt-0.5">
-                                                {formData.pricingType === 'hourly'
-                                                    ? 'Harga khusus untuk durasi tertentu (misal: 3 Jam = Rp 10rb).'
+                                                {formData.pricingType === 'hourly' || formData.pricingType === 'daily'
+                                                    ? `Harga khusus untuk durasi tertentu (misal: 3 ${formData.pricingType === 'daily' ? 'Hari' : 'Jam'} = Rp 100rb).`
                                                     : 'Harga khusus untuk jumlah tertentu (misal: Beli 3 = Rp 10rb).'
                                                 }
                                             </p>
@@ -773,7 +781,7 @@ const ProductForm = () => {
                                                         <div key={idx} className="flex gap-3 items-center bg-white p-3 rounded-md border">
                                                             <div className="flex-1">
                                                                 <Label className="text-xs text-muted-foreground mb-1 block">
-                                                                    {formData.pricingType === 'hourly' ? 'Durasi (Jam)' : 'Jumlah (Qty)'}
+                                                                    {formData.pricingType === 'hourly' ? 'Durasi (Jam)' : (formData.pricingType === 'daily' ? 'Durasi (Hari)' : 'Jumlah (Qty)')}
                                                                 </Label>
                                                                 <Input
                                                                     type="number"
@@ -786,7 +794,7 @@ const ProductForm = () => {
                                                                             return { ...prev, pricingTiers: newTiers };
                                                                         });
                                                                     }}
-                                                                    placeholder={formData.pricingType === 'hourly' ? '3' : '5'}
+                                                                    placeholder={formData.pricingType === 'hourly' ? '3' : (formData.pricingType === 'daily' ? '1' : '5')}
                                                                     className="h-9"
                                                                 />
                                                             </div>

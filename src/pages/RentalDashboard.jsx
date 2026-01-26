@@ -79,7 +79,12 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
         } else {
             // OPEN Mode
             durationInHours = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
-            currentBill = product ? durationInHours * product.sellPrice : 0;
+            if (product && product.pricingType === 'daily') {
+                const days = Math.ceil(durationInHours / 24);
+                currentBill = days * product.sellPrice;
+            } else {
+                currentBill = product ? durationInHours * product.sellPrice : 0;
+            }
             timerDisplay = formatDuration(elapsed);
         }
     }
@@ -130,7 +135,10 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
                                 <p className="text-xs text-muted-foreground mt-1">
                                     {session.billing_mode === 'fixed'
                                         ? (timeLeft > 0 ? `Selesai: ${new Date(session.target_end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Billing Terhenti (Fixed)')
-                                        : `Durasi Billing: ${durationInHours} Jam`
+                                        : (product?.pricingType === 'daily'
+                                            ? `Durasi Billing: ${Math.ceil(durationInHours / 24)} Hari`
+                                            : `Durasi Billing: ${durationInHours} Jam`
+                                        )
                                     }
                                 </p>
                             </div>
@@ -477,7 +485,12 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product }) => {
             return session.target_duration;
         }
         const elapsed = Date.now() - new Date(session.start_time).getTime();
-        return Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
+        const hrs = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
+        // If Daily, return Days
+        if (product && product.pricingType === 'daily') {
+            return Math.ceil(hrs / 24);
+        }
+        return hrs;
     });
 
     const [priceInput, setPriceInput] = useState(() => {
@@ -556,7 +569,7 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product }) => {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>Durasi Billing (Jam)</Label>
+                            <Label>Durasi Billing ({product?.pricingType === 'daily' ? 'Hari' : 'Jam'})</Label>
                             <Input
                                 type="number"
                                 value={durationInput}
@@ -834,30 +847,24 @@ const RentalDashboard = () => {
 
     // Handlers
     const handleRemoveItem = async (session, index) => {
-        if (!confirm('Hapus item ini?')) return;
-        const newOrders = [...session.orders];
-        newOrders.splice(index, 1);
+        if (!confirm('Hapus item ini? Item akan dihapus dan stok dikembalikan (jika ada).')) return;
+
         try {
-            const { error } = await supabase
-                .from('rental_sessions')
-                .update({ orders: newOrders })
-                .eq('id', session.id);
+            const { error } = await supabase.rpc('remove_session_item', {
+                p_session_id: session.id,
+                p_store_id: currentStore.id,
+                p_item_index: index
+            });
 
             if (error) throw error;
 
-            // Optimistic Update
-            setSessions(prev => ({
-                ...prev,
-                [session.unit_id]: {
-                    ...session,
-                    orders: newOrders
-                }
-            }));
+            // Optimistic Update (Manual sync needs care with array index, easier to fetch fresh)
+            await fetchSessions();
 
-            toast({ title: "Item Dihapus", description: "Item berhasil dihapus dari pesanan." });
+            toast({ title: "Item Dihapus", description: "Item dihapus dan stok dikembalikan." });
         } catch (error) {
             console.error("Failed to remove item:", error);
-            alert("Gagal menghapus item");
+            alert("Gagal menghapus item: " + error.message);
         }
     };
 
@@ -1092,52 +1099,28 @@ const RentalDashboard = () => {
         const session = sessions[currentSessionId];
         if (!session) return;
 
-        const newOrder = {
-            id: product.id,
-            name: product.name,
-            price: Number(product.sellPrice || 0),
-            qty: qty
-        };
-
-        const currentOrders = session.orders || [];
-        const existingIndex = currentOrders.findIndex(o => o.id === product.id);
-        let updatedOrders = [...currentOrders];
-
-        if (existingIndex >= 0) {
-            updatedOrders[existingIndex] = {
-                ...updatedOrders[existingIndex],
-                qty: updatedOrders[existingIndex].qty + qty
-            };
-        } else {
-            updatedOrders.push(newOrder);
-        }
-
         try {
-            const { error } = await supabase
-                .from('rental_sessions')
-                .update({ orders: updatedOrders })
-                .eq('id', session.id);
+            const { error } = await supabase.rpc('add_session_item', {
+                p_session_id: session.id,
+                p_store_id: currentStore.id,
+                p_product_id: product.id,
+                p_qty: qty,
+                p_price: Number(product.sellPrice || 0)
+            });
 
             if (error) throw error;
 
-            // Optimistic Update
-            setSessions(prev => ({
-                ...prev,
-                [currentSessionId]: {
-                    ...session,
-                    orders: updatedOrders
-                }
-            }));
+            await fetchSessions();
 
             toast({
                 title: "Menu Ditambahkan",
-                description: `${qty}x ${product.name} disimpan.`,
+                description: `${qty}x ${product.name} disimpan & stok dipotong.`,
                 variant: "success",
                 duration: 2000
             });
         } catch (error) {
             console.error("Failed to add order:", error);
-            alert("Gagal menambah order");
+            alert("Gagal menambah order: " + error.message);
         }
     };
 
