@@ -219,6 +219,8 @@ const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products, onRefres
     // Filter produk yang tipe hourly
     const hourlyProducts = products.filter(p => p.pricingType === 'hourly' || p.pricingType === 'daily');
 
+    const { toast } = useToast();
+
     const handleAddUnit = async () => {
         if (!storeId) {
             alert("Gagal: Store ID tidak ditemukan. Coba refresh.");
@@ -238,8 +240,19 @@ const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products, onRefres
 
             if (error) throw error;
             setName('');
-            if (onRefresh) onRefresh();
-            // Optional Feedback
+
+            // Feedback & Refresh
+            toast({
+                title: "Unit Berhasil Ditambahkan",
+                description: `${name} telah disimpan. Halaman akan dimuat ulang...`,
+                variant: "success",
+                duration: 2000
+            });
+
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+
         } catch (error) {
             console.error("Error adding unit:", error);
             alert("Gagal menambah unit: " + error.message);
