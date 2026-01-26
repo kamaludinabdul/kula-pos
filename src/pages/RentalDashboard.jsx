@@ -637,13 +637,13 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product }) => {
                                 type="number"
                                 value={durationInput}
                                 onChange={handleDurationChange}
-                                step="0.5"
-                                min="0.5"
+                                step={product?.pricingType === 'daily' ? "1" : "0.5"}
+                                min={product?.pricingType === 'daily' ? "1" : "0.5"}
                             />
                             <p className="text-[10px] text-muted-foreground">Bisa diedit (misal telat stop).</p>
                         </div>
                         <div className="space-y-2">
-                            <Label>Rate / Jam</Label>
+                            <Label>Rate / {product?.pricingType === 'daily' ? 'Hari' : 'Jam'}</Label>
                             <div className="h-10 px-3 py-2 bg-slate-100 rounded text-sm flex items-center">
                                 Rp {Number(product?.sellPrice || session.product_price || 0).toLocaleString()}
                             </div>
