@@ -1383,8 +1383,8 @@ const RentalDashboard = () => {
                                             <div className="flex items-center gap-2">
                                                 <Input
                                                     type="number"
-                                                    min="0.5"
-                                                    step="0.5"
+                                                    min={isDaily ? "1" : "0.5"}
+                                                    step={isDaily ? "1" : "0.5"}
                                                     value={fixedDuration}
                                                     onChange={(e) => setFixedDuration(e.target.value)}
                                                     className="w-24 font-bold text-center"
