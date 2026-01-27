@@ -98,7 +98,7 @@ const ReceiptModal = ({ isOpen, onClose, transaction, store }) => {
                     </button>
                 </div>
 
-                <div className="w-full bg-slate-50 flex justify-center items-start py-4 border rounded-lg shadow-inner max-h-[300px] overflow-y-auto">
+                <div className="w-full bg-slate-50 flex justify-center items-start py-4 border rounded-lg shadow-inner max-h-[70vh] overflow-y-auto">
                     {/* Receipt Preview Area - Visual Matching POS */}
                     <div
                         id="receipt-preview"

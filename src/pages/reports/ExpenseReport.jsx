@@ -119,39 +119,40 @@ const ExpenseReport = () => {
 
     return (
         <div className="space-y-6">
-            <div className="space-y-4">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <h2 className="text-2xl font-bold tracking-tight">Laporan Pengeluaran (Expense)</h2>
-                    <div className="flex gap-2">
-                        <Button variant="outline" onClick={handleExportPDF}>
-                            <Download className="mr-2 h-4 w-4" />
-                            PDF
-                        </Button>
-                        <Button variant="outline" onClick={handleExport}>
-                            <Download className="mr-2 h-4 w-4" />
-                            CSV
-                        </Button>
-                    </div>
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight">Laporan Pengeluaran</h2>
+                    <p className="text-muted-foreground">Arus kas keluar dari POS & Back Office</p>
                 </div>
+                <div className="flex w-full lg:w-auto gap-2">
+                    <Button variant="outline" onClick={handleExportPDF} className="flex-1 lg:flex-none">
+                        <Download className="mr-2 h-4 w-4" />
+                        PDF
+                    </Button>
+                    <Button variant="outline" onClick={handleExport} className="flex-1 lg:flex-none">
+                        <Download className="mr-2 h-4 w-4" />
+                        CSV
+                    </Button>
+                </div>
+            </div>
 
-                <div className="flex justify-start">
-                    <SmartDatePicker
-                        date={datePickerDate}
-                        onDateChange={setDatePickerDate}
-                    />
-                </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                <SmartDatePicker
+                    date={datePickerDate}
+                    onDateChange={setDatePickerDate}
+                />
             </div>
 
             {/* Summary Card */}
             <div className="grid gap-4 md:grid-cols-3">
-                <Card>
+                <Card className="rounded-xl border-none shadow-sm bg-red-50">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Pengeluaran</CardTitle>
+                        <CardTitle className="text-sm font-bold text-red-800 uppercase tracking-wider">Total Pengeluaran</CardTitle>
                         <TrendingDown className="h-4 w-4 text-red-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-red-600">Rp {totalExpense.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground">
+                        <div className="text-3xl font-extrabold text-red-600">Rp {totalExpense.toLocaleString()}</div>
+                        <p className="text-xs text-red-700/60 font-medium mt-1">
                             {datePickerDate?.from ? (
                                 `${datePickerDate.from.toLocaleDateString('id-ID')} - ${datePickerDate.to?.toLocaleDateString('id-ID')}`
                             ) : (
@@ -162,15 +163,15 @@ const ExpenseReport = () => {
                 </Card>
             </div>
 
-            {/* Expense Table */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Rincian Pengeluaran</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="rounded-md border">
+            {/* Desktop Table View */}
+            <div className="hidden lg:block">
+                <Card className="rounded-xl overflow-hidden border-none shadow-sm">
+                    <CardHeader className="pb-3 border-b">
+                        <CardTitle className="text-lg">Rincian Pengeluaran</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
                         <Table>
-                            <TableHeader>
+                            <TableHeader className="bg-slate-50">
                                 <TableRow>
                                     <TableHead>Waktu</TableHead>
                                     <TableHead>Sumber</TableHead>
@@ -183,13 +184,13 @@ const ExpenseReport = () => {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                        <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                                             Memuat data...
                                         </TableCell>
                                     </TableRow>
                                 ) : expenses.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                        <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                                             Tidak ada data pengeluaran.
                                         </TableCell>
                                     </TableRow>
@@ -198,27 +199,27 @@ const ExpenseReport = () => {
                                         <TableRow key={exp.id}>
                                             <TableCell>
                                                 <div className="flex flex-col text-xs">
-                                                    <div className="flex items-center gap-1">
+                                                    <div className="flex items-center gap-1 font-medium">
                                                         <Calendar className="h-3 w-3" />
                                                         {new Date(exp.date).toLocaleDateString()}
                                                     </div>
-                                                    <div className="flex items-center gap-1 text-muted-foreground">
+                                                    <div className="flex items-center gap-1 text-slate-400">
                                                         <FileText className="h-3 w-3" />
-                                                        {new Date(exp.date).toLocaleTimeString()}
+                                                        {new Date(exp.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                     </div>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant="outline">{exp.source}</Badge>
+                                                <Badge variant="outline" className="text-[10px]">{exp.source}</Badge>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant="secondary">
+                                                <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none text-[10px]">
                                                     {exp.category}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell>{exp.reason}</TableCell>
-                                            <TableCell>{exp.cashier || '-'}</TableCell>
-                                            <TableCell className="text-right font-medium text-red-600">
+                                            <TableCell className="max-w-[200px] truncate">{exp.reason}</TableCell>
+                                            <TableCell className="text-slate-600">{exp.cashier || '-'}</TableCell>
+                                            <TableCell className="text-right font-bold text-red-600">
                                                 Rp {Number(exp.amount).toLocaleString()}
                                             </TableCell>
                                         </TableRow>
@@ -226,9 +227,48 @@ const ExpenseReport = () => {
                                 )}
                             </TableBody>
                         </Table>
-                    </div>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="lg:hidden space-y-4">
+                {loading ? (
+                    <div className="text-center py-12 text-muted-foreground bg-white rounded-xl border">Memuat data...</div>
+                ) : expenses.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground bg-white rounded-xl border">Tidak ada data.</div>
+                ) : (
+                    expenses.map(exp => (
+                        <div key={exp.id} className="bg-white rounded-xl p-4 border-none shadow-sm space-y-3">
+                            <div className="flex justify-between items-start">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="text-[10px] uppercase tracking-tighter">{exp.source}</Badge>
+                                        <Badge variant="secondary" className="bg-slate-100 text-slate-600 border-none text-[10px] uppercase tracking-tighter">
+                                            {exp.category}
+                                        </Badge>
+                                    </div>
+                                    <h3 className="font-bold text-slate-800 text-base">Rp {Number(exp.amount).toLocaleString()}</h3>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-xs font-bold text-slate-500">{new Date(exp.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}</p>
+                                    <p className="text-[10px] text-slate-400">{new Date(exp.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-50 rounded-lg p-3 space-y-2">
+                                <p className="text-xs text-slate-600 font-medium leading-relaxed">{exp.reason}</p>
+                                <div className="flex items-center gap-1.5 pt-1 border-t border-slate-200/60">
+                                    <div className="h-4 w-4 rounded-full bg-slate-200 flex items-center justify-center">
+                                        <FileText className="h-2 w-2 text-slate-500" />
+                                    </div>
+                                    <span className="text-[10px] text-slate-500 italic">Oleh: {exp.cashier || '-'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
         </div>
     );
 };

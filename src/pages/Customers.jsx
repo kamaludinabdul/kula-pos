@@ -164,7 +164,7 @@ const Customers = () => {
                     <p className="text-muted-foreground">Kelola database pelanggan Anda</p>
                 </div>
                 {checkPermission('customers.create') && (
-                    <Button onClick={() => handleOpenModal()}>
+                    <Button onClick={() => handleOpenModal()} className="w-full sm:w-auto">
                         <Plus className="mr-2 h-4 w-4" />
                         Tambah Pelanggan
                     </Button>
@@ -183,7 +183,8 @@ const Customers = () => {
                 </div>
             </div>
 
-            <Card>
+            {/* Desktop Table View */}
+            <Card className="hidden lg:block">
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
@@ -303,6 +304,81 @@ const Customers = () => {
                     </Table>
                 </CardContent>
             </Card>
+
+            {/* Mobile Card View */}
+            <div className="lg:hidden space-y-4">
+                {currentCustomers.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground bg-white rounded-xl border">
+                        Tidak ada pelanggan ditemukan
+                    </div>
+                ) : (
+                    currentCustomers.map((customer) => (
+                        <div key={customer.id} className="bg-white rounded-xl border p-4 shadow-sm active:bg-slate-50 transition-colors">
+                            <div className="flex justify-between items-start mb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                                        <User className="h-5 w-5 text-slate-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-800">{customer.name}</h3>
+                                        <p className="text-xs text-slate-500 line-clamp-1">{customer.address || 'Tanpa alamat'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={() => {
+                                            setSelectedCustomer(customer);
+                                            setIsHistoryOpen(true);
+                                        }}
+                                    >
+                                        <History className="h-4 w-4" />
+                                    </Button>
+                                    {checkPermission('customers.update') && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            onClick={() => handleOpenModal(customer)}
+                                        >
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                    {checkPermission('customers.delete') && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-red-500 hover:text-red-600"
+                                            onClick={() => handleDelete(customer)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 pt-3 border-t">
+                                <div className="space-y-1">
+                                    <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Kontak</p>
+                                    <p className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                                        <Phone className="h-3 w-3 text-slate-400" />
+                                        {customer.phone || '-'}
+                                    </p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Trx Terakhir</p>
+                                    <p className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                                        <History className="h-3 w-3 text-slate-400" />
+                                        {getLastTrxDate(customer.id)}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
 
             <Pagination
                 currentPage={currentPage}

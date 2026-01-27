@@ -188,7 +188,7 @@ const PromotionForm = () => {
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>Tipe Promo</Label>
                                 <Select
@@ -207,7 +207,7 @@ const PromotionForm = () => {
                             </div>
                             <div className="space-y-2">
                                 <Label>Status</Label>
-                                <div className="flex items-center space-x-2 pt-2">
+                                <div className="flex items-center space-x-2 pt-0 md:pt-2">
                                     <Switch
                                         checked={formData.is_active}
                                         onCheckedChange={val => setFormData({ ...formData, is_active: val })}
@@ -326,7 +326,7 @@ const PromotionForm = () => {
                             </div>
                         )}
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <Label>
@@ -379,7 +379,7 @@ const PromotionForm = () => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>Tanggal Mulai</Label>
                                 <Input

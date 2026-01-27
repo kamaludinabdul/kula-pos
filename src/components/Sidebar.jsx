@@ -53,7 +53,7 @@ const NavItem = ({ item, isActive, onClick, className, isExpanded, isLocked }) =
   </NavLink>
 );
 
-const Sidebar = ({ isExpanded, setIsExpanded }) => {
+const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
   const { user, logout, checkPermission } = useAuth();
   const { currentStore, plans: contextPlans } = useData();
   const navigate = useNavigate();
@@ -212,8 +212,9 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
   return (
     <>
       <aside className={cn(
-        "h-screen bg-white border-r flex flex-col transition-all duration-300 shrink-0",
-        isExpanded ? "w-64" : "w-20"
+        "h-full bg-white border-r flex flex-col transition-all duration-300 shrink-0",
+        isExpanded ? "w-64" : "w-20",
+        isDrawer && "w-full border-none"
       )}>
         <div className={cn("h-16 flex items-center px-4 border-b shrink-0", isExpanded ? "justify-between" : "justify-center")}>
           {isExpanded && (
@@ -225,14 +226,14 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
             <img src="/favicon.png" alt="KULA Logo" className="h-10 w-auto object-contain" />
           )}
 
-          {isExpanded && (
+          {isExpanded && !isDrawer && (
             <Button variant="ghost" size="icon" onClick={toggleSidebar} className="hidden lg:flex">
               <PanelLeftClose size={18} />
             </Button>
           )}
         </div>
 
-        {!isExpanded && (
+        {!isExpanded && !isDrawer && (
           <div className="flex justify-center py-2 hidden lg:flex">
             <Button variant="ghost" size="icon" onClick={toggleSidebar}>
               <PanelLeftOpen size={18} />

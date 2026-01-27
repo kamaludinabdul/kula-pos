@@ -24,11 +24,17 @@ const MobilePOS = () => {
     const {
         cart,
         totals,
-        addToCart, updateQty, clearCart,
+        addToCart: originalAddToCart, updateQty, clearCart,
         activeCategory, setActiveCategory,
         searchQuery, setSearchQuery,
         filteredProducts
     } = usePOS();
+
+    // Haptic Wrapped Logic
+    const hapticAddToCart = (product) => {
+        originalAddToCart(product);
+        if (navigator.vibrate) navigator.vibrate(50); // Subtle feedback
+    };
 
     // Local UI State
     const [activeTab, setActiveTab] = useState('home');
@@ -60,7 +66,7 @@ const MobilePOS = () => {
         );
 
         if (product) {
-            addToCart(product);
+            hapticAddToCart(product);
             if (navigator.vibrate) navigator.vibrate(200);
             const audio = new Audio('/beep.mp3');
             audio.play().catch(() => { });
@@ -142,12 +148,12 @@ const MobilePOS = () => {
                     </div>
                 </div>
                 {/* Categories */}
-                <div className="flex gap-2 overflow-x-auto mt-3 pb-1 scrollbar-hide -mx-4 px-4">
+                <div className="flex gap-2 overflow-x-auto mt-3 pb-2 scrollbar-hide -mx-4 px-4 items-center">
                     <Button
                         size="sm"
-                        variant={activeCategory === 'Semua' ? 'default' : 'outline'}
+                        variant={activeCategory === 'Semua' ? 'default' : 'secondary'}
                         onClick={() => setActiveCategory('Semua')}
-                        className="rounded-full h-8 text-xs"
+                        className={`rounded-full h-9 px-4 text-xs font-semibold whitespace-nowrap transition-all duration-300 ${activeCategory === 'Semua' ? 'bg-indigo-600 shadow-md shadow-indigo-100' : 'bg-slate-100 text-slate-600 border-none'}`}
                     >
                         Semua
                     </Button>
@@ -155,9 +161,9 @@ const MobilePOS = () => {
                         <Button
                             key={cat.id}
                             size="sm"
-                            variant={activeCategory === cat.name ? 'default' : 'outline'}
+                            variant={activeCategory === cat.name ? 'default' : 'secondary'}
                             onClick={() => setActiveCategory(cat.name)}
-                            className="rounded-full h-8 text-xs"
+                            className={`rounded-full h-9 px-4 text-xs font-semibold whitespace-nowrap transition-all duration-300 ${activeCategory === cat.name ? 'bg-indigo-600 shadow-md shadow-indigo-100' : 'bg-slate-100 text-slate-600 border-none'}`}
                         >
                             {typeof cat.name === 'string' ? cat.name : 'Cat'}
                         </Button>
@@ -167,7 +173,7 @@ const MobilePOS = () => {
 
             {/* Content */}
             <div className="flex-1 overflow-hidden">
-                <ProductGrid products={filteredProducts} onAddToCart={addToCart} />
+                <ProductGrid products={filteredProducts} onAddToCart={hapticAddToCart} />
             </div>
 
             {/* Bottom Nav */}

@@ -162,7 +162,7 @@ const CheckoutDialog = ({
                         )}
 
                         {/* Receipt Preview Area - Visual Matching POS (Legacy Style Restored) */}
-                        <div className="w-full bg-slate-50 flex justify-center items-start py-4 border rounded-lg shadow-inner max-h-[300px] overflow-y-auto">
+                        <div className="w-full bg-slate-50 flex justify-center items-start py-4 border rounded-lg shadow-inner max-h-[70vh] overflow-y-auto">
                             <div
                                 id="receipt-preview"
                                 ref={receiptRef}
@@ -353,10 +353,10 @@ const CheckoutDialog = ({
                     )}
 
                     <Tabs value={paymentMethod} onValueChange={setPaymentMethod} className="w-full">
-                        <TabsList className="grid grid-cols-3 w-full">
-                            <TabsTrigger value="cash">Tunai</TabsTrigger>
-                            <TabsTrigger value="qris">QRIS</TabsTrigger>
-                            <TabsTrigger value="transfer">Transfer</TabsTrigger>
+                        <TabsList className="grid grid-cols-3 w-full h-11">
+                            <TabsTrigger value="cash" className="text-xs sm:text-sm">Tunai</TabsTrigger>
+                            <TabsTrigger value="qris" className="text-xs sm:text-sm">QRIS</TabsTrigger>
+                            <TabsTrigger value="transfer" className="text-xs sm:text-sm">Transfer</TabsTrigger>
                         </TabsList>
 
                         <div className="mt-4">
@@ -377,13 +377,13 @@ const CheckoutDialog = ({
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-4 gap-2">
+                                <div className="grid grid-cols-2 xs:grid-cols-4 gap-2">
                                     {suggestions.map((amount) => (
                                         <Button
                                             key={amount}
                                             variant="outline"
                                             size="sm"
-                                            className="text-xs"
+                                            className="text-[10px] sm:text-xs h-9 px-1 truncate"
                                             onClick={() => setCashAmount(amount.toString())}
                                         >
                                             {amount.toLocaleString('id-ID')}
@@ -424,12 +424,12 @@ const CheckoutDialog = ({
                     </Tabs>
                 </div>
 
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => onClose(false)} disabled={isProcessing}>Batal</Button>
+                <DialogFooter className="flex flex-row gap-3 mt-4">
+                    <Button variant="outline" onClick={() => onClose(false)} disabled={isProcessing} className="flex-1">Batal</Button>
                     <Button
                         onClick={handleProcess}
                         disabled={!isCashSufficient || isProcessing}
-                        className="min-w-[120px]"
+                        className="flex-1"
                     >
                         {isProcessing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                         {isProcessing ? 'Memproses' : 'Bayar'}

@@ -12,6 +12,14 @@ export function SmartDatePicker({
         endDate: date?.to ? new Date(date.to) : (date?.from ? new Date(date.from) : null)
     };
 
+    const [isMobile, setIsMobile] = React.useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+
+    React.useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const handleValueChange = (newValue) => {
         // newValue is { startDate: "YYYY-MM-DD", endDate: "YYYY-MM-DD" } or dates depending on lib version
         // The lib usually returns strings or Date objects. Let's inspect or assume strings/dates.
@@ -71,9 +79,9 @@ export function SmartDatePicker({
     };
 
     return (
-        <div className={`w-full md:w-[300px] relative z-20 ${className || ''}`}>
+        <div className={`w-full lg:w-[300px] relative z-20 ${className || ''}`}>
             <Datepicker
-                usePortal={true}
+                usePortal={false}
                 primaryColor={"indigo"}
                 value={value}
                 onChange={(v) => {
@@ -82,20 +90,39 @@ export function SmartDatePicker({
                 showShortcuts={true}
                 popoverDirection="down"
                 isSecure={false}
-                displayFormat={"DD/MM/YYYY"}
-                inputClassName="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                toggleClassName="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground"
-                containerClassName="relative z-[100]"
+                displayFormat={isMobile ? "DD/MM/YY" : "DD/MM/YYYY"}
+                inputClassName="w-full h-10 px-4 py-2 text-sm font-bold bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all cursor-pointer placeholder:text-slate-400"
+                toggleClassName="absolute top-1/2 right-3 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
+                containerClassName="relative w-full z-[100]"
                 configs={{
                     shortcuts: {
                         today: "Hari Ini",
                         yesterday: "Kemarin",
-                        past: (period) => `${period} Hari Terakhir`,
+                        past: (period) => `${period} Hari`,
                         currentMonth: "Bulan Ini",
                         pastMonth: "Bulan Lalu"
                     }
                 }}
             />
+            {/* Custom style to force full width, fix overlap, and center triangle on mobile popover */}
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                @media (max-width: 768px) {
+                    /* Center the popover container */
+                    .relative.w-full.z-\\[100\\] > div:last-child {
+                        width: calc(100vw - 32px) !important;
+                        min-width: 310px !important;
+                        left: 50% !important;
+                        transform: translateX(-50%) !important;
+                        right: auto !important;
+                    }
+                    /* Center the triangle arrow */
+                    .relative.w-full.z-\\[100\\] > div:last-child > div:first-child {
+                        left: 50% !important;
+                        transform: translateX(-50%) rotate(45deg) !important;
+                    }
+                }
+            `}} />
         </div>
     );
 }

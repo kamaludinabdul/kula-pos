@@ -4,7 +4,7 @@ import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { getOptimizedImage } from '../utils/supabaseImage';
 
-import { Search, Plus, Upload, Trash2, Edit, MoreVertical, FileDown, ArrowUpDown, ArrowUp, ArrowDown, Printer } from 'lucide-react';
+import { Search, Plus, Upload, Trash2, Edit, MoreVertical, FileDown, ArrowUpDown, ArrowUp, ArrowDown, Printer, Package } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import {
@@ -404,12 +404,12 @@ const Products = () => {
 
     return (
         <div className="p-4 space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Products</h1>
                     <p className="text-muted-foreground">Manage your product inventory</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 w-full xl:w-auto">
                     {selectedProducts.length > 0 && (
                         <>
                             <Button
@@ -526,7 +526,8 @@ const Products = () => {
                 </div>
             </div>
 
-            <div className="rounded-md border bg-card overflow-x-auto">
+            {/* Desktop Table View */}
+            <div className="hidden lg:block rounded-xl border bg-card overflow-hidden shadow-sm">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -831,6 +832,129 @@ const Products = () => {
                         )}
                     </TableBody>
                 </Table>
+            </div>
+
+            <div className="lg:hidden grid grid-cols-1 gap-4">
+                {isLoading ? (
+                    <div className="text-center py-12 text-slate-400 font-medium bg-white rounded-2xl border border-dashed">Memuat Produk...</div>
+                ) : currentProducts.length === 0 ? (
+                    <div className="text-center py-12 text-slate-400 font-medium bg-white rounded-2xl border border-dashed">Produk tidak ditemukan</div>
+                ) : (
+                    currentProducts.map(product => {
+                        const stock = product.stock || 0;
+                        const buyPrice = product.buyPrice || 0;
+                        const sellPrice = product.sellPrice || 0;
+                        const discount = product.discount || 0;
+                        const finalPrice = discount > 0
+                            ? (product.discountType === 'fixed' ? sellPrice - discount : sellPrice * (1 - discount / 100))
+                            : sellPrice;
+
+                        const profit = finalPrice - buyPrice;
+                        const profitPercent = buyPrice > 0 ? ((profit / buyPrice) * 100).toFixed(1) : '0';
+
+                        let stockStatus = 'Instock';
+                        let stripColor = 'bg-green-500';
+                        let stockTextColor = 'text-green-600';
+                        if (stock <= 0 && !product.isUnlimited) {
+                            stockStatus = 'Habis';
+                            stripColor = 'bg-red-500';
+                            stockTextColor = 'text-red-500';
+                        } else if (stock <= 5 && !product.isUnlimited) {
+                            stockStatus = 'Menipis';
+                            stripColor = 'bg-amber-500';
+                            stockTextColor = 'text-amber-500';
+                        } else if (product.isUnlimited) {
+                            stockStatus = 'Unlimited';
+                            stripColor = 'bg-blue-500';
+                            stockTextColor = 'text-blue-600';
+                        }
+
+                        return (
+                            <div key={product.id} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3 relative overflow-hidden">
+                                <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${stripColor}`} />
+                                <div className="flex gap-4 pl-2">
+                                    <div className="h-16 w-16 rounded-xl bg-slate-50 flex-shrink-0 overflow-hidden border border-slate-100/50">
+                                        {product.image ? (
+                                            <img
+                                                src={getOptimizedImage(product.image, { width: 100, height: 100 })}
+                                                alt={product.name}
+                                                className="h-full w-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="h-full w-full flex items-center justify-center text-slate-200 bg-slate-50">
+                                                <Package size={24} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex-1 min-w-0 pr-2">
+                                                <h3 className="font-bold text-slate-900 truncate text-sm">{product.name}</h3>
+                                                <p className="text-[10px] font-mono font-bold text-slate-300 uppercase tracking-widest mt-0.5">
+                                                    {product.sku || product.barcode || '-'}
+                                                </p>
+                                            </div>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 text-slate-300">
+                                                        <MoreVertical size={16} />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    {checkPermission('products.update') && (
+                                                        <DropdownMenuItem onClick={() => handleEdit(product)} className="font-bold text-xs">
+                                                            <Edit className="mr-2 h-4 w-4" /> Edit
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    {checkPermission('products.delete') && (
+                                                        <DropdownMenuItem
+                                                            onClick={() => handleDelete(product)}
+                                                            className="text-red-500 font-bold text-xs"
+                                                        >
+                                                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <Badge variant="secondary" className="text-[9px] font-bold px-1.5 py-0 h-4 bg-slate-50 text-slate-400 border-none uppercase tracking-tighter">
+                                                {typeof product.category === 'object' && product.category?.name
+                                                    ? product.category.name
+                                                    : product.category || 'Umum'}
+                                            </Badge>
+                                            <span className={`text-[9px] font-black uppercase tracking-widest ${stockTextColor}`}>
+                                                {product.isUnlimited ? "∞" : `${stock}`} {stockStatus}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-50 pl-2">
+                                    <div className="space-y-0.5">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Harga Jual</p>
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="font-extrabold text-slate-900">
+                                                Rp {sellPrice.toLocaleString('id-ID')}
+                                            </span>
+                                            {discount > 0 && (
+                                                <Badge variant="destructive" className="h-4 px-1 text-[8px] font-bold border-none">
+                                                    -{product.discountType === 'fixed' ? 'Rp' : ''}{discount}{product.discountType === 'percent' ? '%' : ''}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-0.5 text-right">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Profit / Marjin</p>
+                                        <p className={`font-extrabold ${profit >= 0 ? 'text-indigo-600' : 'text-red-600'}`}>
+                                            Rp {profit.toLocaleString('id-ID')} <span className="text-[10px] font-bold">({profitPercent}%)</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
             </div>
 
             <Pagination

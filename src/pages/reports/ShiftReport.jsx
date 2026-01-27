@@ -124,62 +124,59 @@ const ShiftReport = () => {
 
     return (
         <div className="space-y-6">
-            <div className="space-y-4">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h2 className="text-2xl font-bold tracking-tight">Laporan Shift</h2>
-                        <p className="text-muted-foreground">Riwayat shift kasir dan ringkasan penjualan.</p>
-                    </div>
-                    <Button variant="outline" onClick={handleExport}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Export CSV
-                    </Button>
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight">Laporan Shift</h2>
+                    <p className="text-muted-foreground">Riwayat shift kasir dan ringkasan penjualan.</p>
                 </div>
-
-                <div className="flex justify-start">
-                    <SmartDatePicker
-                        date={datePickerDate}
-                        onDateChange={setDatePickerDate}
-                    />
-                </div>
+                <Button variant="outline" onClick={handleExport} className="w-full lg:w-auto">
+                    <Download className="mr-2 h-4 w-4" />
+                    Export CSV
+                </Button>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Laporan Shift</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="rounded-md border">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                <SmartDatePicker
+                    date={datePickerDate}
+                    onDateChange={setDatePickerDate}
+                />
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden xl:block">
+                <Card className="rounded-xl overflow-hidden border-none shadow-sm">
+                    <CardHeader className="pb-3 border-b">
+                        <CardTitle className="text-lg">Daftar Sesi Shift</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
                         <Table>
-                            <TableHeader>
+                            <TableHeader className="bg-slate-50">
                                 <TableRow>
                                     <TableHead>Waktu Mulai</TableHead>
                                     <TableHead>Waktu Selesai</TableHead>
                                     <TableHead>Kasir</TableHead>
                                     <TableHead>Modal Awal</TableHead>
-                                    <TableHead>Total Penjualan</TableHead>
-                                    <TableHead>Total Diskon</TableHead>
+                                    <TableHead>Penjualan</TableHead>
+                                    <TableHead>Diskon</TableHead>
                                     <TableHead>Tunai</TableHead>
                                     <TableHead>Non-Tunai</TableHead>
-                                    <TableHead>Kas Masuk</TableHead>
-                                    <TableHead>Kas Keluar</TableHead>
-                                    <TableHead>Uang Akhir (Aktual)</TableHead>
+                                    <TableHead>Masuk/Keluar</TableHead>
+                                    <TableHead>Uang Akhir</TableHead>
                                     <TableHead>Selisih</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead>Catatan</TableHead>
                                     <TableHead className="text-right">Aksi</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">
+                                        <TableCell colSpan={13} className="text-center py-12 text-muted-foreground">
                                             Memuat data...
                                         </TableCell>
                                     </TableRow>
                                 ) : shifts.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={14} className="text-center py-8 text-muted-foreground">
+                                        <TableCell colSpan={13} className="text-center py-12 text-muted-foreground">
                                             Tidak ada data shift.
                                         </TableCell>
                                     </TableRow>
@@ -188,42 +185,46 @@ const ShiftReport = () => {
                                         <TableRow key={shift.id}>
                                             <TableCell>
                                                 <div className="flex flex-col text-xs">
-                                                    <div className="flex items-center gap-1">
+                                                    <div className="flex items-center gap-1 font-medium">
                                                         <Calendar className="h-3 w-3" />
                                                         {new Date(shift.start_time).toLocaleDateString()}
                                                     </div>
-                                                    <div className="flex items-center gap-1 text-muted-foreground">
+                                                    <div className="flex items-center gap-1 text-slate-400">
                                                         <Clock className="h-3 w-3" />
-                                                        {new Date(shift.start_time).toLocaleTimeString()}
+                                                        {new Date(shift.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                     </div>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
                                                 {shift.end_time ? (
-                                                    <div className="flex items-center gap-1 text-xs">
+                                                    <div className="flex items-center gap-1 text-xs text-slate-500">
                                                         <Clock className="h-3 w-3" />
-                                                        {new Date(shift.end_time).toLocaleTimeString()}
+                                                        {new Date(shift.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                     </div>
                                                 ) : (
-                                                    <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50">Aktif</Badge>
+                                                    <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50 text-[10px]">AKTIF</Badge>
                                                 )}
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
-                                                    <User className="h-3 w-3" />
-                                                    {shift.cashier_name}
+                                                    <User className="h-3 w-3 text-slate-400" />
+                                                    <span className="font-medium">{shift.cashier_name}</span>
                                                 </div>
                                             </TableCell>
-                                            <TableCell>Rp {shift.initial_cash?.toLocaleString()}</TableCell>
+                                            <TableCell className="text-slate-600">Rp {shift.initial_cash?.toLocaleString()}</TableCell>
                                             <TableCell className="font-bold">Rp {shift.total_sales?.toLocaleString()}</TableCell>
-                                            <TableCell className="text-red-500 font-medium">
-                                                {shift.total_discount > 0 ? `Rp ${shift.total_discount.toLocaleString()}` : '-'}
+                                            <TableCell className="text-red-500 text-xs">
+                                                {shift.total_discount > 0 ? `-Rp ${shift.total_discount.toLocaleString()}` : '-'}
                                             </TableCell>
-                                            <TableCell className="text-green-600">Rp {(shift.total_cash_sales || 0).toLocaleString()}</TableCell>
-                                            <TableCell className="text-blue-600">Rp {(shift.total_non_cash_sales || 0).toLocaleString()}</TableCell>
-                                            <TableCell className="text-green-600">+ Rp {(shift.total_cash_in || 0).toLocaleString()}</TableCell>
-                                            <TableCell className="text-red-600">- Rp {(shift.total_cash_out || 0).toLocaleString()}</TableCell>
+                                            <TableCell className="text-green-600 font-medium">Rp {(shift.total_cash_sales || 0).toLocaleString()}</TableCell>
+                                            <TableCell className="text-blue-600 font-medium">Rp {(shift.total_non_cash_sales || 0).toLocaleString()}</TableCell>
                                             <TableCell>
+                                                <div className="flex flex-col text-[10px]">
+                                                    <span className="text-green-600">+{(shift.total_cash_in || 0).toLocaleString()}</span>
+                                                    <span className="text-red-500">-{(shift.total_cash_out || 0).toLocaleString()}</span>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="font-bold">
                                                 {shift.final_cash !== undefined
                                                     ? `Rp ${shift.final_cash.toLocaleString()}`
                                                     : '-'}
@@ -236,36 +237,29 @@ const ShiftReport = () => {
                                                 ) : '-'}
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant={shift.status === 'active' ? "outline" : "secondary"} className={shift.status === 'active' ? "text-yellow-600 border-yellow-200 bg-yellow-50" : ""}>
+                                                <Badge variant={shift.status === 'active' ? "outline" : "secondary"} className={shift.status === 'active' ? "text-yellow-600 border-yellow-200 bg-yellow-50" : "bg-slate-100 border-none text-slate-600 uppercase text-[10px]"}>
                                                     {shift.status === 'active' ? 'Aktif' : 'Selesai'}
                                                 </Badge>
-                                            </TableCell>
-                                            <TableCell className="max-w-[150px]">
-                                                {shift.notes ? (
-                                                    <div className="flex items-center gap-1 text-xs" title={shift.notes}>
-                                                        <FileText className="h-3 w-3" />
-                                                        <span className="truncate">{shift.notes}</span>
-                                                    </div>
-                                                ) : '-'}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-2">
                                                     <Button
-                                                        variant="outline"
+                                                        variant="ghost"
                                                         size="sm"
+                                                        className="h-8 w-8 p-0"
                                                         onClick={() => {
                                                             setSelectedShift(shift);
                                                             setIsDetailsOpen(true);
                                                         }}
                                                     >
-                                                        Detail
+                                                        <FileText className="h-4 w-4" />
                                                     </Button>
                                                     {(user?.role === 'owner' || user?.role === 'super_admin' || (user?.role === 'admin' && user?.permissions?.includes('shifts.close_others'))) && shift.status === 'active' && (
                                                         <Button
-                                                            variant="destructive"
+                                                            variant="ghost"
                                                             size="sm"
+                                                            className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
                                                             onClick={() => handleTerminateClick(shift)}
-                                                            title="Hentikan Shift Paksa"
                                                         >
                                                             <Ban className="h-4 w-4" />
                                                         </Button>
@@ -277,9 +271,94 @@ const ShiftReport = () => {
                                 )}
                             </TableBody>
                         </Table>
-                    </div>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Mobile/Tablet Card View */}
+            <div className="xl:hidden space-y-4">
+                {loading ? (
+                    <div className="text-center py-12 text-muted-foreground bg-white rounded-xl border">Memuat data...</div>
+                ) : shifts.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground bg-white rounded-xl border">Tidak ada data.</div>
+                ) : (
+                    shifts.map(shift => (
+                        <Card key={shift.id} className="rounded-xl border-none shadow-sm overflow-hidden">
+                            <div className="bg-slate-50 px-4 py-3 flex justify-between items-center border-b">
+                                <div className="flex items-center gap-2">
+                                    <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center border">
+                                        <User className="h-4 w-4 text-slate-500" />
+                                    </div>
+                                    <span className="font-bold text-slate-800">{shift.cashier_name}</span>
+                                </div>
+                                <Badge variant={shift.status === 'active' ? "outline" : "secondary"} className={shift.status === 'active' ? "text-yellow-600 border-yellow-200 bg-yellow-50" : "bg-white border-slate-200 text-slate-500 uppercase text-[9px]"}>
+                                    {shift.status === 'active' ? 'Aktif' : 'Selesai'}
+                                </Badge>
+                            </div>
+                            <CardContent className="p-4 space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mulai</p>
+                                        <p className="text-xs font-medium text-slate-700">{new Date(shift.start_time).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                                    </div>
+                                    <div className="space-y-1 text-right">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Selesai</p>
+                                        <p className="text-xs font-medium text-slate-700">
+                                            {shift.end_time ? new Date(shift.end_time).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-slate-50 rounded-lg p-3 grid grid-cols-2 gap-y-3">
+                                    <div>
+                                        <p className="text-[10px] text-slate-500">Penjualan</p>
+                                        <p className="text-sm font-bold text-slate-800">Rp {shift.total_sales?.toLocaleString()}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[10px] text-slate-500">Selisih Kas</p>
+                                        <p className={`text-sm font-bold ${shift.cash_difference < 0 ? 'text-red-500' : 'text-green-600'}`}>
+                                            {shift.cash_difference !== undefined ? `${shift.cash_difference < 0 ? '-' : '+'} Rp ${Math.abs(shift.cash_difference).toLocaleString()}` : '-'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] text-slate-500">Tunai</p>
+                                        <p className="text-xs font-medium text-green-600">Rp {(shift.total_cash_sales || 0).toLocaleString()}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[10px] text-slate-500">Uang Akhir</p>
+                                        <p className="text-xs font-bold text-slate-800">Rp {(shift.final_cash || 0).toLocaleString()}</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1 h-9 rounded-lg text-xs"
+                                        onClick={() => {
+                                            setSelectedShift(shift);
+                                            setIsDetailsOpen(true);
+                                        }}
+                                    >
+                                        <FileText className="h-3.5 w-3.5 mr-2" />
+                                        Rincian Penuh
+                                    </Button>
+                                    {(user?.role === 'owner' || user?.role === 'super_admin' || (user?.role === 'admin' && user?.permissions?.includes('shifts.close_others'))) && shift.status === 'active' && (
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            className="h-9 w-9 p-0 rounded-lg"
+                                            onClick={() => handleTerminateClick(shift)}
+                                        >
+                                            <Ban className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                )}
+            </div>
 
             {/* Terminate Confirmation Modal */}
             <Dialog open={isTerminateModalOpen} onOpenChange={setIsTerminateModalOpen}>

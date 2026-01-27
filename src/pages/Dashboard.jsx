@@ -12,23 +12,31 @@ import { safeSupabaseRpc } from '../utils/supabaseHelper';
 
 
 
-const StatCard = ({ title, value, change, icon, color }) => {
-    const Icon = icon;
+// eslint-disable-next-line no-unused-vars
+const StatCard = ({ title, value, change, icon: Icon, color, bgColor }) => {
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
-                <CardTitle className="text-xs font-medium text-muted-foreground">
+        <Card className="rounded-2xl border-none shadow-sm bg-white overflow-hidden relative group transition-all duration-300 hover:shadow-md">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-1 sm:pb-2">
+                <CardTitle className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
                     {title}
                 </CardTitle>
-                <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${color}20`, color: color }}>
-                    <Icon className="h-4 w-4" />
+                <div className={`p-2 rounded-xl transition-colors duration-300 ${bgColor || 'bg-slate-50'}`}>
+                    <Icon className="h-4 w-4" style={{ color: color || '#64748b' }} />
                 </div>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-                <div className="text-lg md:text-2xl font-bold">{value}</div>
-                <p className={`text-[10px] md:text-xs mt-1 ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {change >= 0 ? '+' : ''}{change}% dari periode lalu
-                </p>
+                <div className="text-xl sm:text-2xl font-extrabold text-slate-900 truncate">
+                    {value}
+                </div>
+                {change !== undefined && change !== 0 && (
+                    <div className="flex items-center gap-1.5 mt-1 sm:mt-2">
+                        <div className={`flex items-center text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded-md ${change >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                            {change >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1 shrink-0" />}
+                            {Math.abs(change)}%
+                        </div>
+                        <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium uppercase tracking-tighter">vs periode lalu</span>
+                    </div>
+                )}
             </CardContent>
         </Card>
     );
@@ -37,6 +45,12 @@ const StatCard = ({ title, value, change, icon, color }) => {
 import { useAuth } from '../context/AuthContext';
 
 // ... existing imports
+
+const formatCurrency = (val) => {
+    if (val >= 1000000) return `${(val / 1000000).toFixed(1)} jt`;
+    if (val >= 1000) return `${(val / 1000).toFixed(0)} rb`;
+    return `${val}`;
+};
 
 const Dashboard = () => {
     const { user } = useAuth();
@@ -227,25 +241,25 @@ const Dashboard = () => {
     const topProducts = dashboardStats.topProducts || [];
 
     return (
-        <div className="p-4 space-y-4 md:space-y-6">
-            <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
+        <div className="p-4 space-y-6">
+            <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div>
-                    <h1 className="text-xl md:text-2xl font-bold">Dashboard</h1>
-                    <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                        Selamat datang, <span className="font-medium text-foreground">{user?.name}</span>.
+                    <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+                    <p className="text-sm text-muted-foreground mt-1">
+                        Selamat datang, <span className="font-bold text-slate-900">{user?.name}</span>.
                         {canViewFinancials ? ' Berikut ringkasan bisnis Anda.' : ' Siap melayani pelanggan hari ini?'}
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <Select value={dateRange} onValueChange={setDateRange}>
-                        <SelectTrigger className="w-[140px] md:w-[180px] h-8 md:h-10 text-xs md:text-sm">
+                        <SelectTrigger className="w-full sm:w-[180px] h-10 rounded-lg border-slate-200">
                             <SelectValue placeholder="Pilih periode" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="today">Hari Ini</SelectItem>
                             <SelectItem value="week">7 Hari Terakhir</SelectItem>
                             <SelectItem value="month">30 Hari Terakhir</SelectItem>
-                            <SelectItem value="custom">Custom</SelectItem>
+                            <SelectItem value="custom">Rentang Khusus</SelectItem>
                             <SelectItem value="all">Semua Waktu</SelectItem>
                         </SelectContent>
                     </Select>
@@ -253,14 +267,14 @@ const Dashboard = () => {
                         <div className="flex items-center gap-2">
                             <Input
                                 type="date"
-                                className="min-w-[150px] md:min-w-[180px] h-8 md:h-10 text-xs md:text-sm"
+                                className="h-10 rounded-lg border-slate-200"
                                 value={customStartDate}
                                 onChange={(e) => setCustomStartDate(e.target.value)}
                             />
-                            <span className="text-muted-foreground">-</span>
+                            <span className="text-slate-400 font-bold">-</span>
                             <Input
                                 type="date"
-                                className="min-w-[150px] md:min-w-[180px] h-8 md:h-10 text-xs md:text-sm"
+                                className="h-10 rounded-lg border-slate-200"
                                 value={customEndDate}
                                 onChange={(e) => setCustomEndDate(e.target.value)}
                             />
@@ -269,22 +283,22 @@ const Dashboard = () => {
                 </div>
             </header>
 
-            <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {canViewFinancials && (
                     <>
                         <StatCard
                             title="Total Penjualan"
                             value={`Rp ${stats.totalSales.toLocaleString()}`}
-                            change={0}
                             icon={DollarSign}
-                            color="#6366f1"
+                            color="#4f46e5"
+                            bgColor="bg-indigo-50"
                         />
                         <StatCard
                             title="Rata-rata Order"
                             value={`Rp ${Math.round(stats.avgOrder).toLocaleString()}`}
-                            change={0}
                             icon={TrendingUp}
-                            color="#f59e0b"
+                            color="#d97706"
+                            bgColor="bg-orange-50"
                         />
                     </>
                 )}
@@ -292,9 +306,9 @@ const Dashboard = () => {
                 <StatCard
                     title="Total Transaksi"
                     value={stats.totalTransactions}
-                    change={0}
                     icon={ShoppingBag}
-                    color="#ec4899"
+                    color="#db2777"
+                    bgColor="bg-pink-50"
                 />
 
                 {canViewStock && (
@@ -302,15 +316,16 @@ const Dashboard = () => {
                         <StatCard
                             title="Stok Habis"
                             value={stockCounts.outOfStock}
-                            change={0}
                             icon={AlertTriangle}
-                            color="#ef4444"
+                            color="#dc2626"
+                            bgColor="bg-red-50"
                         />
                         <StatCard
                             title="Stok Menipis"
                             value={stockCounts.lowStock}
                             icon={Package}
-                            color="#f59e0b"
+                            color="#d97706"
+                            bgColor="bg-orange-50"
                         />
                     </>
                 )}
@@ -318,17 +333,15 @@ const Dashboard = () => {
 
             {/* Financial Charts */}
             {canViewFinancials && (
-                <>
-                    <div className="mt-6">
-                        <DashboardCharts currentStore={currentStore} />
-                    </div>
+                <div className="space-y-6">
+                    <DashboardCharts currentStore={currentStore} />
 
-                    <div className="grid gap-4 md:grid-cols-3">
-                        <Card className="col-span-1">
-                            <CardHeader className="p-4 md:p-6">
-                                <CardTitle className="text-sm md:text-lg">Penjualan per Kategori</CardTitle>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <Card className="rounded-xl border-none shadow-sm overflow-hidden">
+                            <CardHeader className="bg-white border-b p-4 lg:p-6">
+                                <CardTitle className="text-lg font-bold">Penjualan per Kategori</CardTitle>
                             </CardHeader>
-                            <CardContent className="p-4 md:p-6 pt-0">
+                            <CardContent className="p-4 lg:p-6">
                                 <div style={{ width: '100%', height: 300 }}>
                                     {isLoading ? (
                                         <div className="flex items-center justify-center h-full text-muted-foreground">Memuat...</div>
@@ -340,27 +353,30 @@ const Dashboard = () => {
                                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                                     ))}
                                                 </Pie>
-                                                <Tooltip formatter={(value) => `Rp ${value.toLocaleString('id-ID')}`} />
-                                                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+                                                <Tooltip
+                                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                                    formatter={(value) => `Rp ${value.toLocaleString('id-ID')}`}
+                                                />
+                                                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', fontWeight: '600' }} />
                                             </PieChart>
                                         </ResponsiveContainer>
                                     ) : (
-                                        <div className="flex items-center justify-center h-full text-muted-foreground text-xs md:text-sm">Belum ada data.</div>
+                                        <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Belum ada data.</div>
                                     )}
                                 </div>
                             </CardContent>
                         </Card>
 
-                        <Card className="col-span-1 md:col-span-2">
-                            <CardHeader className="p-4 md:p-6">
-                                <CardTitle className="flex items-center gap-2 text-sm md:text-lg">
+                        <Card className="lg:col-span-2 rounded-xl border-none shadow-sm overflow-hidden">
+                            <CardHeader className="bg-white border-b p-4 lg:p-6">
+                                <CardTitle className="flex items-center gap-2 text-lg font-bold">
                                     Grafik Penjualan
-                                    <span className="text-[10px] md:text-sm font-normal text-muted-foreground">
+                                    <span className="text-xs font-normal text-muted-foreground">
                                         ({dateRange === 'today' ? 'Per Jam' : 'Per Hari'})
                                     </span>
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent className="p-4 md:p-6 pt-0">
+                            <CardContent className="p-4 lg:p-6">
                                 <div style={{ width: '100%', height: 300 }}>
                                     {isLoading ? (
                                         <div className="flex items-center justify-center h-full text-muted-foreground">Memuat data...</div>
@@ -368,49 +384,51 @@ const Dashboard = () => {
                                         <ResponsiveContainer width="100%" height="100%">
                                             <LineChart data={chartData}>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} dy={10} />
-                                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} tickFormatter={(value) => `Rp ${value / 1000}k`} />
-                                                <Tooltip formatter={(value) => [`Rp ${value.toLocaleString()}`, 'Penjualan']} />
-                                                <Line type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={3} dot={false} activeDot={{ r: 6, strokeWidth: 0 }} />
+                                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} dy={10} />
+                                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} tickFormatter={(value) => `Rp ${formatCurrency(value)}`} />
+                                                <Tooltip
+                                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                                    formatter={(value) => [`Rp ${value.toLocaleString()}`, 'Penjualan']}
+                                                />
+                                                <Line type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={4} dot={false} activeDot={{ r: 6, strokeWidth: 0, fill: '#6366f1' }} />
                                             </LineChart>
                                         </ResponsiveContainer>
                                     ) : (
-                                        <div className="flex items-center justify-center h-full text-muted-foreground text-xs md:text-sm">Belum ada data penjualan untuk periode ini.</div>
+                                        <div className="flex items-center justify-center h-full text-muted-foreground text-sm font-medium">Tidak ada data untuk periode ini.</div>
                                     )}
                                 </div>
                             </CardContent>
                         </Card>
                     </div>
-                </>
+                </div>
             )}
 
             {/* Split Row: Top Selling & Recent Transactions */}
-            <div className="grid gap-3 md:gap-4 grid-cols-1 lg:grid-cols-2">
-
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Top Selling Products */}
-                {canViewFinancials ? (
-                    <Card className="col-span-1 h-full">
-                        <CardHeader className="p-4 md:p-6 pb-2">
-                            <CardTitle className="text-sm md:text-lg">Produk Terlaris (Periode Ini)</CardTitle>
+                {canViewFinancials && (
+                    <Card className="rounded-xl border-none shadow-sm overflow-hidden h-full">
+                        <CardHeader className="bg-white border-b p-4 lg:p-6">
+                            <CardTitle className="text-lg font-bold">Produk Terlaris</CardTitle>
                         </CardHeader>
-                        <CardContent className="p-4 md:p-6 pt-0">
+                        <CardContent className="p-0">
                             {topProducts.length === 0 ? (
-                                <p className="text-muted-foreground text-center py-8 text-sm">Tidak ada data penjualan periode ini.</p>
+                                <p className="text-muted-foreground text-center py-12 text-sm font-medium">Tidak ada data penjualan.</p>
                             ) : (
-                                <div className="grid gap-2 max-h-[300px] overflow-y-auto pr-1">
+                                <div className="divide-y divide-slate-50">
                                     {topProducts.map((item, index) => (
-                                        <div key={index} className="flex items-center justify-between p-2 rounded-lg border bg-slate-50/50">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold ${index < 3 ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'}`}>
+                                        <div key={index} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
+                                            <div className="flex items-center gap-4">
+                                                <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-extrabold ${index < 3 ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
                                                     {index + 1}
                                                 </div>
                                                 <div>
-                                                    <p className="font-medium text-sm line-clamp-1">{item.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{item.sold} terjual</p>
+                                                    <p className="font-bold text-sm text-slate-800 line-clamp-1">{item.name}</p>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.sold} unit terjual</p>
                                                 </div>
                                             </div>
-                                            <div className="font-semibold text-sm">
-                                                Rp {(item.revenue || 0).toLocaleString()}
+                                            <div className="text-right">
+                                                <p className="font-extrabold text-sm text-slate-900">Rp {(item.revenue || 0).toLocaleString()}</p>
                                             </div>
                                         </div>
                                     ))}
@@ -418,41 +436,41 @@ const Dashboard = () => {
                             )}
                         </CardContent>
                     </Card>
-                ) : <div />}
+                )}
 
                 {/* Recent Transactions */}
-                <Card className="col-span-1 h-full">
-                    <CardHeader className="p-4 md:p-6">
-                        <CardTitle className="text-sm md:text-lg">Transaksi Terakhir</CardTitle>
+                <Card className="rounded-xl border-none shadow-sm overflow-hidden h-full">
+                    <CardHeader className="bg-white border-b p-4 lg:p-6">
+                        <CardTitle className="text-lg font-bold">Transaksi Terakhir</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-4 md:p-6 pt-0">
-                        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
+                    <CardContent className="p-0">
+                        <div className="divide-y divide-slate-50">
                             {isLoading ? (
-                                <p className="text-muted-foreground text-center py-4 text-xs md:text-sm">Memuat...</p>
+                                <p className="text-muted-foreground text-center py-12 text-sm font-medium">Memuat data...</p>
                             ) : recentTransactions.length === 0 ? (
-                                <p className="text-muted-foreground text-center py-4 text-xs md:text-sm">Belum ada transaksi.</p>
+                                <p className="text-muted-foreground text-center py-12 text-sm font-medium">Belum ada transaksi.</p>
                             ) : (
                                 recentTransactions.map((t) => (
-                                    <div key={t.id} className="flex items-center gap-3 group">
-                                        <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold text-xs md:text-sm">
-                                            #{t.id ? t.id.toString().slice(-4) : '????'}
+                                    <div key={t.id} className="flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors group">
+                                        <div className="h-10 w-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-xs uppercase tracking-tighter">
+                                            #{t.id ? t.id.toString().slice(-4).toUpperCase() : '????'}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="font-medium text-xs md:text-sm">{t.cashier || 'Kasir'}</p>
-                                            <p className="text-[10px] md:text-xs text-muted-foreground">
+                                            <p className="font-bold text-sm text-slate-800">{t.cashier || 'Kasir Umum'}</p>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                                 {t.date ? new Date(t.date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'}
                                             </p>
                                         </div>
-                                        <div className="text-right">
-                                            <div className="font-semibold text-green-600 text-xs md:text-sm">
+                                        <div className="text-right space-y-1">
+                                            <p className="font-extrabold text-sm text-green-600">
                                                 +Rp {(t.total || 0).toLocaleString()}
-                                            </div>
+                                            </p>
                                             <button
                                                 onClick={() => handleViewReceipt(t)}
-                                                className="text-[10px] md:text-xs text-primary hover:underline flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest hover:underline flex items-center justify-end gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
                                             >
-                                                <Eye size={12} />
-                                                Lihat Struk
+                                                <Eye size={12} className="mr-0.5" />
+                                                Detail
                                             </button>
                                         </div>
                                     </div>
@@ -469,7 +487,7 @@ const Dashboard = () => {
                 transaction={selectedTransaction}
                 store={currentStore}
             />
-        </div >
+        </div>
     );
 };
 

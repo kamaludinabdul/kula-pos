@@ -368,229 +368,232 @@ const ProfitLoss = () => {
 
     return (
         <div className="space-y-6">
-            <div className="space-y-4">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h2 className="text-2xl font-bold tracking-tight">Laporan Laba Rugi</h2>
-                        <p className="text-muted-foreground">Ringkasan performa keuangan bisnis Anda.</p>
-                    </div>
-                    <div className="flex gap-2">
-                        <Button variant="outline" onClick={handleExportPDF} disabled={isLoading}>
-                            <Download className="mr-2 h-4 w-4" />
-                            {isLoading ? 'Loading...' : 'Export PDF'}
-                        </Button>
-                        <Button variant="outline" onClick={handleExport} disabled={isLoading}>
-                            <Download className="mr-2 h-4 w-4" />
-                            Export CSV
-                        </Button>
-                    </div>
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight">Laporan Laba Rugi</h2>
+                    <p className="text-muted-foreground">Ringkasan performa keuangan bisnis Anda.</p>
                 </div>
-
-                <div className="flex justify-start">
-                    <SmartDatePicker
-                        date={datePickerDate}
-                        onDateChange={setDatePickerDate}
-                    />
+                <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-2">
+                    <div className="flex gap-2 w-full lg:w-auto">
+                        <Button variant="outline" onClick={handleExportPDF} disabled={isLoading} className="flex-1 lg:flex-none">
+                            <Download className="mr-2 h-4 w-4" />
+                            PDF
+                        </Button>
+                        <Button variant="outline" onClick={handleExport} disabled={isLoading} className="flex-1 lg:flex-none">
+                            <Download className="mr-2 h-4 w-4" />
+                            CSV
+                        </Button>
+                    </div>
+                    <div className="w-full lg:w-auto">
+                        <SmartDatePicker
+                            date={datePickerDate}
+                            onDateChange={setDatePickerDate}
+                        />
+                    </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Laba Bersih</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-green-600" />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="rounded-xl border-none shadow-sm bg-green-50 col-span-2 lg:col-span-1">
+                    <CardHeader className="p-4 pb-2">
+                        <CardTitle className="text-[10px] font-bold text-green-800 uppercase tracking-widest">Laba Bersih</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-green-600">Rp {stats.netProfit.toLocaleString()}</div>
+                    <CardContent className="p-4 pt-0">
+                        <div className="text-2xl font-extrabold text-green-600">Rp {stats.netProfit.toLocaleString()}</div>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Pemasukan</CardTitle>
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <Card className="rounded-xl border-none shadow-sm bg-slate-50">
+                    <CardHeader className="p-4 pb-2">
+                        <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total Pemasukan</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">Rp {stats.totalSales.toLocaleString()}</div>
+                    <CardContent className="p-4 pt-0">
+                        <div className="text-xl font-extrabold text-slate-900">Rp {stats.totalSales.toLocaleString()}</div>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Pendapatan Lain</CardTitle>
-                        <DollarSign className="h-4 w-4 text-blue-600" />
+                <Card className="rounded-xl border-none shadow-sm bg-blue-50">
+                    <CardHeader className="p-4 pb-2">
+                        <CardTitle className="text-[10px] font-bold text-blue-800 uppercase tracking-widest">Pendapatan Lain</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-blue-600">Rp {stats.otherIncome.toLocaleString()}</div>
+                    <CardContent className="p-4 pt-0">
+                        <div className="text-xl font-extrabold text-blue-600">Rp {stats.otherIncome.toLocaleString()}</div>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Diskon</CardTitle>
-                        <TrendingDown className="h-4 w-4 text-red-500" />
+                <Card className="rounded-xl border-none shadow-sm bg-orange-50">
+                    <CardHeader className="p-4 pb-2">
+                        <CardTitle className="text-[10px] font-bold text-orange-800 uppercase tracking-widest">Total Diskon</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-red-500">Rp {stats.totalDiscount.toLocaleString()}</div>
+                    <CardContent className="p-4 pt-0">
+                        <div className="text-xl font-extrabold text-orange-600">Rp {stats.totalDiscount.toLocaleString()}</div>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Pengeluaran Operasional</CardTitle>
-                        <TrendingDown className="h-4 w-4 text-red-600" />
+                <Card className="rounded-xl border-none shadow-sm bg-red-50">
+                    <CardHeader className="p-4 pb-2">
+                        <CardTitle className="text-[10px] font-bold text-red-800 uppercase tracking-widest">Biaya Operasional</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-red-600">Rp {stats.totalExpenses.toLocaleString()}</div>
+                    <CardContent className="p-4 pt-0">
+                        <div className="text-xl font-extrabold text-red-600">Rp {stats.totalExpenses.toLocaleString()}</div>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Harga Pokok (HPP)</CardTitle>
-                        <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+                <Card className="rounded-xl border-none shadow-sm bg-slate-50">
+                    <CardHeader className="p-4 pb-2">
+                        <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">HPP</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">Rp {stats.totalCOGS.toLocaleString()}</div>
+                    <CardContent className="p-4 pt-0">
+                        <div className="text-xl font-extrabold text-slate-900">Rp {stats.totalCOGS.toLocaleString()}</div>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Belanja Aset (Capex)</CardTitle>
-                        <ShoppingBag className="h-4 w-4 text-orange-500" />
+                <Card className="rounded-xl border-none shadow-sm bg-indigo-50">
+                    <CardHeader className="p-4 pb-2">
+                        <CardTitle className="text-[10px] font-bold text-indigo-800 uppercase tracking-widest">Belanja Aset</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-orange-500">Rp {stats.totalAssets.toLocaleString()}</div>
-                        <p className="text-[10px] text-muted-foreground mt-1">Tidak mengurangi laba bersih</p>
+                    <CardContent className="p-4 pt-0">
+                        <div className="text-xl font-extrabold text-indigo-600">Rp {stats.totalAssets.toLocaleString()}</div>
+                        <p className="text-[9px] text-indigo-400 font-bold mt-1 uppercase">Tidak mengurangi laba</p>
                     </CardContent>
                 </Card>
             </div>
 
-            <Card>
-                <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <CardTitle>Riwayat Transaksi</CardTitle>
-                    <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
-                        <div className="relative w-full md:w-[200px]">
-                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Card className="rounded-xl border-none shadow-sm overflow-hidden">
+                <CardHeader className="flex flex-col space-y-4 p-4 lg:p-6 bg-white border-b">
+                    <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg font-bold">Riwayat Transaksi</CardTitle>
+                    </div>
+                    <div className="flex flex-col lg:flex-row gap-2 w-full">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
                             <Input
                                 placeholder="Cari ID, Pelanggan..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-8"
+                                className="pl-9 h-10 rounded-lg border-slate-200"
                             />
                         </div>
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="w-full md:w-[150px]">
-                                <SelectValue placeholder="Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Semua Status</SelectItem>
-                                <SelectItem value="success">Sukses</SelectItem>
-                                <SelectItem value="void">Dibatalkan</SelectItem>
-                            </SelectContent>
-                        </Select>
-                        <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
-                            <SelectTrigger className="w-full md:w-[150px]">
-                                <SelectValue placeholder="Tipe Bayar" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Semua Tipe</SelectItem>
-                                <SelectItem value="cash">Tunai</SelectItem>
-                                <SelectItem value="qris">QRIS</SelectItem>
-                                <SelectItem value="transfer">Transfer</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div className="flex gap-2">
+                            <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                <SelectTrigger className="w-full lg:w-[150px] h-10 rounded-lg border-slate-200">
+                                    <SelectValue placeholder="Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Semua Status</SelectItem>
+                                    <SelectItem value="success">Sukses</SelectItem>
+                                    <SelectItem value="void">Dibatalkan</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
+                                <SelectTrigger className="w-full lg:w-[150px] h-10 rounded-lg border-slate-200">
+                                    <SelectValue placeholder="Tipe Bayar" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Semua Tipe</SelectItem>
+                                    <SelectItem value="cash">Tunai</SelectItem>
+                                    <SelectItem value="qris">QRIS</SelectItem>
+                                    <SelectItem value="transfer">Transfer</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                 </CardHeader>
-                <CardContent>
-                    <div className="rounded-md border">
+                <CardContent className="p-0">
+                    {/* Desktop Table View */}
+                    <div className="hidden xl:block">
                         <Table>
-                            <TableHeader>
+                            <TableHeader className="bg-slate-50">
                                 <TableRow>
                                     <TableHead className="w-[80px]">ID</TableHead>
                                     <TableHead
-                                        className="w-[140px] cursor-pointer hover:bg-muted/50 transition-colors"
+                                        className="w-[140px] cursor-pointer hover:bg-slate-100 transition-colors"
                                         onClick={() => handleSort('date')}
                                     >
-                                        <div className="flex items-center">
+                                        <div className="flex items-center font-bold text-slate-700">
                                             Waktu
                                             {getSortIcon('date')}
                                         </div>
                                     </TableHead>
                                     <TableHead
-                                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                        className="cursor-pointer hover:bg-slate-100 transition-colors"
                                         onClick={() => handleSort('customer')}
                                     >
-                                        <div className="flex items-center">
+                                        <div className="flex items-center font-bold text-slate-700">
                                             Pelanggan
                                             {getSortIcon('customer')}
                                         </div>
                                     </TableHead>
                                     <TableHead
-                                        className="w-[100px] cursor-pointer hover:bg-muted/50 transition-colors"
+                                        className="w-[100px] cursor-pointer hover:bg-slate-100 transition-colors"
                                         onClick={() => handleSort('paymentMethod')}
                                     >
-                                        <div className="flex items-center">
+                                        <div className="flex items-center font-bold text-slate-700">
                                             Metode
                                             {getSortIcon('paymentMethod')}
                                         </div>
                                     </TableHead>
                                     <TableHead
-                                        className="w-[100px] cursor-pointer hover:bg-muted/50 transition-colors"
+                                        className="w-[100px] cursor-pointer hover:bg-slate-100 transition-colors"
                                         onClick={() => handleSort('cashier')}
                                     >
-                                        <div className="flex items-center">
+                                        <div className="flex items-center font-bold text-slate-700">
                                             Kasir
                                             {getSortIcon('cashier')}
                                         </div>
                                     </TableHead>
                                     <TableHead
-                                        className="w-[80px] text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                                        className="w-[80px] text-center cursor-pointer hover:bg-slate-100 transition-colors"
                                         onClick={() => handleSort('items')}
                                     >
-                                        <div className="flex items-center justify-center">
+                                        <div className="flex items-center justify-center font-bold text-slate-700">
                                             Items
                                             {getSortIcon('items')}
                                         </div>
                                     </TableHead>
                                     <TableHead
-                                        className="w-[100px] text-right cursor-pointer hover:bg-muted/50 transition-colors"
+                                        className="w-[100px] text-right cursor-pointer hover:bg-slate-100 transition-colors"
                                         onClick={() => handleSort('discount')}
                                     >
-                                        <div className="flex items-center justify-end">
+                                        <div className="flex items-center justify-end font-bold text-slate-700">
                                             Diskon
                                             {getSortIcon('discount')}
                                         </div>
                                     </TableHead>
                                     <TableHead
-                                        className="w-[120px] text-right cursor-pointer hover:bg-muted/50 transition-colors"
+                                        className="w-[120px] text-right cursor-pointer hover:bg-slate-100 transition-colors"
                                         onClick={() => handleSort('total')}
                                     >
-                                        <div className="flex items-center justify-end">
+                                        <div className="flex items-center justify-end font-bold text-slate-700">
                                             Total
                                             {getSortIcon('total')}
                                         </div>
                                     </TableHead>
                                     <TableHead
-                                        className="w-[120px] text-right cursor-pointer hover:bg-muted/50 transition-colors"
+                                        className="w-[120px] text-right cursor-pointer hover:bg-slate-100 transition-colors"
                                         onClick={() => handleSort('profit')}
                                     >
-                                        <div className="flex items-center justify-end">
+                                        <div className="flex items-center justify-end font-bold text-slate-700">
                                             Laba
                                             {getSortIcon('profit')}
                                         </div>
                                     </TableHead>
                                     <TableHead
-                                        className="w-[100px] text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                                        className="w-[100px] text-center cursor-pointer hover:bg-slate-100 transition-colors"
                                         onClick={() => handleSort('status')}
                                     >
-                                        <div className="flex items-center justify-center">
+                                        <div className="flex items-center justify-center font-bold text-slate-700">
                                             Status
                                             {getSortIcon('status')}
                                         </div>
                                     </TableHead>
-                                    <TableHead className="w-[100px] text-right">Aksi</TableHead>
+                                    <TableHead className="w-[100px] text-right font-bold text-slate-700">Aksi</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {sortedTransactions.length === 0 ? (
+                                {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
+                                        <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
+                                            Memuat data...
+                                        </TableCell>
+                                    </TableRow>
+                                ) : sortedTransactions.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
                                             Tidak ada data transaksi yang sesuai.
                                         </TableCell>
                                     </TableRow>
@@ -612,48 +615,49 @@ const ProfitLoss = () => {
                                         const isVoid = t.status === 'void' || t.status === 'cancelled';
 
                                         return (
-                                            <TableRow key={t.id} className={isVoid ? 'bg-muted/50' : ''}>
-                                                <TableCell className="font-mono text-xs w-[120px]">#{t.id}</TableCell>
-                                                <TableCell className="w-[140px]">
+                                            <TableRow key={t.id} className={`${isVoid ? 'bg-slate-50 opacity-60' : 'hover:bg-slate-50 transition-colors'} border-b border-slate-100`}>
+                                                <TableCell className="font-mono text-[10px] text-slate-400">#{t.id.slice(-6).toUpperCase()}</TableCell>
+                                                <TableCell>
                                                     <div className="flex flex-col">
-                                                        <span className="font-medium">{new Date(t.date).toLocaleDateString('id-ID')}</span>
-                                                        <span className="text-xs text-muted-foreground">{new Date(t.date).toLocaleTimeString('id-ID')}</span>
+                                                        <span className="font-bold text-slate-800">{new Date(t.date).toLocaleDateString('id-ID')}</span>
+                                                        <span className="text-[10px] font-medium text-slate-400">{new Date(t.date).toLocaleTimeString('id-ID')}</span>
                                                     </div>
                                                 </TableCell>
-                                                <TableCell>{t.customerName || 'Umum'}</TableCell>
+                                                <TableCell className="font-medium text-slate-700">{t.customerName || 'Umum'}</TableCell>
                                                 <TableCell>
-                                                    <span className="capitalize text-sm font-medium">
+                                                    <span className="capitalize text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                                                         {formatPaymentMethod(t.paymentMethod)}
                                                     </span>
                                                 </TableCell>
-                                                <TableCell className="w-[100px]">{t.cashier || '-'}</TableCell>
-                                                <TableCell className="w-[80px] text-center">{t.items ? t.items.length : 0}</TableCell>
-                                                <TableCell className="w-[100px] text-right text-red-500 font-medium">
+                                                <TableCell className="text-slate-600 text-xs font-medium">{t.cashier || '-'}</TableCell>
+                                                <TableCell className="text-center font-bold text-slate-800">{t.items ? t.items.length : 0}</TableCell>
+                                                <TableCell className="text-right text-red-500 font-bold">
                                                     {t.discount > 0 ? `-Rp ${t.discount.toLocaleString()}` : '-'}
                                                 </TableCell>
-                                                <TableCell className={`font-medium w-[120px] text-right ${isVoid ? 'line-through text-muted-foreground' : ''}`}>
+                                                <TableCell className={`font-extrabold text-right text-slate-900 ${isVoid ? 'line-through text-slate-300' : ''}`}>
                                                     Rp {t.total.toLocaleString()}
                                                 </TableCell>
-                                                <TableCell className={`font-medium w-[120px] text-right ${isVoid ? 'text-muted-foreground' : 'text-green-600'}`}>
+                                                <TableCell className={`font-extrabold text-right ${isVoid ? 'text-slate-300' : 'text-green-600'}`}>
                                                     {isVoid ? '-' : `Rp ${tProfit.toLocaleString()}`}
                                                 </TableCell>
-                                                <TableCell className="text-center w-[100px]">
+                                                <TableCell className="text-center">
                                                     {isVoid ? (
                                                         <span
-                                                            className="text-xs text-destructive font-medium cursor-help border-b border-dotted border-destructive"
+                                                            className="text-[9px] uppercase tracking-tighter bg-red-50 text-red-600 px-2 py-1 rounded font-bold border border-red-100 cursor-help"
                                                             title={`Alasan: ${t.voidReason || t.cancelReason || '-'}`}
                                                         >
-                                                            Dibatalkan
+                                                            VOID
                                                         </span>
                                                     ) : (
-                                                        <span className="text-xs text-green-600 font-medium">Sukses</span>
+                                                        <span className="text-[9px] uppercase tracking-tighter bg-green-50 text-green-600 px-2 py-1 rounded font-bold border border-green-100">SUKSES</span>
                                                     )}
                                                 </TableCell>
-                                                <TableCell className="text-right w-[100px]">
-                                                    <div className="flex justify-end gap-2">
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-1">
                                                         <Button
                                                             variant="ghost"
-                                                            size="sm"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
                                                             onClick={() => handleViewReceipt(t)}
                                                             title="Lihat Struk"
                                                         >
@@ -662,8 +666,8 @@ const ProfitLoss = () => {
                                                         {(user?.role === 'owner' || user?.role === 'super_admin' || (user?.role === 'admin' && (user?.permissions?.includes('transactions.void') || user?.permissions?.includes('transactions.refund')))) && !isVoid && (
                                                             <Button
                                                                 variant="ghost"
-                                                                size="sm"
-                                                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     handleCancelClick(t);
@@ -681,6 +685,92 @@ const ProfitLoss = () => {
                                 )}
                             </TableBody>
                         </Table>
+                    </div>
+
+                    <div className="xl:hidden divide-y divide-slate-50">
+                        {isLoading ? (
+                            <div className="text-center py-12 text-muted-foreground font-medium">Memuat data...</div>
+                        ) : sortedTransactions.length === 0 ? (
+                            <div className="text-center py-12 text-muted-foreground font-medium">Tidak ada transaksi.</div>
+                        ) : (
+                            sortedTransactions.map(t => {
+                                let tCOGS = 0;
+                                if (t.items) {
+                                    t.items.forEach(i => {
+                                        let buyPrice = i.buyPrice;
+                                        if (buyPrice === undefined || buyPrice === null) {
+                                            const product = productMap.get(i.id) || productMap.get(i.name);
+                                            buyPrice = product ? product.buyPrice : 0;
+                                        }
+                                        tCOGS += Number(buyPrice || 0) * i.qty;
+                                    });
+                                }
+                                const tProfit = t.total - tCOGS;
+                                const isVoid = t.status === 'void' || t.status === 'cancelled';
+
+                                return (
+                                    <div key={t.id} className={`p-4 space-y-3 relative overflow-hidden ${isVoid ? 'bg-slate-50 opacity-60' : 'bg-white'}`}>
+                                        <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${isVoid ? 'bg-red-500' : 'bg-green-500'}`} />
+                                        <div className="flex justify-between items-start pl-2">
+                                            <div className="space-y-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-mono text-[10px] text-slate-400 font-bold uppercase tracking-widest">#{t.id.slice(-6)}</span>
+                                                    {isVoid ? (
+                                                        <span className="text-[9px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded uppercase tracking-tighter border border-red-100">VOID</span>
+                                                    ) : (
+                                                        <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded uppercase tracking-tighter border border-indigo-100">{formatPaymentMethod(t.paymentMethod)}</span>
+                                                    )}
+                                                </div>
+                                                <p className="font-bold text-slate-900 truncate">{t.customerName || 'Pelanggan Umum'}</p>
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                                    {new Date(t.date).toLocaleDateString('id-ID')} • {new Date(t.date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                                </p>
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                                <p className={`text-base font-extrabold ${isVoid ? 'text-slate-300 line-through' : 'text-slate-900'}`}>
+                                                    Rp {t.total.toLocaleString()}
+                                                </p>
+                                                {!isVoid && (
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="text-[10px] font-black text-green-600 uppercase tracking-tighter">LABA Rp {tProfit.toLocaleString()}</span>
+                                                        {t.discount > 0 && (
+                                                            <span className="text-[9px] font-bold text-red-500 uppercase tracking-tighter">DISC Rp {t.discount.toLocaleString()}</span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-between items-center pt-2 border-t border-slate-50 pl-2">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate max-w-[60%]">{t.items?.length || 0} ITEMS • {t.cashier || 'Kasir'}</span>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-slate-300 hover:text-indigo-600"
+                                                    onClick={() => handleViewReceipt(t)}
+                                                >
+                                                    <Eye size={16} />
+                                                </Button>
+                                                {!isVoid && (user?.role === 'owner' || user?.role === 'super_admin' || (user?.role === 'admin' && (user?.permissions?.includes('transactions.void')))) && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-slate-300 hover:text-red-500"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleCancelClick(t);
+                                                        }}
+                                                    >
+                                                        <XCircle size={16} />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
                     </div>
                 </CardContent>
             </Card>

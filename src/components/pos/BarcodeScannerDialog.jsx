@@ -19,12 +19,23 @@ const BarcodeScannerDialog = ({ isOpen, onClose, onScan }) => {
     const stopScanner = React.useCallback(async () => {
         if (html5QrCodeRef.current) {
             try {
-                await html5QrCodeRef.current.stop();
-                html5QrCodeRef.current.clear();
+                // Check state if scanner is actually running
+                const state = html5QrCodeRef.current.getState();
+                if (state === 2 || state === 3) { // SCANNING or PAUSED
+                    await html5QrCodeRef.current.stop();
+                    html5QrCodeRef.current.clear();
+                }
                 html5QrCodeRef.current = null;
                 setIsScanning(false);
             } catch (err) {
-                console.error("Failed to stop scanner", err);
+                // Suppress "not running" errors
+                if (err?.toString().toLowerCase().includes("not running")) {
+                    // already stopped
+                } else {
+                    console.warn("Scanner cleanup:", err);
+                }
+                html5QrCodeRef.current = null;
+                setIsScanning(false);
             }
         }
     }, []);

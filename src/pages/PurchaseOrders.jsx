@@ -178,58 +178,58 @@ const PurchaseOrders = () => {
             </div>
 
             {/* List */}
-            <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+            <div className="hidden lg:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                        <thead className="bg-slate-50 border-b">
+                        <thead className="bg-slate-50/50 border-b border-slate-100">
                             <tr>
-                                <th className="text-left p-4 font-medium text-muted-foreground cursor-pointer hover:bg-slate-100" onClick={() => handleSort('id')}>
+                                <th className="text-left p-4 font-bold text-slate-500 uppercase tracking-widest text-[10px] cursor-pointer hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('id')}>
                                     <div className="flex items-center gap-1">No. PO <ArrowUpDown className="h-3 w-3" /></div>
                                 </th>
-                                <th className="text-left p-4 font-medium text-muted-foreground cursor-pointer hover:bg-slate-100" onClick={() => handleSort('date')}>
+                                <th className="text-left p-4 font-bold text-slate-500 uppercase tracking-widest text-[10px] cursor-pointer hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('date')}>
                                     <div className="flex items-center gap-1">Tanggal <ArrowUpDown className="h-3 w-3" /></div>
                                 </th>
-                                <th className="text-left p-4 font-medium text-muted-foreground cursor-pointer hover:bg-slate-100" onClick={() => handleSort('supplierName')}>
+                                <th className="text-left p-4 font-bold text-slate-500 uppercase tracking-widest text-[10px] cursor-pointer hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('supplierName')}>
                                     <div className="flex items-center gap-1">Supplier <ArrowUpDown className="h-3 w-3" /></div>
                                 </th>
-                                <th className="text-right p-4 font-medium text-muted-foreground cursor-pointer hover:bg-slate-100" onClick={() => handleSort('totalAmount')}>
+                                <th className="text-right p-4 font-bold text-slate-500 uppercase tracking-widest text-[10px] cursor-pointer hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('totalAmount')}>
                                     <div className="flex items-center justify-end gap-1">Total <ArrowUpDown className="h-3 w-3" /></div>
                                 </th>
-                                <th className="text-center p-4 font-medium text-muted-foreground cursor-pointer hover:bg-slate-100" onClick={() => handleSort('status')}>
+                                <th className="text-center p-4 font-bold text-slate-500 uppercase tracking-widest text-[10px] cursor-pointer hover:bg-slate-100/50 transition-colors" onClick={() => handleSort('status')}>
                                     <div className="flex items-center justify-center gap-1">Status <ArrowUpDown className="h-3 w-3" /></div>
                                 </th>
-                                <th className="text-right p-4 font-medium text-muted-foreground">Aksi</th>
+                                <th className="text-right p-4 font-bold text-slate-500 uppercase tracking-widest text-[10px]">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y">
+                        <tbody className="divide-y divide-slate-50">
                             {poList.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="text-center p-8 text-muted-foreground">
+                                    <td colSpan="6" className="text-center p-12 text-slate-400 font-medium italic">
                                         {isLoading ? "Memuat data..." : "Tidak ada data purchase order."}
                                     </td>
                                 </tr>
                             ) : (
                                 poList.map((po) => (
-                                    <tr key={po.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate(`/purchase-orders/${po.id}`)}>
-                                        <td className="p-4 font-medium">#{po.id.slice(0, 8).toUpperCase()}</td>
-                                        <td className="p-4">{format(new Date(po.date || po.created_at), 'dd MMM yyyy', { locale: idLocale })}</td>
-                                        <td className="p-4">{po.supplier_name}</td>
-                                        <td className="p-4 text-right font-medium">
+                                    <tr key={po.id} className="hover:bg-slate-50/50 transition-colors cursor-pointer group" onClick={() => navigate(`/purchase-orders/${po.id}`)}>
+                                        <td className="p-4 font-mono text-xs font-bold text-slate-400 group-hover:text-indigo-600 transition-colors">#{po.id.slice(0, 8).toUpperCase()}</td>
+                                        <td className="p-4 font-medium text-slate-600">{format(new Date(po.date || po.created_at), 'dd MMM yyyy', { locale: idLocale })}</td>
+                                        <td className="p-4 font-bold text-slate-900">{po.supplier_name}</td>
+                                        <td className="p-4 text-right font-extrabold text-slate-900">
                                             Rp {parseInt(po.total_amount || 0).toLocaleString('id-ID')}
                                         </td>
                                         <td className="p-4 text-center">
-                                            <Badge variant="secondary" className={getStatusColor(po.status)}>
+                                            <Badge variant="secondary" className={`border-none font-bold text-[10px] uppercase px-2 py-0.5 ${getStatusColor(po.status)}`}>
                                                 {getStatusLabel(po.status)}
                                             </Badge>
                                         </td>
                                         <td className="p-4 text-right">
                                             <div className="flex justify-end gap-2">
                                                 {po.status === 'ordered' && (
-                                                    <Button variant="outline" size="sm" className="h-8 bg-green-50 text-green-700 border-green-200 hover:bg-green-100" onClick={(e) => handleReceiveClick(po, e)}>
+                                                    <Button variant="outline" size="sm" className="h-8 bg-green-50 text-green-700 border-green-200 hover:bg-green-100 rounded-lg font-bold text-xs" onClick={(e) => handleReceiveClick(po, e)}>
                                                         Terima
                                                     </Button>
                                                 )}
-                                                <Button variant="ghost" size="sm" onClick={(e) => {
+                                                <Button variant="ghost" size="sm" className="h-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50" onClick={(e) => {
                                                     e.stopPropagation();
                                                     navigate(`/purchase-orders/${po.id}`);
                                                 }}>
@@ -243,6 +243,80 @@ const PurchaseOrders = () => {
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="lg:hidden grid grid-cols-1 gap-4">
+                {poList.length === 0 ? (
+                    <div className="text-center p-12 bg-white rounded-2xl border border-dashed text-slate-400 font-medium italic">
+                        {isLoading ? "Memuat data..." : "Tidak ada data purchase order."}
+                    </div>
+                ) : (
+                    poList.map((po) => (
+                        <div
+                            key={po.id}
+                            className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3 relative overflow-hidden active:scale-[0.98] transition-transform cursor-pointer"
+                            onClick={() => navigate(`/purchase-orders/${po.id}`)}
+                        >
+                            <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${po.status === 'received' ? 'bg-green-500' : (po.status === 'ordered' ? 'bg-blue-500' : (po.status === 'cancelled' ? 'bg-red-500' : 'bg-slate-300'))}`} />
+                            <div className="flex justify-between items-start pl-2">
+                                <div className="space-y-1 min-w-0">
+                                    <p className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                        #{po.id.slice(0, 8).toUpperCase()}
+                                    </p>
+                                    <h3 className="font-extrabold text-slate-900 leading-tight truncate">
+                                        {po.supplier_name}
+                                    </h3>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                        {format(new Date(po.date || po.created_at), 'dd MMM yyyy', { locale: idLocale })}
+                                    </p>
+                                </div>
+                                <Badge variant="secondary" className={`border-none font-bold text-[9px] uppercase px-2 py-0.5 tracking-tighter ${getStatusColor(po.status)}`}>
+                                    {getStatusLabel(po.status)}
+                                </Badge>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 py-2 border-y border-slate-50 pl-2">
+                                <div className="space-y-0.5">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total</p>
+                                    <p className="text-base font-black text-indigo-600">
+                                        Rp {parseInt(po.total_amount || 0).toLocaleString('id-ID')}
+                                    </p>
+                                </div>
+                                <div className="space-y-0.5 text-right">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Update Terakhir</p>
+                                    <p className="text-xs font-bold text-slate-600">
+                                        {format(new Date(po.updated_at || po.created_at), 'HH:mm', { locale: idLocale })}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end pt-1 gap-2 pl-2">
+                                {po.status === 'ordered' && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-9 px-4 bg-green-50 text-green-700 border-green-200 hover:bg-green-100 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-sm"
+                                        onClick={(e) => handleReceiveClick(po, e)}
+                                    >
+                                        Terima
+                                    </Button>
+                                )}
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-9 px-4 rounded-xl text-slate-400 hover:text-indigo-600 font-bold text-[10px] uppercase tracking-widest"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        navigate(`/purchase-orders/${po.id}`);
+                                    }}
+                                >
+                                    Detail
+                                </Button>
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
 
             <ReceiveStockDialog

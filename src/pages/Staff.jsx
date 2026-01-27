@@ -471,18 +471,19 @@ const Staff = () => {
 
     return (
         <div className="p-4 space-y-6">
-            <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold">Manajemen Staff</h1>
                     <p className="text-muted-foreground mt-1">Kelola akses dan karyawan toko Anda.</p>
                 </div>
-                <Button onClick={handleAddStaff}>
+                <Button onClick={handleAddStaff} className="w-full sm:w-auto">
                     <Plus className="h-4 w-4 mr-2" />
                     Tambah Staff
                 </Button>
             </header>
 
-            <Card>
+            {/* Desktop Table View */}
+            <Card className="hidden lg:block">
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
@@ -532,7 +533,7 @@ const Staff = () => {
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
-                                                    <Circle className={`h - 3 w - 3 fill - current ${status === 'login' ? 'text-green-500' : 'text-gray-300'} `} />
+                                                    <Circle className={`h-3 w-3 fill-current ${status === 'login' ? 'text-green-500' : 'text-gray-300'}`} />
                                                     <span className={status === 'login' ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
                                                         {status === 'login' ? 'Sedang Login' : 'Logout'}
                                                     </span>
@@ -577,6 +578,80 @@ const Staff = () => {
                     </Table>
                 </CardContent>
             </Card>
+
+            {/* Mobile Card View */}
+            <div className="lg:hidden space-y-4">
+                {staffList.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground bg-white rounded-xl border">
+                        Belum ada staff di toko ini.
+                    </div>
+                ) : (
+                    staffList.map((staff) => {
+                        const status = getStaffStatus(staff);
+                        return (
+                            <div key={staff.id} className="bg-white rounded-xl border p-4 shadow-sm active:bg-slate-50 transition-colors">
+                                <div className="flex justify-between items-start mb-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden border border-primary/20">
+                                            {staff.photo ? (
+                                                <img src={staff.photo} alt={staff.name} className="h-full w-full object-cover" />
+                                            ) : (
+                                                <span className="text-lg font-bold text-primary">
+                                                    {staff.name ? staff.name.charAt(0).toUpperCase() : '?'}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-slate-800">{staff.name}</h3>
+                                            <p className="text-xs text-slate-500">ID: {staff.email && staff.email.endsWith('@kula.id') ? staff.email.split('@')[0] : staff.email}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-1">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewHistory(staff)}>
+                                            <History className="h-4 w-4" />
+                                        </Button>
+                                        {canManageStaff(staff) && (
+                                            <>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditStaff(staff)}>
+                                                    <Edit2 className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-amber-500"
+                                                    onClick={() => handleForceLogout(staff)}
+                                                >
+                                                    <Shield className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-red-500"
+                                                    onClick={() => handleDeleteStaff(staff.id)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between pt-3 border-t">
+                                    <Badge variant={staff.role === 'owner' ? 'default' : staff.role === 'admin' ? 'default' : staff.role === 'sales' ? 'outline' : 'secondary'}>
+                                        {staff.role === 'owner' ? 'Owner' : staff.role === 'admin' ? 'Administrator' : staff.role === 'sales' ? 'Sales' : 'Kasir'}
+                                    </Badge>
+                                    <div className="flex items-center gap-2">
+                                        <Circle className={`h-2.5 w-2.5 fill-current ${status === 'login' ? 'text-green-500' : 'text-gray-300'}`} />
+                                        <span className={`text-xs ${status === 'login' ? 'text-green-600 font-bold' : 'text-slate-400 font-medium'}`}>
+                                            {status === 'login' ? 'ONLINE' : 'OFFLINE'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
+            </div>
 
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent>

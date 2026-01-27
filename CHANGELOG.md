@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.10.0] - 2026-01-27
+### Added
+- **Shopping Recommendations**: Added premium AI/Excel configuration modal with responsive padding and optimized layouts.
+- **Purchase Order**: Re-enabled and refined **Restock AI** (AI Sales Analysis) suggestions UI and logic.
+
+### Improved
+- **Mobile UI**: Enhanced "Shopping Recommendations" header with wrapping buttons and full-width mobile actions.
+- **Mobile UI**: Optimized Purchase Order Form for smaller screens, including responsive item cards and full-width action buttons.
+- **Mobile POS**: Improved haptic feedback and interaction flow.
+- **Layout**: Applied consistent `px-6` padding to configuration modals for better visual balance.
+
+### Fixed
+- **Stability**: Fixed 10+ critical lint errors and reference errors (`addToCart`, `Icon`, etc.) in `Dashboard.jsx`, `MobilePOS.jsx`, and `PurchaseOrderForm.jsx`.
+- **UI Bug**: Fixed button cut-off issues on mobile across multiple screens.
+
+
 ## [0.9.0] - 2026-01-27
 ### Added
 - **Wholesale Price**: Added Strategy B (Wholesale/Grosir Bertingkat). Uses threshold replacement logic (e.g. qty >= 10, price becomes Rp 8.000 for all items).

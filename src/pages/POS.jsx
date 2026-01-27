@@ -24,7 +24,6 @@ import DiscountPinDialog from '../components/DiscountPinDialog';
 import RentalDurationDialog from '../components/pos/RentalDurationDialog';
 
 const POS = () => {
-    console.log("[POS] Rendering...", { hasUser: !!useAuth()?.user, hasStore: !!useData()?.currentStore });
     // --- Contexts ---
     const { user, logout } = useAuth();
     // ... rest of context decl ...

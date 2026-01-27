@@ -224,72 +224,73 @@ const StockOpname = () => {
     }, 0);
 
     return (
-        <div className="p-4 space-y-6">
+        <div className="p-4 sm:p-6 space-y-6">
             <Tabs defaultValue="opname" className="w-full">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">Stock Opname</h1>
                         <p className="text-muted-foreground">Penghitungan fisik stok vs sistem</p>
                     </div>
-                    <TabsList>
-                        <TabsTrigger value="opname">Input Opname</TabsTrigger>
-                        <TabsTrigger value="history">
-                            <History className="h-4 w-4 mr-2" />
-                            Riwayat
-                        </TabsTrigger>
-                    </TabsList>
+                    <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-3">
+                        <TabsList className="grid grid-cols-2 w-full sm:w-[300px]">
+                            <TabsTrigger value="opname">Input Opname</TabsTrigger>
+                            <TabsTrigger value="history" className="flex items-center gap-2">
+                                <History className="h-4 w-4" />
+                                Riwayat
+                            </TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="opname" className="mt-0">
+                            <Button
+                                onClick={handleSaveOpname}
+                                disabled={!hasChanges || saving}
+                                className="w-full sm:w-auto gap-2"
+                            >
+                                <Save className="h-4 w-4" />
+                                {saving ? 'Menyimpan...' : 'Simpan Opname'}
+                            </Button>
+                        </TabsContent>
+                    </div>
                 </div>
 
-                <TabsContent value="opname" className="space-y-6">
-                    <div className="flex justify-end">
-                        <Button
-                            onClick={handleSaveOpname}
-                            disabled={!hasChanges || saving}
-                            className="gap-2"
-                        >
-                            <Save className="h-4 w-4" />
-                            {saving ? 'Menyimpan...' : 'Simpan Opname'}
-                        </Button>
-                    </div>
-
+                <TabsContent value="opname" className="space-y-6 mt-0">
                     {/* Summary Cards */}
-                    <div className="grid gap-4 md:grid-cols-4">
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium">Total Produk</CardTitle>
+                    <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+                        <Card className="rounded-xl">
+                            <CardHeader className="p-4 pb-2">
+                                <CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Produk</CardTitle>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="p-4 pt-0">
                                 <div className="text-2xl font-bold">{filteredProducts.length}</div>
                             </CardContent>
                         </Card>
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium">Produk Dihitung</CardTitle>
+                        <Card className="rounded-xl">
+                            <CardHeader className="p-4 pb-2">
+                                <CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-wider">Produk Dihitung</CardTitle>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="p-4 pt-0">
                                 <div className="text-2xl font-bold text-blue-600">
                                     {Object.keys(opnameData).filter(id => opnameData[id]?.physicalStock !== undefined && opnameData[id]?.physicalStock !== '').length}
                                 </div>
                             </CardContent>
                         </Card>
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium">Selisih Unit</CardTitle>
+                        <Card className="rounded-xl">
+                            <CardHeader className="p-4 pb-2">
+                                <CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-wider">Selisih Unit</CardTitle>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="p-4 pt-0">
                                 <div className="text-2xl font-bold text-orange-600">
-                                    {totalDifferences} unit
+                                    {totalDifferences} <span className="text-sm font-medium">unit</span>
                                 </div>
                             </CardContent>
                         </Card>
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                    <DollarSign className="h-4 w-4" />
+                        <Card className="rounded-xl col-span-2 lg:col-span-1">
+                            <CardHeader className="p-4 pb-2">
+                                <CardTitle className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                    <DollarSign className="h-3 w-3" />
                                     Selisih Nilai
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="p-4 pt-0">
                                 <div className={`text-2xl font-bold ${totalDifferenceValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                     {totalDifferenceValue >= 0 ? '+' : ''}Rp {totalDifferenceValue.toLocaleString()}
                                 </div>
@@ -313,8 +314,8 @@ const StockOpname = () => {
                     </Card>
 
                     {/* Search & Sort */}
-                    <div className="flex gap-3">
-                        <div className="relative flex-1 max-w-md">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="relative flex-1">
                             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
                                 placeholder="Cari produk..."
@@ -324,7 +325,7 @@ const StockOpname = () => {
                             />
                         </div>
                         <Select value={sortBy} onValueChange={setSortBy}>
-                            <SelectTrigger className="w-[180px]">
+                            <SelectTrigger className="w-full sm:w-[180px]">
                                 <SelectValue placeholder="Urutkan" />
                             </SelectTrigger>
                             <SelectContent>
@@ -335,98 +336,172 @@ const StockOpname = () => {
                         </Select>
                     </div>
 
-                    {/* Products Table */}
-                    <Card>
-                        <CardContent className="p-0">
-                            <Table>
-                                <TableHeader>
+                    {/* Desktop Table View */}
+                    <div className="hidden lg:block border rounded-xl overflow-hidden bg-white shadow-sm">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-auto">Produk</TableHead>
+                                    <TableHead className="text-center w-[120px]">Stok Sistem</TableHead>
+                                    <TableHead className="text-center w-[120px]">Stok Fisik</TableHead>
+                                    <TableHead className="text-center w-[120px]">Selisih Unit</TableHead>
+                                    <TableHead className="text-right w-[140px]">Selisih Nilai</TableHead>
+                                    <TableHead className="w-[200px]">Catatan</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {sortedProducts.length === 0 ? (
                                     <TableRow>
-                                        <TableHead className="w-auto">Produk</TableHead>
-                                        <TableHead className="text-center w-[120px]">Stok Sistem</TableHead>
-                                        <TableHead className="text-center w-[120px]">Stok Fisik</TableHead>
-                                        <TableHead className="text-center w-[120px]">Selisih Unit</TableHead>
-                                        <TableHead className="text-right w-[140px]">Selisih Nilai</TableHead>
-                                        <TableHead className="w-[200px]">Catatan</TableHead>
+                                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                            Tidak ada produk ditemukan
+                                        </TableCell>
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {sortedProducts.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                                                Tidak ada produk ditemukan
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        sortedProducts.map(product => {
-                                            const difference = getDifference(product);
-                                            const differenceValue = getDifferenceValue(product);
-                                            return (
-                                                <TableRow key={product.id}>
-                                                    <TableCell>
-                                                        <div>
-                                                            <div className="font-medium">{product.name}</div>
-                                                            {product.code && (
-                                                                <div className="text-xs text-muted-foreground">
-                                                                    Kode: {product.code}
-                                                                </div>
+                                ) : (
+                                    sortedProducts.map(product => {
+                                        const difference = getDifference(product);
+                                        const differenceValue = getDifferenceValue(product);
+                                        return (
+                                            <TableRow key={product.id}>
+                                                <TableCell>
+                                                    <div>
+                                                        <div className="font-medium">{product.name}</div>
+                                                        {product.code && (
+                                                            <div className="text-xs text-muted-foreground">
+                                                                Kode: {product.code}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    <Badge variant="outline">{product.stock || 0}</Badge>
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    <Input
+                                                        type="number"
+                                                        className="w-24 text-center"
+                                                        placeholder="0"
+                                                        value={getPhysicalStock(product.id)}
+                                                        onChange={(e) => handlePhysicalStockChange(product.id, e.target.value)}
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    {difference !== null && (
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            {difference === 0 ? (
+                                                                <Badge variant="outline" className="gap-1">
+                                                                    <CheckCircle2 className="h-3 w-3" />
+                                                                    Sesuai
+                                                                </Badge>
+                                                            ) : difference > 0 ? (
+                                                                <Badge className="bg-green-600 gap-1">
+                                                                    +{difference}
+                                                                </Badge>
+                                                            ) : (
+                                                                <Badge variant="destructive" className="gap-1">
+                                                                    {difference}
+                                                                </Badge>
                                                             )}
                                                         </div>
-                                                    </TableCell>
-                                                    <TableCell className="text-center">
-                                                        <Badge variant="outline">{product.stock || 0}</Badge>
-                                                    </TableCell>
-                                                    <TableCell className="text-center">
-                                                        <Input
-                                                            type="number"
-                                                            className="w-24 text-center"
-                                                            placeholder="0"
-                                                            value={getPhysicalStock(product.id)}
-                                                            onChange={(e) => handlePhysicalStockChange(product.id, e.target.value)}
-                                                        />
-                                                    </TableCell>
-                                                    <TableCell className="text-center">
-                                                        {difference !== null && (
-                                                            <div className="flex items-center justify-center gap-2">
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {differenceValue !== null && (
+                                                        <span className={`font-medium ${differenceValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                            {differenceValue >= 0 ? '+' : ''}Rp {differenceValue.toLocaleString()}
+                                                        </span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Input
+                                                        placeholder="Catatan..."
+                                                        className="w-full"
+                                                        value={getProductNotes(product.id)}
+                                                        onChange={(e) => handleNotesChange(product.id, e.target.value)}
+                                                    />
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="lg:hidden space-y-4">
+                        {sortedProducts.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground bg-white rounded-xl border">
+                                Tidak ada produk ditemukan
+                            </div>
+                        ) : (
+                            sortedProducts.map(product => {
+                                const difference = getDifference(product);
+                                const differenceValue = getDifferenceValue(product);
+                                return (
+                                    <div key={product.id} className="bg-white rounded-xl border p-4 shadow-sm space-y-4">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h3 className="font-bold text-slate-800">{product.name}</h3>
+                                                {product.code && (
+                                                    <p className="text-xs text-slate-500">Kode: {product.code}</p>
+                                                )}
+                                            </div>
+                                            <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
+                                                Stok: {product.stock || 0}
+                                            </Badge>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3 pb-2">
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-bold text-slate-400 uppercase">Stok Fisik</label>
+                                                <Input
+                                                    type="number"
+                                                    className="w-full h-9 text-center font-bold"
+                                                    placeholder="-"
+                                                    value={getPhysicalStock(product.id)}
+                                                    onChange={(e) => handlePhysicalStockChange(product.id, e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-bold text-slate-400 uppercase text-right block">Selisih</label>
+                                                <div className="h-9 flex items-center justify-end">
+                                                    {difference !== null ? (
+                                                        <div className="flex flex-col items-end">
+                                                            <div className="flex items-center gap-1.5">
                                                                 {difference === 0 ? (
-                                                                    <Badge variant="outline" className="gap-1">
-                                                                        <CheckCircle2 className="h-3 w-3" />
-                                                                        Sesuai
-                                                                    </Badge>
-                                                                ) : difference > 0 ? (
-                                                                    <Badge className="bg-green-600 gap-1">
-                                                                        +{difference}
-                                                                    </Badge>
+                                                                    <Badge variant="outline" className="h-6 text-[10px] font-bold">SESUAI</Badge>
                                                                 ) : (
-                                                                    <Badge variant="destructive" className="gap-1">
-                                                                        {difference}
+                                                                    <Badge variant={difference > 0 ? "default" : "destructive"} className={`h-6 text-[10px] font-bold ${difference > 0 ? 'bg-green-600' : ''}`}>
+                                                                        {difference > 0 ? '+' : ''}{difference} UNIT
                                                                     </Badge>
                                                                 )}
                                                             </div>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        {differenceValue !== null && (
-                                                            <span className={`font-medium ${differenceValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                                {differenceValue >= 0 ? '+' : ''}Rp {differenceValue.toLocaleString()}
-                                                            </span>
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Input
-                                                            placeholder="Catatan..."
-                                                            className="w-full"
-                                                            value={getProductNotes(product.id)}
-                                                            onChange={(e) => handleNotesChange(product.id, e.target.value)}
-                                                        />
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
+                                                            {differenceValue !== null && differenceValue !== 0 && (
+                                                                <p className={`text-[10px] font-bold mt-1 ${differenceValue > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                                                    {differenceValue > 0 ? '+' : ''}Rp {differenceValue.toLocaleString()}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-slate-300 text-xs">-</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-3 border-t">
+                                            <Input
+                                                placeholder="Berikan catatan..."
+                                                className="h-8 text-xs bg-slate-50 border-none focus-visible:ring-1"
+                                                value={getProductNotes(product.id)}
+                                                onChange={(e) => handleNotesChange(product.id, e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
                 </TabsContent>
 
                 <TabsContent value="history" className="space-y-6">
@@ -497,39 +572,72 @@ const StockOpname = () => {
                                                 </div>
                                             </CardHeader>
                                             {expandedSessions.has(session.id) && (
-                                                <CardContent>
-                                                    <Table>
-                                                        <TableHeader>
-                                                            <TableRow>
-                                                                <TableHead>Produk</TableHead>
-                                                                <TableHead className="text-center">Sistem</TableHead>
-                                                                <TableHead className="text-center">Fisik</TableHead>
-                                                                <TableHead className="text-center">Selisih</TableHead>
-                                                                <TableHead className="text-right">Nilai</TableHead>
-                                                            </TableRow>
-                                                        </TableHeader>
-                                                        <TableBody>
-                                                            {session.records && session.records.map((record, idx) => (
-                                                                <TableRow key={idx}>
-                                                                    <TableCell className="font-medium">{record.productName}</TableCell>
-                                                                    <TableCell className="text-center">{record.systemStock}</TableCell>
-                                                                    <TableCell className="text-center">{record.physicalStock}</TableCell>
-                                                                    <TableCell className="text-center">
-                                                                        <Badge variant={record.difference > 0 ? "default" : "destructive"}>
-                                                                            {record.difference > 0 ? '+' : ''}{record.difference}
-                                                                        </Badge>
-                                                                    </TableCell>
-                                                                    <TableCell className="text-right">
-                                                                        {record.differenceValue !== undefined && (
-                                                                            <span className={record.differenceValue >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                                                                {record.differenceValue >= 0 ? '+' : ''}Rp {record.differenceValue.toLocaleString()}
-                                                                            </span>
-                                                                        )}
-                                                                    </TableCell>
+                                                <CardContent className="p-0 sm:p-6">
+                                                    {/* Desktop Table View */}
+                                                    <div className="hidden sm:block">
+                                                        <Table>
+                                                            <TableHeader>
+                                                                <TableRow>
+                                                                    <TableHead>Produk</TableHead>
+                                                                    <TableHead className="text-center">Sistem</TableHead>
+                                                                    <TableHead className="text-center">Fisik</TableHead>
+                                                                    <TableHead className="text-center">Selisih</TableHead>
+                                                                    <TableHead className="text-right">Nilai</TableHead>
                                                                 </TableRow>
-                                                            ))}
-                                                        </TableBody>
-                                                    </Table>
+                                                            </TableHeader>
+                                                            <TableBody>
+                                                                {session.records && session.records.map((record, idx) => (
+                                                                    <TableRow key={idx}>
+                                                                        <TableCell className="font-medium">{record.productName}</TableCell>
+                                                                        <TableCell className="text-center">{record.systemStock}</TableCell>
+                                                                        <TableCell className="text-center">{record.physicalStock}</TableCell>
+                                                                        <TableCell className="text-center">
+                                                                            <Badge variant={record.difference > 0 ? "default" : "destructive"}>
+                                                                                {record.difference > 0 ? '+' : ''}{record.difference}
+                                                                            </Badge>
+                                                                        </TableCell>
+                                                                        <TableCell className="text-right">
+                                                                            {record.differenceValue !== undefined && (
+                                                                                <span className={record.differenceValue >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                                                                    {record.differenceValue >= 0 ? '+' : ''}Rp {record.differenceValue.toLocaleString()}
+                                                                                </span>
+                                                                            )}
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                ))}
+                                                            </TableBody>
+                                                        </Table>
+                                                    </div>
+
+                                                    {/* Mobile Card View for Records */}
+                                                    <div className="sm:hidden divide-y">
+                                                        {session.records && session.records.map((record, idx) => (
+                                                            <div key={idx} className="p-4 space-y-2">
+                                                                <div className="flex justify-between items-start">
+                                                                    <span className="font-bold text-slate-800 text-sm">{record.productName}</span>
+                                                                    <Badge variant={record.difference >= 0 ? "default" : "destructive"} className={record.difference > 0 ? 'bg-green-600' : ''}>
+                                                                        {record.difference > 0 ? '+' : ''}{record.difference}
+                                                                    </Badge>
+                                                                </div>
+                                                                <div className="flex justify-between items-center text-xs">
+                                                                    <div className="flex gap-4">
+                                                                        <span className="text-slate-500">Sistem: <b className="text-slate-800">{record.systemStock}</b></span>
+                                                                        <span className="text-slate-500">Fisik: <b className="text-slate-800">{record.physicalStock}</b></span>
+                                                                    </div>
+                                                                    {record.differenceValue !== undefined && (
+                                                                        <span className={`font-bold ${record.differenceValue >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                                                            {record.differenceValue >= 0 ? '+' : ''}Rp {record.differenceValue.toLocaleString()}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                {record.notes && (
+                                                                    <p className="text-[10px] text-slate-400 italic bg-slate-50 p-1.5 rounded mt-1">
+                                                                        "{record.notes}"
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
                                                 </CardContent>
                                             )}
                                         </Card>

@@ -823,21 +823,21 @@ const ShoppingRecommendations = () => {
     };
 
     return (
-        <div className="p-4 space-y-6">
-            <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="p-4 md:p-6 lg:p-8 space-y-6">
+            <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2">
+                    <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
                         <Sparkles className="h-8 w-8 text-yellow-500" />
                         Rekomendasi Belanja
                     </h1>
-                    <p className="text-muted-foreground mt-1">
+                    <p className="text-muted-foreground mt-1 text-sm md:text-base">
                         Dapatkan rekomendasi belanja cerdas berbasis riwayat transaksi Anda.
                     </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="border-dashed">
+                        <DropdownMenuTrigger asChild className="w-full lg:w-auto">
+                            <Button variant="outline" className="border-dashed w-full lg:w-auto">
                                 <Download className="h-4 w-4 mr-2" />
                                 Template
                             </Button>
@@ -861,8 +861,8 @@ const ShoppingRecommendations = () => {
                     />
 
                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline" disabled={loading}>
+                        <DropdownMenuTrigger asChild className="w-full lg:w-auto">
+                            <Button variant="outline" disabled={loading} className="w-full lg:w-auto">
                                 <Upload className="h-4 w-4 mr-2" />
                                 Upload Excel
                                 <ChevronDown className="h-4 w-4 ml-2 opacity-50" />
@@ -884,9 +884,9 @@ const ShoppingRecommendations = () => {
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    <Button onClick={() => handleOpenConfig('ai')} className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white border-0">
+                    <Button onClick={() => handleOpenConfig('ai')} className="w-full lg:w-auto bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white border-0">
                         <Plus className="h-4 w-4 mr-2" />
-                        Buat Rekomendasi Baru
+                        <span className="whitespace-nowrap">Buat Rekomendasi Baru</span>
                     </Button>
                 </div>
             </header>
@@ -1054,8 +1054,8 @@ const ShoppingRecommendations = () => {
             />
 
             <Dialog open={isConfigModalOpen} onOpenChange={setIsConfigModalOpen}>
-                <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
-                    <DialogHeader>
+                <DialogContent className="max-w-md max-h-[80vh] flex flex-col p-0 overflow-hidden">
+                    <DialogHeader className="px-6 pt-6 text-left">
                         <DialogTitle className="flex items-center gap-2">
                             {configMode === 'excel' ? <Upload className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
                             {configMode === 'excel' ? 'Konfigurasi Rekomendasi (Excel)' : 'Konfigurasi Rekomendasi (AI)'}
@@ -1065,7 +1065,7 @@ const ShoppingRecommendations = () => {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-4 py-4 px-1 overflow-y-auto">
+                    <div className="space-y-6 py-4 px-6 overflow-y-auto flex-1 text-left">
                         <div className="space-y-2">
                             <Label>Total Budget Belanja (Rp)</Label>
                             <div className="relative">
@@ -1131,15 +1131,25 @@ const ShoppingRecommendations = () => {
                         </div>
                     </div>
 
-                    <DialogFooter>
-                        <Button variant="ghost" onClick={() => setIsConfigModalOpen(false)}>Batal</Button>
-                        <Button onClick={handleConfirmConfig} disabled={!budget || loading}>
+                    <DialogFooter className="px-6 pb-6 flex flex-col sm:flex-row-reverse gap-2">
+                        <Button
+                            onClick={handleConfirmConfig}
+                            disabled={!budget || loading}
+                            className="w-full sm:w-auto"
+                        >
                             {loading ? (
                                 <>
                                     <Sparkles className="h-4 w-4 mr-2 animate-spin" />
                                     Memproses...
                                 </>
                             ) : 'Proses Rekomendasi'}
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            onClick={() => setIsConfigModalOpen(false)}
+                            className="w-full sm:w-auto"
+                        >
+                            Batal
                         </Button>
                     </DialogFooter>
                 </DialogContent>

@@ -155,18 +155,14 @@ const Categories = () => {
 
     return (
         <div className="p-4 space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Kategori</h1>
                     <p className="text-muted-foreground">Kelola kategori produk</p>
                 </div>
-                <div className="flex gap-2">
-                    {/* <Button variant="outline" onClick={handleCleanupDuplicates} className="text-orange-600 border-orange-200 hover:bg-orange-50">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Bersihkan Duplikat
-                    </Button> */}
+                <div className="flex w-full sm:w-auto gap-2">
                     {checkPermission('categories.create') && (
-                        <Button onClick={() => handleOpenModal()}>
+                        <Button onClick={() => handleOpenModal()} className="flex-1 sm:flex-none">
                             <Plus className="mr-2 h-4 w-4" />
                             Tambah Kategori
                         </Button>
@@ -174,7 +170,8 @@ const Categories = () => {
                 </div>
             </div>
 
-            <div className="rounded-md border bg-card">
+            {/* Desktop Table View */}
+            <div className="hidden lg:block rounded-xl border bg-card overflow-hidden">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -237,6 +234,47 @@ const Categories = () => {
                         )}
                     </TableBody>
                 </Table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="lg:hidden space-y-4">
+                {currentCategories.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground bg-white rounded-xl border">
+                        Tidak ada kategori ditemukan
+                    </div>
+                ) : (
+                    currentCategories.map((category) => (
+                        <div key={category.id} className="bg-white rounded-xl border p-4 shadow-sm active:bg-slate-50 transition-colors">
+                            <div className="flex justify-between items-center">
+                                <div className="space-y-1">
+                                    <h3 className="font-bold text-slate-800">
+                                        {typeof category.name === 'object' && category.name?.name ? category.name.name : category.name}
+                                    </h3>
+                                    <p className="text-xs text-slate-500 font-medium">
+                                        {getProductCount(category)} Produk
+                                    </p>
+                                </div>
+                                <div className="flex gap-1">
+                                    {checkPermission('categories.update') && (
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => handleOpenModal(category)}>
+                                            <Edit2 className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                    {checkPermission('categories.delete') && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-red-600"
+                                            onClick={() => handleDelete(category)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
 
             <Pagination

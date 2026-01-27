@@ -383,46 +383,48 @@ const StockManagement = () => {
 
     return (
         <div className="p-4 space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Manajemen Stok</h1>
                     <p className="text-muted-foreground">Kelola stok produk Anda</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 w-full xl:w-auto">
                     <Button
                         variant="outline"
-                        className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                        className="text-orange-600 border-orange-200 hover:bg-orange-50 flex-1 sm:flex-none"
                         onClick={handleCheckDuplicates}
                     >
                         <Wrench className="mr-2 h-4 w-4" />
                         Cek Duplikat
                     </Button>
 
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="outline">
-                                <FileDown className="mr-2 h-4 w-4" />
-                                Template
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                            <DropdownMenuItem onClick={handleDownloadTemplate}>
-                                Download Template Stok
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" className="flex-1 sm:flex-none">
+                                    <FileDown className="mr-2 h-4 w-4" />
+                                    Template
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                                <DropdownMenuItem onClick={handleDownloadTemplate}>
+                                    Download Template Stok
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
 
-                    <div className="relative">
-                        <input
-                            type="file"
-                            accept=".xlsx, .xls"
-                            onChange={handleImportStockExcel}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        />
-                        <Button className="bg-blue-600 hover:bg-blue-700">
-                            <Upload className="mr-2 h-4 w-4" />
-                            Import Stok
-                        </Button>
+                        <div className="relative flex-1 sm:flex-none">
+                            <input
+                                type="file"
+                                accept=".xlsx, .xls"
+                                onChange={handleImportStockExcel}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            />
+                            <Button className="bg-blue-600 hover:bg-blue-700 w-full">
+                                <Upload className="mr-2 h-4 w-4" />
+                                Import Stok
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -439,285 +441,374 @@ const StockManagement = () => {
                 </div>
             </div>
 
-            <div className="rounded-md border bg-card overflow-x-auto">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="min-w-[250px]">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => handleSort('name')}
-                                    className="h-8 px-2"
-                                >
-                                    Produk
-                                    {sortConfig.key === 'name' ? (
-                                        sortConfig.direction === 'asc' ? (
-                                            <ArrowUp className="ml-2 h-4 w-4" />
-                                        ) : (
-                                            <ArrowDown className="ml-2 h-4 w-4" />
-                                        )
-                                    ) : (
-                                        <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
-                                    )}
-                                </Button>
-                            </TableHead>
-                            <TableHead className="w-[120px]">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => handleSort('category')}
-                                    className="h-8 px-2"
-                                >
-                                    Kategori
-                                    {sortConfig.key === 'category' ? (
-                                        sortConfig.direction === 'asc' ? (
-                                            <ArrowUp className="ml-2 h-4 w-4" />
-                                        ) : (
-                                            <ArrowDown className="ml-2 h-4 w-4" />
-                                        )
-                                    ) : (
-                                        <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
-                                    )}
-                                </Button>
-                            </TableHead>
-                            <TableHead className="w-[130px]">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => handleSort('buyPrice')}
-                                    className="h-8 px-2"
-                                >
-                                    Harga Dasar
-                                    {sortConfig.key === 'buyPrice' ? (
-                                        sortConfig.direction === 'asc' ? (
-                                            <ArrowUp className="ml-2 h-4 w-4" />
-                                        ) : (
-                                            <ArrowDown className="ml-2 h-4 w-4" />
-                                        )
-                                    ) : (
-                                        <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
-                                    )}
-                                </Button>
-                            </TableHead>
-                            <TableHead className="w-[130px]">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => handleSort('sellPrice')}
-                                    className="h-8 px-2"
-                                >
-                                    Harga Jual
-                                    {sortConfig.key === 'sellPrice' ? (
-                                        sortConfig.direction === 'asc' ? (
-                                            <ArrowUp className="ml-2 h-4 w-4" />
-                                        ) : (
-                                            <ArrowDown className="ml-2 h-4 w-4" />
-                                        )
-                                    ) : (
-                                        <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
-                                    )}
-                                </Button>
-                            </TableHead>
-                            <TableHead className="w-[140px]">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => handleSort('profit')}
-                                    className="h-8 px-2"
-                                >
-                                    Keuntungan
-                                    {sortConfig.key === 'profit' ? (
-                                        sortConfig.direction === 'asc' ? (
-                                            <ArrowUp className="ml-2 h-4 w-4" />
-                                        ) : (
-                                            <ArrowDown className="ml-2 h-4 w-4" />
-                                        )
-                                    ) : (
-                                        <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
-                                    )}
-                                </Button>
-                            </TableHead>
-                            <TableHead className="w-[80px]">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => handleSort('stock')}
-                                    className="h-8 px-2"
-                                >
-                                    Stok
-                                    {sortConfig.key === 'stock' ? (
-                                        sortConfig.direction === 'asc' ? (
-                                            <ArrowUp className="ml-2 h-4 w-4" />
-                                        ) : (
-                                            <ArrowDown className="ml-2 h-4 w-4" />
-                                        )
-                                    ) : (
-                                        <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
-                                    )}
-                                </Button>
-                            </TableHead>
-                            <TableHead className="w-[120px]">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => handleSort('status')}
-                                    className="h-8 px-2"
-                                >
-                                    Status Stok
-                                    {sortConfig.key === 'status' ? (
-                                        sortConfig.direction === 'asc' ? (
-                                            <ArrowUp className="ml-2 h-4 w-4" />
-                                        ) : (
-                                            <ArrowDown className="ml-2 h-4 w-4" />
-                                        )
-                                    ) : (
-                                        <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
-                                    )}
-                                </Button>
-                            </TableHead>
-                            <TableHead className="w-[100px]">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => handleSort('discount')}
-                                    className="h-8 px-2"
-                                >
-                                    Diskon
-                                    {sortConfig.key === 'discount' ? (
-                                        sortConfig.direction === 'asc' ? (
-                                            <ArrowUp className="ml-2 h-4 w-4" />
-                                        ) : (
-                                            <ArrowDown className="ml-2 h-4 w-4" />
-                                        )
-                                    ) : (
-                                        <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
-                                    )}
-                                </Button>
-                            </TableHead>
-                            <TableHead className="w-[200px] text-right">Aksi</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {currentProducts.length === 0 ? (
+            <div className="rounded-md border bg-card overflow-hidden">
+                {/* Desktop Table View */}
+                <div className="hidden lg:block overflow-x-auto">
+                    <Table>
+                        <TableHeader>
                             <TableRow>
-                                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                                    Tidak ada produk ditemukan
-                                </TableCell>
+                                <TableHead className="min-w-[250px]">
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => handleSort('name')}
+                                        className="h-8 px-2"
+                                    >
+                                        Produk
+                                        {sortConfig.key === 'name' ? (
+                                            sortConfig.direction === 'asc' ? (
+                                                <ArrowUp className="ml-2 h-4 w-4" />
+                                            ) : (
+                                                <ArrowDown className="ml-2 h-4 w-4" />
+                                            )
+                                        ) : (
+                                            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                                        )}
+                                    </Button>
+                                </TableHead>
+                                <TableHead className="w-[120px]">
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => handleSort('category')}
+                                        className="h-8 px-2"
+                                    >
+                                        Kategori
+                                        {sortConfig.key === 'category' ? (
+                                            sortConfig.direction === 'asc' ? (
+                                                <ArrowUp className="ml-2 h-4 w-4" />
+                                            ) : (
+                                                <ArrowDown className="ml-2 h-4 w-4" />
+                                            )
+                                        ) : (
+                                            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                                        )}
+                                    </Button>
+                                </TableHead>
+                                <TableHead className="w-[130px]">
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => handleSort('buyPrice')}
+                                        className="h-8 px-2"
+                                    >
+                                        Harga Dasar
+                                        {sortConfig.key === 'buyPrice' ? (
+                                            sortConfig.direction === 'asc' ? (
+                                                <ArrowUp className="ml-2 h-4 w-4" />
+                                            ) : (
+                                                <ArrowDown className="ml-2 h-4 w-4" />
+                                            )
+                                        ) : (
+                                            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                                        )}
+                                    </Button>
+                                </TableHead>
+                                <TableHead className="w-[130px]">
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => handleSort('sellPrice')}
+                                        className="h-8 px-2"
+                                    >
+                                        Harga Jual
+                                        {sortConfig.key === 'sellPrice' ? (
+                                            sortConfig.direction === 'asc' ? (
+                                                <ArrowUp className="ml-2 h-4 w-4" />
+                                            ) : (
+                                                <ArrowDown className="ml-2 h-4 w-4" />
+                                            )
+                                        ) : (
+                                            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                                        )}
+                                    </Button>
+                                </TableHead>
+                                <TableHead className="w-[140px]">
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => handleSort('profit')}
+                                        className="h-8 px-2"
+                                    >
+                                        Keuntungan
+                                        {sortConfig.key === 'profit' ? (
+                                            sortConfig.direction === 'asc' ? (
+                                                <ArrowUp className="ml-2 h-4 w-4" />
+                                            ) : (
+                                                <ArrowDown className="ml-2 h-4 w-4" />
+                                            )
+                                        ) : (
+                                            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                                        )}
+                                    </Button>
+                                </TableHead>
+                                <TableHead className="w-[80px]">
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => handleSort('stock')}
+                                        className="h-8 px-2"
+                                    >
+                                        Stok
+                                        {sortConfig.key === 'stock' ? (
+                                            sortConfig.direction === 'asc' ? (
+                                                <ArrowUp className="ml-2 h-4 w-4" />
+                                            ) : (
+                                                <ArrowDown className="ml-2 h-4 w-4" />
+                                            )
+                                        ) : (
+                                            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                                        )}
+                                    </Button>
+                                </TableHead>
+                                <TableHead className="w-[120px]">
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => handleSort('status')}
+                                        className="h-8 px-2"
+                                    >
+                                        Status Stok
+                                        {sortConfig.key === 'status' ? (
+                                            sortConfig.direction === 'asc' ? (
+                                                <ArrowUp className="ml-2 h-4 w-4" />
+                                            ) : (
+                                                <ArrowDown className="ml-2 h-4 w-4" />
+                                            )
+                                        ) : (
+                                            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                                        )}
+                                    </Button>
+                                </TableHead>
+                                <TableHead className="w-[100px]">
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => handleSort('discount')}
+                                        className="h-8 px-2"
+                                    >
+                                        Diskon
+                                        {sortConfig.key === 'discount' ? (
+                                            sortConfig.direction === 'asc' ? (
+                                                <ArrowUp className="ml-2 h-4 w-4" />
+                                            ) : (
+                                                <ArrowDown className="ml-2 h-4 w-4" />
+                                            )
+                                        ) : (
+                                            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                                        )}
+                                    </Button>
+                                </TableHead>
+                                <TableHead className="w-[200px] text-right">Aksi</TableHead>
                             </TableRow>
-                        ) : (
-                            currentProducts.map((product) => {
-                                const buyPrice = parseFloat(product.buyPrice) || 0;
-                                const sellPrice = parseFloat(product.sellPrice || product.price) || 0;
-                                const profit = sellPrice - buyPrice;
-                                const profitPercent = buyPrice > 0 ? ((profit / buyPrice) * 100).toFixed(1) : 0;
-                                const stock = parseInt(product.stock) || 0;
-                                const discount = parseFloat(product.discount) || 0;
+                        </TableHeader>
+                        <TableBody>
+                            {currentProducts.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                                        Tidak ada produk ditemukan
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                currentProducts.map((product) => {
+                                    const buyPrice = parseFloat(product.buyPrice) || 0;
+                                    const sellPrice = parseFloat(product.sellPrice || product.price) || 0;
+                                    const profit = sellPrice - buyPrice;
+                                    const profitPercent = buyPrice > 0 ? ((profit / buyPrice) * 100).toFixed(1) : 0;
+                                    const stock = parseInt(product.stock) || 0;
+                                    const discount = parseFloat(product.discount) || 0;
 
+                                    let stockStatus = 'Aman';
+                                    let stockColor = 'text-green-600';
+
+                                    if (product.isUnlimited) {
+                                        stockStatus = 'Unlimited';
+                                        stockColor = 'text-blue-600 font-bold';
+                                    } else if (stock === 0) {
+                                        stockStatus = 'Habis';
+                                        stockColor = 'text-red-600';
+                                    } else if (stock <= (product.minStock || 5)) {
+                                        stockStatus = 'Rendah';
+                                        stockColor = 'text-orange-600';
+                                    }
+
+                                    return (
+                                        <TableRow key={product.id}>
+                                            <TableCell>
+                                                <div className="flex items-center gap-3">
+                                                    {product.image ? (
+                                                        <img
+                                                            src={product.image}
+                                                            alt={product.name}
+                                                            className="w-12 h-12 flex-shrink-0 rounded-lg object-cover border"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-12 h-12 flex-shrink-0 rounded-lg bg-slate-100 flex items-center justify-center border">
+                                                            <span className="text-lg font-bold text-slate-400">
+                                                                {product.name.charAt(0).toUpperCase()}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="font-medium truncate">{product.name}</div>
+                                                        <div className="text-xs text-muted-foreground truncate">
+                                                            {product.code || product.barcode || '-'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="secondary">{product.category}</Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="text-sm">Rp {buyPrice.toLocaleString('id-ID')}</div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="font-medium">Rp {sellPrice.toLocaleString('id-ID')}</div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className={profit >= 0 ? "text-green-600" : "text-red-600"}>
+                                                    <div className="font-medium">Rp {profit.toLocaleString('id-ID')}</div>
+                                                    <div className="text-xs">({profitPercent}%)</div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className={stock <= 5 && !product.isUnlimited ? "font-medium" : ""}>
+                                                    {product.isUnlimited ? "∞" : stock}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className={`font-medium ${stockColor}`}>
+                                                    {stockStatus}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell>
+                                                {discount > 0 ? (
+                                                    <Badge variant="destructive">
+                                                        {product.discountType === 'fixed'
+                                                            ? `Rp ${discount.toLocaleString('id-ID')}`
+                                                            : `${discount}%`}
+                                                    </Badge>
+                                                ) : (
+                                                    <span className="text-muted-foreground">-</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="text-green-600 border-green-200 hover:bg-green-50"
+                                                        onClick={() => handleAddStock(product)}
+                                                        disabled={product.isUnlimited}
+                                                        title={product.isUnlimited ? "Stok Unlimited" : "Tambah Stok"}
+                                                    >
+                                                        <Plus className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="text-red-600 border-red-200 hover:bg-red-50"
+                                                        onClick={() => handleReduceStock(product)}
+                                                        disabled={product.isUnlimited}
+                                                        title={product.isUnlimited ? "Stok Unlimited" : "Kurangi Stok"}
+                                                    >
+                                                        <Minus className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleViewHistory(product)}
+                                                    >
+                                                        <HistoryIcon className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="lg:hidden p-4 space-y-4">
+                    {currentProducts.length === 0 ? (
+                        <div className="text-center py-10 text-muted-foreground">
+                            Tidak ada produk ditemukan
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {currentProducts.map((product) => {
+                                const stock = parseInt(product.stock) || 0;
                                 let stockStatus = 'Aman';
-                                let stockColor = 'text-green-600';
+                                let stockColor = 'bg-green-100 text-green-700';
 
                                 if (product.isUnlimited) {
-                                    stockStatus = 'Unlimited';
-                                    stockColor = 'text-blue-600 font-bold';
+                                    stockStatus = '∞';
+                                    stockColor = 'bg-blue-100 text-blue-700 font-bold';
                                 } else if (stock === 0) {
                                     stockStatus = 'Habis';
-                                    stockColor = 'text-red-600';
+                                    stockColor = 'bg-red-100 text-red-700';
                                 } else if (stock <= (product.minStock || 5)) {
                                     stockStatus = 'Rendah';
-                                    stockColor = 'text-orange-600';
+                                    stockColor = 'bg-orange-100 text-orange-700';
                                 }
 
                                 return (
-                                    <TableRow key={product.id}>
-                                        <TableCell>
-                                            <div className="flex items-center gap-3">
-                                                {product.image ? (
-                                                    <img
-                                                        src={product.image}
-                                                        alt={product.name}
-                                                        className="w-12 h-12 flex-shrink-0 rounded-lg object-cover border"
-                                                    />
-                                                ) : (
-                                                    <div className="w-12 h-12 flex-shrink-0 rounded-lg bg-slate-100 flex items-center justify-center border">
-                                                        <span className="text-lg font-bold text-slate-400">
-                                                            {product.name.charAt(0).toUpperCase()}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                                <div className="min-w-0 flex-1">
-                                                    <div className="font-medium truncate">{product.name}</div>
-                                                    <div className="text-xs text-muted-foreground truncate">
-                                                        {product.code || product.barcode || '-'}
-                                                    </div>
+                                    <div key={product.id} className="bg-white rounded-xl border p-4 shadow-sm space-y-4">
+                                        <div className="flex gap-4">
+                                            {product.image ? (
+                                                <img
+                                                    src={product.image}
+                                                    alt={product.name}
+                                                    className="w-16 h-16 rounded-lg object-cover border"
+                                                />
+                                            ) : (
+                                                <div className="w-16 h-16 rounded-lg bg-slate-100 flex items-center justify-center border text-slate-400 font-bold text-xl">
+                                                    {product.name.charAt(0).toUpperCase()}
+                                                </div>
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-bold text-sm truncate">{product.name}</h3>
+                                                <p className="text-xs text-muted-foreground font-mono">
+                                                    {product.code || product.barcode || '-'}
+                                                </p>
+                                                <Badge variant="secondary" className="mt-1 text-[10px] h-5 px-1.5">
+                                                    {product.category}
+                                                </Badge>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className={`text-xs px-2 py-0.5 rounded-full font-bold ${stockColor}`}>
+                                                    {stockStatus === '∞' ? 'Unlimited' : `Stok: ${stock}`}
                                                 </div>
                                             </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="secondary">{product.category}</Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="text-sm">Rp {buyPrice.toLocaleString('id-ID')}</div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="font-medium">Rp {sellPrice.toLocaleString('id-ID')}</div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className={profit >= 0 ? "text-green-600" : "text-red-600"}>
-                                                <div className="font-medium">Rp {profit.toLocaleString('id-ID')}</div>
-                                                <div className="text-xs">({profitPercent}%)</div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <span className={stock <= 5 && !product.isUnlimited ? "font-medium" : ""}>
-                                                {product.isUnlimited ? "∞" : stock}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell>
-                                            <span className={`font-medium ${stockColor}`}>
-                                                {stockStatus}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell>
-                                            {discount > 0 ? (
-                                                <Badge variant="destructive">
-                                                    {product.discountType === 'fixed'
-                                                        ? `Rp ${discount.toLocaleString('id-ID')}`
-                                                        : `${discount}%`}
-                                                </Badge>
-                                            ) : (
-                                                <span className="text-muted-foreground">-</span>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="text-green-600 border-green-200 hover:bg-green-50"
-                                                    onClick={() => handleAddStock(product)}
-                                                    disabled={product.isUnlimited}
-                                                    title={product.isUnlimited ? "Stok Unlimited" : "Tambah Stok"}
-                                                >
-                                                    <Plus className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="text-red-600 border-red-200 hover:bg-red-50"
-                                                    onClick={() => handleReduceStock(product)}
-                                                    disabled={product.isUnlimited}
-                                                    title={product.isUnlimited ? "Stok Unlimited" : "Kurangi Stok"}
-                                                >
-                                                    <Minus className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleViewHistory(product)}
-                                                >
-                                                    <HistoryIcon className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
+                                        </div>
+
+                                        <div className="flex gap-2 pt-2 border-t">
+                                            <Button
+                                                variant="outline"
+                                                className="flex-1 text-green-600 border-green-200 bg-green-50/50 h-10"
+                                                onClick={() => handleAddStock(product)}
+                                                disabled={product.isUnlimited}
+                                            >
+                                                <Plus className="mr-2 h-4 w-4" /> Tambah
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                className="flex-1 text-red-600 border-red-200 bg-red-50/50 h-10"
+                                                onClick={() => handleReduceStock(product)}
+                                                disabled={product.isUnlimited}
+                                            >
+                                                <Minus className="mr-2 h-4 w-4" /> Kurangi
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                className="h-10 px-3"
+                                                onClick={() => handleViewHistory(product)}
+                                            >
+                                                <HistoryIcon className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
                                 );
-                            })
-                        )}
-                    </TableBody>
-                </Table>
+                            })}
+                        </div>
+                    )}
+                </div>
             </div>
 
             <Pagination

@@ -133,17 +133,17 @@ const Suppliers = () => {
     };
 
     return (
-        <div className="p-6 space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold tracking-tight">Supplier</h1>
+        <div className="p-4 sm:p-6 space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h1 className="text-3xl font-bold tracking-tight">Supplier</h1>
                 {checkPermission('suppliers.create') && (
-                    <Button onClick={() => handleOpenDialog()} className="gap-2">
+                    <Button onClick={() => handleOpenDialog()} className="w-full sm:w-auto gap-2">
                         <Plus className="h-4 w-4" /> Tambah Supplier
                     </Button>
                 )}
             </div>
 
-            <div className="flex gap-4 items-center bg-white p-4 rounded-lg border shadow-sm">
+            <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center bg-white p-4 rounded-xl border shadow-sm">
                 <div className="relative flex-1">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -155,7 +155,7 @@ const Suppliers = () => {
                 </div>
                 <div className="flex gap-2">
                     <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                        <SelectTrigger className="w-[140px]">
+                        <SelectTrigger className="flex-1 md:w-[140px]">
                             <SelectValue placeholder="Bulan" />
                         </SelectTrigger>
                         <SelectContent className="max-h-[200px]">
@@ -168,7 +168,7 @@ const Suppliers = () => {
                         </SelectContent>
                     </Select>
                     <Select value={selectedYear} onValueChange={setSelectedYear}>
-                        <SelectTrigger className="w-[120px]">
+                        <SelectTrigger className="flex-1 md:w-[120px]">
                             <SelectValue placeholder="Tahun" />
                         </SelectTrigger>
                         <SelectContent>
@@ -183,7 +183,8 @@ const Suppliers = () => {
                 </div>
             </div>
 
-            <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+            {/* Desktop Table View */}
+            <div className="hidden lg:block border rounded-xl overflow-hidden bg-white shadow-sm">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -261,6 +262,70 @@ const Suppliers = () => {
                 </Table>
             </div>
 
+            {/* Mobile Card View */}
+            <div className="lg:hidden space-y-4">
+                {filteredSuppliers.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground bg-white rounded-xl border">
+                        Belum ada supplier ditemukan.
+                    </div>
+                ) : (
+                    filteredSuppliers.map((supplier) => (
+                        <div key={supplier.id} className="bg-white rounded-xl border p-4 shadow-sm active:bg-slate-50 transition-colors">
+                            <div className="flex justify-between items-start mb-3">
+                                <div className="space-y-1">
+                                    <h3 className="font-bold text-slate-800">{supplier.name}</h3>
+                                    {supplier.contactPerson && (
+                                        <div className="text-xs text-slate-500 flex items-center gap-1">
+                                            <User className="h-3 w-3" /> {supplier.contactPerson}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex gap-1">
+                                    {checkPermission('suppliers.update') && (
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => handleOpenDialog(supplier)}>
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                    {checkPermission('suppliers.delete') && (
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600" onClick={() => setDeleteId(supplier.id)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="space-y-2 mb-3">
+                                {supplier.address && (
+                                    <div className="flex items-start gap-2 text-xs text-slate-500">
+                                        <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
+                                        <span>{supplier.address}</span>
+                                    </div>
+                                )}
+                                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                                    {supplier.phone && (
+                                        <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
+                                            <Phone className="h-3 w-3 text-slate-400" />
+                                            {supplier.phone}
+                                        </div>
+                                    )}
+                                    {supplier.email && (
+                                        <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
+                                            <Mail className="h-3 w-3 text-slate-400" />
+                                            <span className="truncate max-w-[150px]">{supplier.email}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="pt-3 border-t flex justify-between items-center">
+                                <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Total Belanja</span>
+                                <span className="font-bold text-slate-900">Rp {calculateTotalSpend(supplier.id).toLocaleString('id-ID')}</span>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -276,7 +341,7 @@ const Suppliers = () => {
                                 placeholder="PT. Distributor..."
                             />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="text-sm font-medium">Contact Person</label>
                                 <Input

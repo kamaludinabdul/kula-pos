@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Textarea } from '../../components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '../../components/ui/dialog';
+import { Badge } from '../../components/ui/badge';
 import { Plus, Trash2, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -389,158 +390,164 @@ const CashFlow = () => {
 
 
             {/* All-Time Balance Card */}
-            < Card className="bg-slate-900 text-white border-none shadow-lg" >
-                <CardHeader>
-                    <CardTitle className="text-lg font-medium text-slate-200">Total Uang Saat Ini (Tanpa Filter)</CardTitle>
+            <Card className="bg-slate-900 text-white border-none shadow-lg overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-slate-400 uppercase tracking-wider">Total Saldo Saat Ini</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                    <div className="flex flex-col gap-4">
                         <div>
-                            <div className="text-4xl font-bold">
+                            <div className="text-3xl sm:text-4xl font-extrabold tracking-tight">
                                 {allTimeBalance.loading ? '...' : `Rp ${currentBalance.toLocaleString()}`}
                             </div>
-                            <div className="text-sm text-slate-400 mt-2">
-                                (Penjualan + Kas Masuk) - (Kas Keluar)
-                            </div>
+                            <p className="text-[10px] text-slate-500 font-medium mt-1 uppercase tracking-widest">
+                                Sisa Kas + Penjualan
+                            </p>
                         </div>
-                        <div className="text-right text-xs space-y-1">
-                            <div className="text-emerald-400">Sales: +Rp {allTimeBalance.sales.toLocaleString()}</div>
-                            <div className="text-emerald-400">Masuk: +Rp {allTimeBalance.cashIn.toLocaleString()}</div>
-                            <div className="text-rose-400">Keluar: -Rp {allTimeBalance.cashOut.toLocaleString()}</div>
+                        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800">
+                            <div className="space-y-0.5">
+                                <p className="text-[9px] font-bold text-slate-500 uppercase">Sales</p>
+                                <p className="text-xs font-bold text-emerald-400">+{allTimeBalance.sales.toLocaleString()}</p>
+                            </div>
+                            <div className="space-y-0.5">
+                                <p className="text-[9px] font-bold text-slate-500 uppercase">Masuk</p>
+                                <p className="text-xs font-bold text-emerald-400">+{allTimeBalance.cashIn.toLocaleString()}</p>
+                            </div>
+                            <div className="space-y-0.5">
+                                <p className="text-[9px] font-bold text-slate-500 uppercase">Keluar</p>
+                                <p className="text-xs font-bold text-rose-400">-{allTimeBalance.cashOut.toLocaleString()}</p>
+                            </div>
                         </div>
                     </div>
                 </CardContent>
-            </Card >
+            </Card>
 
             {/* Summary Cards */}
-            < div className="grid grid-cols-1 md:grid-cols-3 gap-4" >
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Pemasukan</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-green-600" />
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                <Card className="border-none shadow-sm bg-white">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-4 pb-1 sm:pb-2">
+                        <CardTitle className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Income</CardTitle>
+                        <div className="p-1.5 bg-green-50 rounded-lg">
+                            <TrendingUp className="h-3.5 w-3.5 text-green-600" />
+                        </div>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-green-600">
+                    <CardContent className="p-3 sm:p-4 pt-0">
+                        <div className="text-base sm:text-xl font-bold text-green-600">
                             Rp {stats.income.toLocaleString()}
                         </div>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Pengeluaran</CardTitle>
-                        <TrendingDown className="h-4 w-4 text-red-600" />
+
+                <Card className="border-none shadow-sm bg-white">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-4 pb-1 sm:pb-2">
+                        <CardTitle className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Expense</CardTitle>
+                        <div className="p-1.5 bg-red-50 rounded-lg">
+                            <TrendingDown className="h-3.5 w-3.5 text-red-600" />
+                        </div>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-red-600">
+                    <CardContent className="p-3 sm:p-4 pt-0">
+                        <div className="text-base sm:text-xl font-bold text-red-600">
                             Rp {stats.expense.toLocaleString()}
                         </div>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Net Cash Flow</CardTitle>
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+
+                <Card className="border-none shadow-sm bg-white col-span-2 md:col-span-1">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-4 pb-1 sm:pb-2">
+                        <CardTitle className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Net Flow</CardTitle>
+                        <div className="p-1.5 bg-blue-50 rounded-lg">
+                            <DollarSign className="h-3.5 w-3.5 text-blue-600" />
+                        </div>
                     </CardHeader>
-                    <CardContent>
-                        <div className={`text-2xl font-bold ${stats.income - stats.expense >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+                    <CardContent className="p-3 sm:p-4 pt-0">
+                        <div className={`text-base sm:text-xl font-bold ${stats.income - stats.expense >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
                             Rp {(stats.income - stats.expense).toLocaleString()}
                         </div>
                     </CardContent>
                 </Card>
+            </div>
 
-                {/* Additional Stats: OPEX & CAPEX */}
-                <Card className="bg-red-50/50 border-red-100">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-700">OPEX (Operasional)</CardTitle>
-                        <div className="bg-red-100 p-1 rounded">
-                            <TrendingDown className="h-3 w-3 text-red-700" />
-                        </div>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <Card className="bg-red-50/50 border-none shadow-sm h-full">
+                    <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+                        <CardTitle className="text-[10px] font-bold text-red-800 uppercase tracking-widest">OPEX</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-xl font-semibold text-red-700">
+                    <CardContent className="p-3 sm:p-4 pt-0">
+                        <div className="text-sm sm:text-base font-bold text-red-700">
                             Rp {stats.opex.toLocaleString()}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">Biaya rutin (Gaji, Listrik, dll)</p>
+                        <p className="text-[9px] text-red-600/70 font-medium mt-1">Biaya Operasional</p>
                     </CardContent>
                 </Card>
-                <Card className="bg-orange-50/50 border-orange-100">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-700">CAPEX (Modal/Aset)</CardTitle>
-                        <div className="bg-orange-100 p-1 rounded">
-                            <TrendingDown className="h-3 w-3 text-orange-700" />
-                        </div>
+                <Card className="bg-orange-50/50 border-none shadow-sm h-full">
+                    <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+                        <CardTitle className="text-[10px] font-bold text-orange-800 uppercase tracking-widest">CAPEX</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-xl font-semibold text-orange-700">
+                    <CardContent className="p-3 sm:p-4 pt-0">
+                        <div className="text-sm sm:text-base font-bold text-orange-700">
                             Rp {stats.capex.toLocaleString()}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">Pembelian aset & inventaris</p>
+                        <p className="text-[9px] text-orange-600/70 font-medium mt-1">Aset & Inventaris</p>
                     </CardContent>
                 </Card>
-            </div >
+            </div>
 
-            {/* Transactions Table */}
-            < Card >
-                <CardHeader>
-                    <CardTitle>Riwayat Transaksi</CardTitle>
+            {/* Desktop Table View */}
+            <Card className="hidden lg:block border-none shadow-sm overflow-hidden rounded-xl">
+                <CardHeader className="bg-white border-b">
+                    <CardTitle className="text-base font-bold">Riwayat Transaksi Kas</CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-0">
                     <Table>
                         <TableHeader>
-                            <TableRow>
-                                <TableHead>Tanggal</TableHead>
+                            <TableRow className="bg-slate-50/50">
+                                <TableHead className="py-4">Tanggal</TableHead>
                                 <TableHead>Sumber</TableHead>
                                 <TableHead>Kategori</TableHead>
                                 <TableHead>Keterangan</TableHead>
                                 <TableHead>Oleh</TableHead>
                                 <TableHead className="text-right">Masuk</TableHead>
                                 <TableHead className="text-right">Keluar</TableHead>
-                                <TableHead className="w-[50px]"></TableHead>
+                                <TableHead className="w-[80px] text-right">Aksi</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-8">Memuat data...</TableCell>
+                                    <TableCell colSpan={8} className="text-center py-12 text-slate-400">Memuat data...</TableCell>
                                 </TableRow>
                             ) : transactions.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Belum ada data transaksi</TableCell>
+                                    <TableCell colSpan={8} className="text-center py-12 text-slate-400 font-medium">Belum ada data transaksi</TableCell>
                                 </TableRow>
                             ) : (
                                 transactions.map((t) => (
-                                    <TableRow key={t.id}>
+                                    <TableRow key={t.id} className="hover:bg-slate-50 transition-colors group">
                                         <TableCell>
-                                            <div className="flex flex-col">
-                                                <span className="font-medium">{format(new Date(t.date), 'dd MMM yyyy', { locale: id })}</span>
-                                            </div>
+                                            <span className="font-semibold text-slate-700">{format(new Date(t.date), 'dd MMM yyyy', { locale: id })}</span>
                                         </TableCell>
                                         <TableCell>
-                                            <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-500/10">
+                                            <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600 uppercase tracking-tighter ring-1 ring-inset ring-slate-500/10">
                                                 {t.source || 'Back Office'}
                                             </span>
                                         </TableCell>
                                         <TableCell>
-                                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${t.type === 'in' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${t.type === 'in' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                                                 }`}>
                                                 {t.category}
                                             </span>
-                                            {t.type === 'out' && (
-                                                <div className="text-[10px] text-muted-foreground mt-1">
-                                                    {t.expenseGroup === 'non_operational' ? '(Aset/Modal)' : '(Operasional)'}
-                                                </div>
-                                            )}
                                         </TableCell>
-                                        <TableCell className="max-w-[200px] truncate" title={t.description}>{t.description || '-'}</TableCell>
-                                        <TableCell>{t.performedBy}</TableCell>
-                                        <TableCell className="text-right font-medium text-green-600">
+                                        <TableCell className="max-w-[200px] truncate text-slate-600" title={t.description}>{t.description || '-'}</TableCell>
+                                        <TableCell className="text-slate-500 text-xs font-medium">{t.performedBy}</TableCell>
+                                        <TableCell className="text-right font-bold text-green-600">
                                             {t.type === 'in' ? `Rp ${t.amount.toLocaleString()}` : '-'}
                                         </TableCell>
-                                        <TableCell className="text-right font-medium text-red-600">
+                                        <TableCell className="text-right font-bold text-red-600">
                                             {t.type === 'out' ? `Rp ${t.amount.toLocaleString()}` : '-'}
                                         </TableCell>
-                                        <TableCell>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-600" onClick={() => handleDelete(t.id)}>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(t.id)}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </TableCell>
@@ -550,7 +557,57 @@ const CashFlow = () => {
                         </TableBody>
                     </Table>
                 </CardContent>
-            </Card >
+            </Card>
+
+            {/* Mobile Card View */}
+            <div className="lg:hidden space-y-4">
+                {loading ? (
+                    <div className="text-center py-12 bg-white rounded-2xl border border-dashed text-slate-400 font-medium">Memuat data...</div>
+                ) : transactions.length === 0 ? (
+                    <div className="text-center py-12 bg-white rounded-2xl border border-dashed text-slate-400 font-medium">Belum ada riwayat transaksi.</div>
+                ) : (
+                    transactions.map((t) => (
+                        <div key={t.id} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3 relative overflow-hidden">
+                            <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${t.type === 'in' ? 'bg-green-500' : 'bg-red-500'}`} />
+                            <div className="flex justify-between items-start pl-2">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-bold text-slate-900">
+                                            {format(new Date(t.date), 'dd MMM yyyy', { locale: id })}
+                                        </span>
+                                        <span className="inline-flex items-center rounded-md bg-slate-50 px-1.5 py-0.5 text-[9px] font-bold text-slate-400 uppercase tracking-tighter border border-slate-100">
+                                            {t.source || 'Back Office'}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-slate-500 font-medium line-clamp-1">{t.description || 'Tanpa keterangan'}</p>
+                                </div>
+                                <div className="flex flex-col items-end gap-1">
+                                    <Badge
+                                        variant="outline"
+                                        className={`text-[9px] font-bold px-2 py-0.5 uppercase border-none ${t.type === 'in' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}
+                                    >
+                                        {t.category}
+                                    </Badge>
+                                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{t.performedBy}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-between items-center pt-2 border-t border-slate-50 pl-2">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Jumlah</span>
+                                <div className="flex items-center gap-3">
+                                    <span className={`text-base font-extrabold ${t.type === 'in' ? 'text-green-600' : 'text-red-600'}`}>
+                                        {t.type === 'in' ? '+' : '-'} Rp {t.amount?.toLocaleString()}
+                                    </span>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-red-500" onClick={() => handleDelete(t.id)}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                )
+                }
+            </div>
         </div >
     );
 };

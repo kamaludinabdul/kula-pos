@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useToast } from '../components/ui/use-toast';
-import { ArrowLeft, Save, Send, Trash2, Plus, Search, FileDown, Sparkles, Loader2, ArrowUpDown, ArrowUp, ArrowDown, Copy } from 'lucide-react';
+import { ArrowLeft, Save, Send, Trash2, Plus, Search, FileDown, Sparkles, Loader2, ArrowUpDown, ArrowUp, ArrowDown, Copy, FileText, CheckCircle, Clock } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import { Checkbox } from '../components/ui/checkbox';
 import jsPDF from 'jspdf';
@@ -125,13 +125,10 @@ const PurchaseOrderForm = () => {
     const [productSearch, setProductSearch] = useState('');
     const [searchResults, setSearchResults] = useState([]);
 
-    // Suggestions State
     const [isSuggestOpen, setIsSuggestOpen] = useState(false);
     const [suggestLoading, setSuggestLoading] = useState(false);
     const [suggestions, setSuggestions] = useState([]);
     const [selectedSuggestions, setSelectedSuggestions] = useState({}); // { productId: boolean }
-
-    // const { activeStoreId } = useData(); // Removed duplicate
 
     const calculateSuggestions = async () => {
         if (!activeStoreId) return;
@@ -660,28 +657,30 @@ const PurchaseOrderForm = () => {
 
     return (
         <div className="p-6 space-y-6 w-full mx-auto">
-            <div className="print:hidden flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => navigate('/purchase-orders')}>
-                    <ArrowLeft className="h-4 w-4" />
-                </Button>
-                <div className="flex-1">
-                    <h1 className="text-2xl font-bold tracking-tight">
-                        {isEditMode ? 'Edit Purchase Order' : 'Buat Purchase Order'}
-                    </h1>
-                    <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="capitalize">{status}</Badge>
-                        {isEditMode && <span className="text-sm text-muted-foreground">ID: #{id}</span>}
+            <div className="print:hidden flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex items-center gap-4 w-full sm:w-auto flex-1">
+                    <Button variant="ghost" size="icon" onClick={() => navigate('/purchase-orders')} className="-ml-2">
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">
+                            {isEditMode ? 'Edit Purchase Order' : 'Buat Purchase Order'}
+                        </h1>
+                        <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="outline" className="capitalize">{status}</Badge>
+                            {isEditMode && <span className="text-sm text-muted-foreground">ID: #{id}</span>}
+                        </div>
                     </div>
                 </div>
                 {isEditMode && (
-                    <div className="flex gap-2">
-                        <Button variant="outline" onClick={handleDuplicate} className="gap-2">
+                    <div className="flex gap-2 w-full sm:w-auto sm:justify-end">
+                        <Button variant="outline" onClick={handleDuplicate} className="gap-2 flex-1 sm:flex-none">
                             <Copy className="h-4 w-4" /> Duplikat
                         </Button>
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" className="gap-2">
+                                <Button variant="outline" className="gap-2 flex-1 sm:flex-none">
                                     <FileDown className="h-4 w-4" /> PDF
                                 </Button>
                             </DropdownMenuTrigger>
@@ -698,57 +697,61 @@ const PurchaseOrderForm = () => {
                 )}
             </div>
 
-            <div className="print:hidden grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="print:hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Header Information */}
-                <div className="md:col-span-2 space-y-4 bg-white p-4 rounded-lg border shadow-sm">
-                    <h2 className="font-semibold mb-2">Informasi Umum</h2>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-sm font-medium">Supplier <span className="text-red-500">*</span></label>
+                <div className="lg:col-span-2 space-y-4 bg-white p-4 lg:p-6 rounded-2xl border border-slate-100 shadow-sm transition-all">
+                    <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <FileText className="h-4 w-4" /> Informasi Umum
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Supplier <span className="text-red-500">*</span></label>
                             <Select
                                 value={supplierId}
                                 onValueChange={setSupplierId}
                                 disabled={isReadOnly}
                             >
-                                <SelectTrigger>
+                                <SelectTrigger className="h-11 rounded-xl border-slate-200 focus:ring-indigo-500">
                                     <SelectValue placeholder="Pilih Supplier" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="rounded-xl border-slate-100">
                                     {suppliers.map(s => (
-                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                        <SelectItem key={s.id} value={s.id} className="rounded-lg">{s.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div>
-                            <label className="text-sm font-medium">Tanggal</label>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Tanggal</label>
                             <Input
                                 type="date"
                                 value={date}
                                 onChange={e => setDate(e.target.value)}
                                 disabled={isReadOnly}
+                                className="h-11 rounded-xl border-slate-200 focus:ring-indigo-500"
                             />
                         </div>
                     </div>
-                    <div>
-                        <label className="text-sm font-medium">Catatan</label>
+                    <div className="space-y-1.5 pt-1">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Catatan</label>
                         <Input
                             value={notes}
                             onChange={e => setNotes(e.target.value)}
-                            placeholder="Catatan tambahan..."
+                            placeholder="Catatan tambahan untuk supplier..."
                             disabled={isReadOnly}
+                            className="h-11 rounded-xl border-slate-200 focus:ring-indigo-500"
                         />
                     </div>
                 </div>
 
                 {/* Actions Panel */}
-                <div className="space-y-4 bg-white p-4 rounded-lg border shadow-sm">
-                    <h2 className="font-semibold mb-2">Aksi</h2>
-                    <div className="space-y-2">
+                <div className="space-y-4 bg-white p-4 lg:p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Aksi</h2>
+                    <div className="flex flex-col gap-3">
                         {!isReadOnly && (
                             <>
                                 <Button
-                                    className="w-full gap-2"
+                                    className="w-full h-11 rounded-xl gap-2 font-bold transition-all hover:shadow-md"
                                     onClick={() => handleSave(status === 'draft' ? 'draft' : 'draft')}
                                     disabled={loading}
                                     variant="outline"
@@ -758,24 +761,29 @@ const PurchaseOrderForm = () => {
                                 </Button>
                                 {status === 'draft' && (
                                     <Button
-                                        className="w-full gap-2"
+                                        className="w-full h-11 rounded-xl gap-2 font-bold bg-indigo-600 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
                                         onClick={() => handleSave('ordered')}
                                         disabled={loading}
                                     >
-                                        <Send className="h-4 w-4" /> Pesan Sekarang (Order)
+                                        <Send className="h-4 w-4" /> Pesan Sekarang
                                     </Button>
                                 )}
                             </>
                         )}
                         {status === 'ordered' && (
-                            <div className="p-2 bg-blue-50 text-blue-800 text-sm rounded border border-blue-100">
-                                PO ini sudah dipesan. Menunggu barang diterima.
-                                <Button variant="secondary" className="w-full mt-2" onClick={() => toast({ description: "Fitur Terima Barang ada di Halaman List" })}>Tes Terima Barang</Button>
+                            <div className="p-3 bg-blue-50/50 text-blue-700 text-xs font-medium rounded-xl border border-blue-100/50 flex flex-col gap-2">
+                                <div className="flex items-center gap-2">
+                                    <Clock className="h-4 w-4" /> PO ini sudah dipesan.
+                                </div>
+                                <p className="text-[10px] opacity-70 italic text-slate-500 leading-relaxed">
+                                    Silahkan terima stok di halaman daftar jika barang sudah sampai.
+                                </p>
                             </div>
                         )}
                         {isReadOnly && (
-                            <div className="p-2 bg-gray-50 text-gray-800 text-sm rounded border">
-                                PO ini berstatus {status} dan tidak dapat diedit.
+                            <div className="p-3 bg-slate-50 text-slate-600 text-xs font-medium rounded-xl border border-slate-100 flex items-center gap-2">
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                PO ini berstatus {status} (Read Only).
                             </div>
                         )}
                     </div>
@@ -783,42 +791,46 @@ const PurchaseOrderForm = () => {
             </div>
 
             {/* Items Section */}
-            <div className="print:hidden bg-white p-4 rounded-lg border shadow-sm space-y-4">
-                <div className="flex justify-between items-center">
-                    <h2 className="font-semibold">Daftar Barang</h2>
-                    <div className="flex flex-col items-end gap-1">
-                        <div className="text-sm font-medium text-slate-600">
-                            Total Berat: {formatWeight(calculateTotalWeight())}
+            <div className="print:hidden bg-white p-4 lg:p-6 rounded-2xl border border-slate-100 shadow-sm space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <Plus className="h-4 w-4" /> Daftar Barang
+                    </h2>
+                    <div className="w-full sm:w-auto flex flex-row sm:flex-col justify-between sm:justify-end items-center sm:items-end gap-1 bg-slate-50 p-3 rounded-xl border border-slate-100 min-w-[200px]">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            Total Berat: <span className="text-slate-600 ml-1">{formatWeight(calculateTotalWeight())}</span>
                         </div>
-                        <div className="text-lg font-bold">
-                            Total: Rp {calculateTotal().toLocaleString('id-ID')}
+                        <div className="text-xl font-extrabold text-indigo-600">
+                            Rp {calculateTotal().toLocaleString('id-ID')}
                         </div>
                     </div>
                 </div>
 
                 {!isReadOnly && (
-                    <div className="relative max-w-md flex gap-2 w-full">
+                    <div className="relative max-w-md flex flex-col sm:flex-row gap-2 w-full">
                         <div className="relative flex-1">
-                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                             <Input
                                 placeholder="Cari & Tambah Produk..."
                                 value={productSearch}
                                 onChange={e => setProductSearch(e.target.value)}
-                                className="pl-8"
+                                className="pl-10 h-10 rounded-xl border-slate-200"
                             />
                             {searchResults.length > 0 && (
-                                <div className="absolute z-10 w-full bg-white border rounded-md shadow-lg mt-1 max-h-60 overflow-auto">
+                                <div className="absolute z-10 w-full bg-white border border-slate-100 rounded-xl shadow-xl mt-1 max-h-60 overflow-auto divide-y divide-slate-50">
                                     {searchResults.map(p => (
                                         <div
                                             key={p.id}
-                                            className="p-2 hover:bg-slate-100 cursor-pointer flex justify-between items-center"
+                                            className="p-3 hover:bg-slate-50 cursor-pointer flex justify-between items-center transition-colors"
                                             onClick={() => handleAddProduct(p)}
                                         >
-                                            <div>
-                                                <div className="font-medium">{p.name}</div>
-                                                <div className="text-xs text-muted-foreground">{p.barcode}</div>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="font-bold text-slate-900 truncate">{p.name}</div>
+                                                <div className="text-[10px] font-mono font-bold text-slate-400 uppercase">{p.barcode || '-'}</div>
                                             </div>
-                                            <Plus className="h-4 w-4 text-muted-foreground" />
+                                            <div className="p-1 rounded-lg bg-indigo-50 text-indigo-600 ml-2">
+                                                <Plus className="h-4 w-4" />
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -826,275 +838,304 @@ const PurchaseOrderForm = () => {
                         </div>
                         <Button
                             variant="outline"
-                            className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
+                            className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200 h-10 rounded-xl font-bold w-full sm:w-auto flex items-center justify-center whitespace-nowrap"
                             onClick={calculateSuggestions}
                             disabled={suggestLoading}
                         >
-                            {suggestLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                            Saran Restock AI
+                            {suggestLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                            Restock AI
                         </Button>
                     </div>
                 )}
 
-                {/* Suggestions Dialog */}
-                <Dialog open={isSuggestOpen} onOpenChange={setIsSuggestOpen}>
-                    <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                <Sparkles className="h-5 w-5 text-purple-600" />
-                                Saran Restock AI
-                            </DialogTitle>
-                            <DialogDescription>
-                                Produk berikut direkomendasikan berdasarkan analisis penjualan 30 hari terakhir.
-                            </DialogDescription>
-                        </DialogHeader>
+                {/* Suggestions Dialog - (Leaving it as is, it's already a full-screen dialog) */}
 
-                        <div className="flex-1 overflow-y-auto min-h-[300px] border rounded-md">
-                            {suggestLoading ? (
-                                <div className="flex flex-col items-center justify-center h-full space-y-4">
-                                    <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
-                                    <p className="text-muted-foreground">Menganalisis data transaksi...</p>
-                                </div>
-                            ) : suggestions.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full text-center p-8 text-muted-foreground">
-                                    <p>Tidak ada rekomendasi saat ini.</p>
-                                    <p className="text-xs mt-1">Stok produk Anda tampaknya aman berdasarkan tren penjualan.</p>
-                                </div>
-                            ) : (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="w-[40px]"></TableHead>
-                                            <TableHead>Produk</TableHead>
-                                            <TableHead className="text-right">Stok</TableHead>
-                                            <TableHead className="text-right">Rata-rata/Hari</TableHead>
-                                            <TableHead>Alasan</TableHead>
-                                            <TableHead className="text-right">Saran Order</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {suggestions.map((item) => (
-                                            <TableRow key={item.id} className="hover:bg-slate-50">
-                                                <TableCell>
-                                                    <Checkbox
-                                                        checked={!!selectedSuggestions[item.id]}
-                                                        onCheckedChange={() => toggleSuggestion(item.id)}
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="font-medium">{item.name}</TableCell>
-                                                <TableCell className="text-right">{item.currentStock}</TableCell>
-                                                <TableCell className="text-right">{item.dailyRate.toFixed(1)}</TableCell>
-                                                <TableCell className="text-xs text-muted-foreground">{item.reason}</TableCell>
-                                                <TableCell className="text-right font-bold text-purple-700">
-                                                    {item.suggestQty} {item.unit}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            )}
-                        </div>
-
-                        <DialogFooter className="mt-4 pt-2 border-t">
-                            <div className="flex justify-between w-full items-center">
-                                <span className="text-sm text-muted-foreground">
-                                    {Object.values(selectedSuggestions).filter(Boolean).length} produk dipilih
-                                </span>
-                                <div className="flex gap-2">
-                                    <Button variant="ghost" onClick={() => setIsSuggestOpen(false)}>Batal</Button>
-                                    <Button onClick={handleAddSuggestions} disabled={Object.values(selectedSuggestions).filter(Boolean).length === 0}>
-                                        Tambahkan ke PO
+                {/* Desktop View */}
+                <div className="hidden lg:block overflow-x-auto border border-slate-50 rounded-xl">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-slate-50/50 border-b border-slate-100">
+                                <TableHead className="py-4 px-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => requestSort('productName')}
+                                        className="h-8 px-2 hover:bg-transparent font-bold text-left justify-start"
+                                    >
+                                        Produk
+                                        {sortConfig.key === 'productName' ? (
+                                            sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
+                                        ) : (
+                                            <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                                        )}
                                     </Button>
-                                </div>
-                            </div>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => requestSort('productName')}
-                                    className="h-8 px-2 hover:bg-transparent font-bold text-left justify-start"
-                                >
-                                    Produk
-                                    {sortConfig.key === 'productName' ? (
-                                        sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
-                                    ) : (
-                                        <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
-                                    )}
-                                </Button>
-                            </TableHead>
-                            <TableHead className="w-[100px]">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => requestSort('qty')}
-                                    className="h-8 px-2 hover:bg-transparent font-bold text-left justify-start"
-                                >
-                                    QTY PO
-                                    {sortConfig.key === 'qty' ? (
-                                        sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
-                                    ) : (
-                                        <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
-                                    )}
-                                </Button>
-                            </TableHead>
-                            <TableHead className="w-[100px]">Satuan</TableHead>
-                            <TableHead className="w-[100px] print:hidden">Berat (Kg)</TableHead>
-                            <TableHead className="w-[150px] text-right">Harga Beli PO</TableHead>
-                            <TableHead className="w-[100px]">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => requestSort('qtyBase')}
-                                    className="h-8 px-2 hover:bg-transparent font-bold text-left justify-start"
-                                >
-                                    QTY PCS
-                                    {sortConfig.key === 'qtyBase' ? (
-                                        sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
-                                    ) : (
-                                        <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
-                                    )}
-                                </Button>
-                            </TableHead>
-                            <TableHead className="w-[150px]">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => requestSort('buyPrice')}
-                                    className="h-8 px-2 hover:bg-transparent font-bold text-left justify-start"
-                                >
-                                    Harga Beli
-                                    {sortConfig.key === 'buyPrice' ? (
-                                        sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
-                                    ) : (
-                                        <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
-                                    )}
-                                </Button>
-                            </TableHead>
-                            <TableHead className="w-[150px] text-right">
-                                <Button
-                                    variant="ghost"
-                                    onClick={() => requestSort('subtotal')}
-                                    className="h-8 px-2 hover:bg-transparent font-bold w-full justify-end"
-                                >
-                                    Subtotal
-                                    {sortConfig.key === 'subtotal' ? (
-                                        sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
-                                    ) : (
-                                        <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
-                                    )}
-                                </Button>
-                            </TableHead>
-                            {!isReadOnly && <TableHead className="w-[50px]"></TableHead>}
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {items.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                                    Belum ada barang dipilih
-                                </TableCell>
+                                </TableHead>
+                                <TableHead className="w-[120px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">QTY PO</TableHead>
+                                <TableHead className="w-[100px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Satuan</TableHead>
+                                <TableHead className="w-[100px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center print:hidden">Berat (Kg)</TableHead>
+                                <TableHead className="w-[150px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Harga Beli PO</TableHead>
+                                <TableHead className="w-[120px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">QTY PCS</TableHead>
+                                <TableHead className="w-[150px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Harga Satuan</TableHead>
+                                <TableHead className="w-[150px] text-right text-[10px] font-bold uppercase tracking-widest text-slate-500 pr-6">Subtotal</TableHead>
+                                {!isReadOnly && <TableHead className="w-[50px]"></TableHead>}
                             </TableRow>
-                        ) : (
-                            items.map((item, index) => {
-                                const product = products.find(p => p.id === item.productId);
-                                // Use product data if available, otherwise fallback to item stored data
-                                const itemUnit = product?.unit || item.unit || '-';
-                                const itemPurchaseUnit = product?.purchaseUnit || item.purchaseUnit;
-                                const itemConversionToUnit = product?.conversionToUnit || item.conversionToUnit;
-                                const itemWeight = Number(product?.weight || item.weight) || 0;
+                        </TableHeader>
+                        <TableBody>
+                            {items.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={9} className="text-center py-12 text-slate-400 font-medium italic">
+                                        Belum ada barang dipilih
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                items.map((item, index) => {
+                                    const product = products.find(p => p.id === item.productId);
+                                    const itemUnit = product?.unit || item.unit || '-';
+                                    const itemPurchaseUnit = product?.purchaseUnit || item.purchaseUnit;
+                                    const itemConversionToUnit = product?.conversionToUnit || item.conversionToUnit;
+                                    const itemWeight = Number(product?.weight || item.weight) || 0;
+                                    const totalItemWeight = (itemWeight * (item.qtyBase || 0)) / 1000;
+                                    const hasConversion = itemPurchaseUnit && itemConversionToUnit;
 
-                                const totalItemWeight = (itemWeight * (item.qtyBase || 0)) / 1000;
-                                const hasConversion = itemPurchaseUnit && itemConversionToUnit;
-
-                                return (
-                                    <TableRow key={index}>
-                                        <TableCell>
-                                            <div className="font-medium">{item.productName}</div>
-                                            <div className="text-xs text-muted-foreground">{item.productCode}</div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
+                                    return (
+                                        <TableRow key={index} className="hover:bg-slate-50/50 transition-colors group">
+                                            <TableCell className="py-4 px-4">
+                                                <div className="font-bold text-slate-900">{item.productName}</div>
+                                                <div className="text-[10px] font-mono font-bold text-slate-400 mt-0.5">{product?.barcode || '-'}</div>
+                                            </TableCell>
+                                            <TableCell className="text-center">
                                                 <Input
                                                     type="number"
                                                     min="1"
                                                     value={item.qty}
                                                     onChange={e => updateItem(index, 'qty', e.target.value)}
                                                     disabled={isReadOnly}
-                                                    className="h-8"
+                                                    className="h-9 w-20 mx-auto text-center rounded-lg border-slate-200 font-bold"
                                                 />
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <span className="text-sm font-medium">
-                                                {hasConversion ? itemPurchaseUnit : itemUnit}
-                                            </span>
-                                            {hasConversion && (
-                                                <div className="text-[10px] text-muted-foreground">
-                                                    Isi {itemConversionToUnit} {itemUnit}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <Badge variant="outline" className="font-bold text-[10px] uppercase bg-slate-50 text-slate-500 border-slate-200">
+                                                    {hasConversion ? itemPurchaseUnit : itemUnit}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-center print:hidden">
+                                                <div className={`text-xs font-bold ${totalItemWeight <= 0 ? 'text-slate-300' : 'text-slate-600'}`}>
+                                                    {totalItemWeight.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 3 })} Kg
                                                 </div>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="print:hidden text-center">
-                                            <div className={`font-medium ${totalItemWeight <= 0 ? 'text-red-500' : 'text-slate-600'}`}>
-                                                {totalItemWeight.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 3 })} Kg
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-right font-medium text-slate-600">
-                                            {(() => {
-                                                const conversion = itemConversionToUnit ? Number(itemConversionToUnit) : 1;
-                                                if (conversion > 1) {
-                                                    const poPrice = (Number(item.buyPrice) || 0) * conversion;
-                                                    return `Rp ${poPrice.toLocaleString('id-ID')} `;
-                                                }
-                                                return '-';
-                                            })()}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                {(() => {
+                                                    const conversion = itemConversionToUnit ? Number(itemConversionToUnit) : 1;
+                                                    if (hasConversion && conversion > 1) {
+                                                        const poPrice = (Number(item.buyPrice) || 0) * conversion;
+                                                        return (
+                                                            <div className="space-y-0.5">
+                                                                <p className="font-bold text-slate-900">Rp {poPrice.toLocaleString('id-ID')}</p>
+                                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">@ {itemConversionToUnit} {itemUnit}</p>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return <span className="font-bold text-slate-900">Rp {(Number(item.buyPrice) || 0).toLocaleString('id-ID')}</span>;
+                                                })()}
+                                            </TableCell>
+                                            <TableCell className="text-center">
                                                 <Input
                                                     type="number"
                                                     min="0"
                                                     value={item.qtyBase || ''}
                                                     onChange={e => updateItem(index, 'qtyBase', e.target.value)}
-                                                    // If has conversion, disable editing Qty PCS because it's auto-calculated from Qty PO
                                                     disabled={hasConversion || isReadOnly}
-                                                    className={`h - 8 bg - slate - 100`}
-                                                    placeholder={!hasConversion ? '-' : ''}
+                                                    className="h-9 w-20 mx-auto text-center bg-slate-50 font-bold rounded-lg border-slate-200"
                                                 />
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
+                                            </TableCell>
+                                            <TableCell className="text-center">
                                                 <Input
                                                     type="number"
                                                     min="0"
                                                     value={item.buyPrice}
                                                     onChange={e => updateItem(index, 'buyPrice', e.target.value)}
                                                     disabled={isReadOnly}
-                                                    className="h-8"
+                                                    className="h-9 w-28 mx-auto text-center rounded-lg border-slate-200 font-bold"
+                                                />
+                                            </TableCell>
+                                            <TableCell className="text-right font-extrabold text-slate-900 pr-6">
+                                                Rp {(item.subtotal || 0).toLocaleString('id-ID')}
+                                            </TableCell>
+                                            {!isReadOnly && (
+                                                <TableCell>
+                                                    <Button variant="ghost" size="icon" onClick={() => removeItem(index)} className="h-8 w-8 text-slate-300 hover:text-red-500 transition-colors">
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </TableCell>
+                                            )}
+                                        </TableRow>
+                                    );
+                                })
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+
+                {/* Mobile View */}
+                <div className="lg:hidden space-y-4">
+                    {items.length === 0 ? (
+                        <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-200 text-slate-400 font-medium italic">
+                            Belum ada barang dipilih
+                        </div>
+                    ) : (
+                        items.map((item, index) => {
+                            const product = products.find(p => p.id === item.productId);
+                            const itemUnit = product?.unit || item.unit || '-';
+                            const itemPurchaseUnit = product?.purchaseUnit || item.purchaseUnit;
+                            const itemConversionToUnit = product?.conversionToUnit || item.conversionToUnit;
+                            const hasConversion = itemPurchaseUnit && itemConversionToUnit;
+
+                            return (
+                                <div key={index} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-4 active:scale-[0.98] transition-transform">
+                                    <div className="flex justify-between items-start gap-4">
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-extrabold text-slate-900 leading-snug truncate">{item.productName}</h3>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <p className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">{product?.barcode || '-'}</p>
+                                                <Badge variant="outline" className="text-[9px] font-bold uppercase bg-slate-50 text-slate-500 border-slate-200 px-1.5 py-0">
+                                                    {hasConversion ? itemPurchaseUnit : itemUnit}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                        {!isReadOnly && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => removeItem(index)}
+                                                className="h-8 w-8 -mr-1 text-slate-300 active:text-red-500"
+                                            >
+                                                <Trash2 size={16} />
+                                            </Button>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">QTY Order</label>
+                                            <Input
+                                                type="number"
+                                                value={item.qty}
+                                                onChange={e => updateItem(index, 'qty', e.target.value)}
+                                                disabled={isReadOnly}
+                                                className="h-10 rounded-xl border-slate-200 font-extrabold text-indigo-600 focus:ring-indigo-500"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Harga Satuan</label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-2.5 text-xs font-bold text-slate-400">Rp</span>
+                                                <Input
+                                                    type="number"
+                                                    value={item.buyPrice}
+                                                    onChange={e => updateItem(index, 'buyPrice', e.target.value)}
+                                                    disabled={isReadOnly}
+                                                    className="h-10 pl-8 rounded-xl border-slate-200 font-extrabold text-slate-900 focus:ring-indigo-500"
                                                 />
                                             </div>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            Rp {(item.subtotal || 0).toLocaleString('id-ID')}
-                                        </TableCell>
-                                        {!isReadOnly && (
-                                            <TableCell>
-                                                <Button variant="ghost" size="icon" onClick={() => removeItem(index)} className="h-8 w-8 text-red-500">
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </TableCell>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-50/50 rounded-xl p-3 flex justify-between items-center border border-slate-50">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Subtotal Item</p>
+                                            <p className="text-base font-extrabold text-indigo-600">
+                                                Rp {(item.subtotal || 0).toLocaleString('id-ID')}
+                                            </p>
+                                        </div>
+                                        {hasConversion && (
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Sesuai Satuan</p>
+                                                <p className="text-sm font-bold text-slate-600">
+                                                    {item.qtyBase} {itemUnit}
+                                                </p>
+                                            </div>
                                         )}
-                                    </TableRow>
-                                );
-                            })
-                        )}
-                    </TableBody>
-                </Table>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
             </div>
+
+            {/* Suggestions Dialog */}
+            <Dialog open={isSuggestOpen} onOpenChange={setIsSuggestOpen}>
+                <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+                    <DialogHeader className="px-6 pt-6">
+                        <DialogTitle className="flex items-center gap-2">
+                            <Sparkles className="h-5 w-5 text-purple-600" />
+                            Rekomendasi Restock AI
+                        </DialogTitle>
+                        <DialogDescription>
+                            Berdasarkan analisis penjualan 30 hari terakhir dan sisa stok Anda.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="flex-1 overflow-auto px-6 py-4">
+                        {suggestions.length === 0 ? (
+                            <div className="text-center py-12">
+                                <p className="text-slate-500 italic">Tidak ada rekomendasi restock saat ini.</p>
+                            </div>
+                        ) : (
+                            <div className="border rounded-xl overflow-hidden">
+                                <Table>
+                                    <TableHeader className="bg-slate-50">
+                                        <TableRow>
+                                            <TableHead className="w-[40px]"></TableHead>
+                                            <TableHead className="text-[10px] font-bold uppercase tracking-widest">Produk</TableHead>
+                                            <TableHead className="text-[10px] font-bold uppercase tracking-widest text-center">Stok</TableHead>
+                                            <TableHead className="text-[10px] font-bold uppercase tracking-widest text-center">Analisis</TableHead>
+                                            <TableHead className="text-[10px] font-bold uppercase tracking-widest text-right">Saran Qty</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {suggestions.map((s) => (
+                                            <TableRow key={s.id} className="hover:bg-slate-50/50">
+                                                <TableCell>
+                                                    <Checkbox
+                                                        checked={!!selectedSuggestions[s.id]}
+                                                        onCheckedChange={() => toggleSuggestion(s.id)}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="font-bold text-slate-900">{s.name}</div>
+                                                    <div className="text-[10px] text-slate-400 font-mono tracking-tighter">{s.barcode || '-'}</div>
+                                                </TableCell>
+                                                <TableCell className="text-center font-bold text-slate-600">
+                                                    {s.currentStock} {s.unit}
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    <Badge variant="outline" className={`text-[9px] font-bold uppercase py-0 px-1 ${s.reason.includes('kritis') ? 'bg-red-50 text-red-600 border-red-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
+                                                        {s.reason}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right font-extrabold text-indigo-600">
+                                                    {s.suggestQty} {s.unit}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        )}
+                    </div>
+
+                    <DialogFooter className="px-6 pb-6 gap-2">
+                        <Button variant="ghost" onClick={() => setIsSuggestOpen(false)}>Batal</Button>
+                        <Button
+                            className="bg-indigo-600 hover:bg-indigo-700 font-bold"
+                            onClick={handleAddSuggestions}
+                            disabled={suggestions.length === 0}
+                        >
+                            Tambahkan Selected ({suggestions.filter(s => selectedSuggestions[s.id]).length})
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Printable View */}
             <div className="hidden print:block space-y-6">

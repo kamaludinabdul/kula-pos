@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Switch } from '../../components/ui/switch';
 import { Label } from '../../components/ui/label';
+import { Input } from '../../components/ui/input';
 import { useToast } from '../../components/ui/use-toast';
 import { Loader2, RefreshCw, Calendar } from 'lucide-react';
 import AlertDialog from '../../components/AlertDialog';

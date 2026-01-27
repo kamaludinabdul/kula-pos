@@ -11,8 +11,14 @@ import { supabase } from '../supabase';
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog';
 import { Label } from '../components/ui/label';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Search, Filter, Download, Trash2, Edit, Eye, ChevronDown, RotateCcw, Ban, ArrowUpDown, ArrowUp, ArrowDown, BookLock, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
+import { Search, Filter, Download, Trash2, Edit, Eye, ChevronDown, RotateCcw, Ban, ArrowUpDown, ArrowUp, ArrowDown, BookLock, Wallet, TrendingUp, TrendingDown, MoreVertical } from 'lucide-react';
 import ReceiptModal from '../components/ReceiptModal';
 import { SmartDatePicker } from '../components/SmartDatePicker';
 import { format, startOfDay, endOfDay } from 'date-fns';
@@ -492,34 +498,36 @@ const Transactions = () => {
 
     return (
         <div className="p-4 space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Transaksi</h1>
                     <p className="text-muted-foreground">Kelola dan pantau riwayat transaksi penjualan.</p>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleOpenCloseBookDialog} disabled={isProcessingCloseBook}>
+                <div className="flex flex-wrap gap-2 w-full xl:w-auto">
+                    <Button variant="outline" onClick={handleOpenCloseBookDialog} disabled={isProcessingCloseBook} className="flex-1 sm:flex-none">
                         <BookLock className="mr-2 h-4 w-4" />
-                        {isProcessingCloseBook ? "Memproses..." : "Tutup Buku Harian"}
+                        {isProcessingCloseBook ? "..." : "Tutup Buku Harian"}
                     </Button>
-                    {checkPermission('transactions.view') && (
-                        <>
-                            <Button variant="outline" onClick={handleExportPDF}>
-                                <Download className="mr-2 h-4 w-4" />
-                                Export PDF
-                            </Button>
-                            <Button variant="outline" onClick={exportData}>
-                                <Download className="mr-2 h-4 w-4" />
-                                Export CSV
-                            </Button>
-                        </>
-                    )}
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        {checkPermission('transactions.view') && (
+                            <>
+                                <Button variant="outline" onClick={handleExportPDF} className="flex-1 sm:flex-none px-2 sm:px-4">
+                                    <Download className="mr-1 sm:mr-2 h-4 w-4" />
+                                    PDF
+                                </Button>
+                                <Button variant="outline" onClick={exportData} className="flex-1 sm:flex-none px-2 sm:px-4">
+                                    <Download className="mr-1 sm:mr-2 h-4 w-4" />
+                                    CSV
+                                </Button>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
 
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Pendapatan</CardTitle>
@@ -630,7 +638,8 @@ const Transactions = () => {
                 </div>
             </div>
 
-            <div className="rounded-md border bg-white overflow-x-auto">
+            {/* Desktop Table View */}
+            <div className="hidden lg:block rounded-xl border bg-white overflow-hidden shadow-sm">
                 <Table className="min-w-[1000px]">
                     <TableHeader>
                         <TableRow>
@@ -741,6 +750,92 @@ const Transactions = () => {
                         )}
                     </TableBody>
                 </Table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="lg:hidden space-y-4">
+                {transactionsList.length === 0 ? (
+                    <div className="text-center py-10 bg-white rounded-2xl border border-dashed text-muted-foreground font-medium">
+                        {isLoading ? "Memuat data..." : "Tidak ada transaksi ditemukan."}
+                    </div>
+                ) : (
+                    transactionsList.map((tx) => (
+                        <div key={tx.id} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3 relative overflow-hidden">
+                            <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${tx.status === 'completed' ? 'bg-green-500' : (tx.status === 'refunded' ? 'bg-orange-500' : 'bg-red-500')}`} />
+                            <div className="flex justify-between items-start pl-2">
+                                <div className="space-y-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest truncate">#{tx.id}</span>
+                                        <Badge
+                                            variant={tx.status === 'void' ? 'destructive' : (tx.status === 'refunded' ? 'secondary' : 'default')}
+                                            className={`text-[9px] font-bold px-1.5 py-0 border-none h-4 uppercase ${tx.status === 'completed' ? 'bg-green-50 text-green-700' :
+                                                tx.status === 'refunded' ? 'bg-orange-50 text-orange-700' :
+                                                    'bg-red-50 text-red-700'
+                                                }`}
+                                        >
+                                            {tx.status === 'void' ? 'Batal' : (tx.status === 'refunded' ? 'Refund' : 'Sukses')}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="font-bold text-slate-900">
+                                            {format(new Date(tx.date), 'dd MMM yyyy', { locale: localeId })}
+                                        </span>
+                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                            {format(new Date(tx.date), 'HH:mm', { locale: localeId })} • {tx.cashier || 'Kasir Umum'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-end gap-1 shrink-0">
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total</span>
+                                    <span className={`text-lg font-extrabold ${tx.status === 'void' ? 'text-slate-300 line-through text-sm' : 'text-slate-900'}`}>
+                                        Rp {tx.total?.toLocaleString()}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 py-2 border-y border-slate-50 pl-2">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Pelanggan</span>
+                                    <span className="text-xs font-bold text-slate-700 truncate">{tx.customerName || 'Umum'}</span>
+                                </div>
+                                <div className="flex flex-col text-right">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Metode Bayar</span>
+                                    <span className="text-xs font-bold text-indigo-600 uppercase tracking-tighter">
+                                        {formatPaymentMethod(tx.paymentMethod)}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-between items-center pt-1 pl-2">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{tx.items?.length || 0} ITEMS</span>
+                                <div className="flex gap-2">
+                                    {checkPermission('transactions.detail') && (
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-indigo-600" onClick={() => handleViewReceipt(tx)}>
+                                            <Eye size={18} />
+                                        </Button>
+                                    )}
+                                    {tx.status !== 'void' && tx.status !== 'refunded' && checkPermission('transactions.refund') && (
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300">
+                                                    <MoreVertical size={18} />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => handleRefundClick(tx)} className="text-orange-500 font-bold text-xs">
+                                                    <RotateCcw className="mr-2 h-4 w-4" /> Refund
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleVoidClick(tx)} className="text-red-500 font-bold text-xs">
+                                                    <Ban className="mr-2 h-4 w-4" /> Batalkan
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
 
             {/* Load More Button */}

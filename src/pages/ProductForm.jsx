@@ -764,7 +764,7 @@ const ProductForm = () => {
 
                                     {/* Strategy Selector (Available for ALL current product types) */}
                                     {formData.isBundlingEnabled && (
-                                        <div className="flex gap-4 p-3 bg-slate-50 border rounded-md">
+                                        <div className="flex flex-col sm:flex-row gap-4 p-3 bg-slate-50 border rounded-md">
                                             <div className="flex items-center space-x-2">
                                                 <input
                                                     type="radio"
@@ -826,10 +826,10 @@ const ProductForm = () => {
                                                     Belum ada paket. Klik "Tambah Paket" untuk memulai.
                                                 </div>
                                             ) : (
-                                                <div className="space-y-2">
+                                                <div className="space-y-3">
                                                     {formData.pricingTiers.map((tier, idx) => (
-                                                        <div key={idx} className="flex gap-3 items-center bg-white p-3 rounded-md border">
-                                                            <div className="flex-1">
+                                                        <div key={idx} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-white p-3 rounded-md border relative">
+                                                            <div className="w-full sm:flex-1">
                                                                 <Label className="text-xs text-muted-foreground mb-1 block">
                                                                     {formData.isWholesale
                                                                         ? 'Minimal Qty (Mulai Dari)'
@@ -850,7 +850,7 @@ const ProductForm = () => {
                                                                     className="h-9"
                                                                 />
                                                             </div>
-                                                            <div className="flex-1">
+                                                            <div className="w-full sm:flex-1">
                                                                 <Label className="text-xs text-muted-foreground mb-1 block">
                                                                     {formData.isWholesale ? 'Harga Satuan (Grosir)' : 'Harga Paket (Total)'}
                                                                 </Label>
@@ -876,7 +876,7 @@ const ProductForm = () => {
                                                                 type="button"
                                                                 variant="ghost"
                                                                 size="icon"
-                                                                className="text-red-500 hover:text-red-700 hover:bg-red-50 h-9 w-9 shrink-0 mt-5"
+                                                                className="text-red-500 hover:text-red-700 hover:bg-red-50 h-9 w-9 shrink-0 absolute top-2 right-2 sm:relative sm:top-0 sm:right-0 sm:mt-5"
                                                                 onClick={() => {
                                                                     setFormData(prev => ({
                                                                         ...prev,

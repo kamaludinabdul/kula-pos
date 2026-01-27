@@ -107,31 +107,36 @@ const TopSellingProducts = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col gap-4">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                <div>
                     <h2 className="text-2xl font-bold tracking-tight">Produk Terlaris</h2>
-                    <div className="flex gap-2">
-                        <Button variant="outline" onClick={handleExportPDF}>
+                    <p className="text-muted-foreground">Analisis produk dengan performa penjualan terbaik.</p>
+                </div>
+                <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-2">
+                    <div className="flex gap-2 w-full lg:w-auto">
+                        <Button variant="outline" onClick={handleExportPDF} className="flex-1 lg:flex-none">
                             <Download className="mr-2 h-4 w-4" />
                             PDF
                         </Button>
-                        <Button variant="outline" onClick={handleExport}>
+                        <Button variant="outline" onClick={handleExport} className="flex-1 lg:flex-none">
                             <Download className="mr-2 h-4 w-4" />
                             CSV
                         </Button>
                     </div>
-                </div>
-
-                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div className="w-full md:w-auto">
+                    <div className="w-full lg:w-auto">
                         <SmartDatePicker
                             date={datePickerDate}
                             onDateChange={setDatePickerDate}
                         />
                     </div>
+                </div>
+            </div>
 
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Urutkan:</span>
                     <Select value={sortBy} onValueChange={setSortBy}>
-                        <SelectTrigger className="w-[150px]">
+                        <SelectTrigger className="w-[160px] h-9 border-none bg-slate-100 font-bold text-slate-700">
                             <SelectValue placeholder="Urutkan" />
                         </SelectTrigger>
                         <SelectContent>
@@ -143,92 +148,95 @@ const TopSellingProducts = () => {
                 </div>
             </div>
 
-            {/* Summary Cards */}
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Produk Terjual</CardTitle>
-                        <Package className="h-4 w-4 text-muted-foreground" />
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="rounded-xl border-none shadow-sm bg-slate-50">
+                    <CardHeader className="p-4 pb-2">
+                        <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Unit Terjual</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
+                    <CardContent className="p-4 pt-0">
+                        <div className="text-xl lg:text-2xl font-extrabold text-slate-900">
                             {products.reduce((sum, p) => sum + p.totalQuantity, 0).toLocaleString()}
                         </div>
-                        <p className="text-xs text-muted-foreground">Unit terjual</p>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Pendapatan</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-green-600" />
+                <Card className="rounded-xl border-none shadow-sm bg-green-50">
+                    <CardHeader className="p-4 pb-2">
+                        <CardTitle className="text-[10px] font-bold text-green-800 uppercase tracking-widest">Total Pendapatan</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-green-600">
+                    <CardContent className="p-4 pt-0">
+                        <div className="text-xl lg:text-2xl font-extrabold text-green-600">
                             Rp {products.reduce((sum, p) => sum + p.totalRevenue, 0).toLocaleString()}
                         </div>
-                        <p className="text-xs text-muted-foreground">Dari produk terjual</p>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Variasi Produk</CardTitle>
-                        <Package className="h-4 w-4 text-muted-foreground" />
+                <Card className="rounded-xl border-none shadow-sm bg-blue-50">
+                    <CardHeader className="p-4 pb-2">
+                        <CardTitle className="text-[10px] font-bold text-blue-800 uppercase tracking-widest">Total Profit</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{products.length}</div>
-                        <p className="text-xs text-muted-foreground">Jenis produk berbeda</p>
+                    <CardContent className="p-4 pt-0">
+                        <div className="text-xl lg:text-2xl font-extrabold text-blue-600">
+                            Rp {products.reduce((sum, p) => sum + p.totalProfit, 0).toLocaleString()}
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="rounded-xl border-none shadow-sm bg-indigo-50">
+                    <CardHeader className="p-4 pb-2">
+                        <CardTitle className="text-[10px] font-bold text-indigo-800 uppercase tracking-widest">Variasi Produk</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                        <div className="text-xl lg:text-2xl font-extrabold text-indigo-600">{products.length}</div>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Products Table */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Daftar Produk Terlaris</CardTitle>
+            <Card className="rounded-xl border-none shadow-sm overflow-hidden">
+                <CardHeader className="p-4 lg:p-6 bg-white border-b">
+                    <CardTitle className="text-lg font-bold">Peringkat Produk</CardTitle>
                 </CardHeader>
-                <CardContent>
-                    <div className="rounded-md border">
+                <CardContent className="p-0">
+                    {/* Desktop Table View */}
+                    <div className="hidden lg:block">
                         <Table>
-                            <TableHeader>
+                            <TableHeader className="bg-slate-50">
                                 <TableRow>
-                                    <TableHead className="w-[80px]">Rank</TableHead>
-                                    <TableHead>Nama Produk</TableHead>
-                                    <TableHead>Kategori</TableHead>
-                                    <TableHead className="text-right">Qty Terjual</TableHead>
-                                    <TableHead className="text-right">Pendapatan</TableHead>
-                                    <TableHead className="text-right">Profit</TableHead>
-                                    <TableHead className="text-right">Transaksi</TableHead>
+                                    <TableHead className="w-[80px] font-bold text-slate-700">Rank</TableHead>
+                                    <TableHead className="font-bold text-slate-700">Nama Produk</TableHead>
+                                    <TableHead className="font-bold text-slate-700">Kategori</TableHead>
+                                    <TableHead className="text-right font-bold text-slate-700">Qty Terjual</TableHead>
+                                    <TableHead className="text-right font-bold text-slate-700">Pendapatan</TableHead>
+                                    <TableHead className="text-right font-bold text-slate-700">Profit</TableHead>
+                                    <TableHead className="text-right font-bold text-slate-700">Transaksi</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                        <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                                             Memuat data...
                                         </TableCell>
                                     </TableRow>
                                 ) : products.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                        <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                                             Tidak ada data penjualan.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
                                     products.map((product, index) => (
-                                        <TableRow key={product.productId || product.name}>
+                                        <TableRow key={product.productId || product.name} className="hover:bg-slate-50 transition-colors border-b border-slate-100">
                                             <TableCell>{getRankBadge(index)}</TableCell>
-                                            <TableCell className="font-medium">{product.name}</TableCell>
-                                            <TableCell>{product.category}</TableCell>
-                                            <TableCell className="text-right font-medium">
+                                            <TableCell className="font-bold text-slate-800">{product.name}</TableCell>
+                                            <TableCell className="text-slate-500 font-medium">{product.category}</TableCell>
+                                            <TableCell className="text-right font-extrabold text-slate-900">
                                                 {product.totalQuantity.toLocaleString()}
                                             </TableCell>
-                                            <TableCell className="text-right text-green-600 font-medium">
+                                            <TableCell className="text-right text-green-600 font-extrabold">
                                                 Rp {product.totalRevenue.toLocaleString()}
                                             </TableCell>
-                                            <TableCell className="text-right text-blue-600 font-medium">
+                                            <TableCell className="text-right text-blue-600 font-extrabold">
                                                 Rp {product.totalProfit.toLocaleString()}
                                             </TableCell>
-                                            <TableCell className="text-right">
+                                            <TableCell className="text-right text-slate-400 font-bold">
                                                 {product.transactionCount}x
                                             </TableCell>
                                         </TableRow>
@@ -236,6 +244,45 @@ const TopSellingProducts = () => {
                                 )}
                             </TableBody>
                         </Table>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="lg:hidden divide-y divide-slate-50">
+                        {loading ? (
+                            <div className="text-center py-12 text-muted-foreground">Memuat data...</div>
+                        ) : products.length === 0 ? (
+                            <div className="text-center py-12 text-muted-foreground">Tidak ada data.</div>
+                        ) : (
+                            products.map((product, index) => (
+                                <div key={product.productId || product.name} className="p-4 space-y-3 bg-white">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-start gap-3">
+                                            <div className="mt-0.5">
+                                                {getRankBadge(index)}
+                                            </div>
+                                            <div className="space-y-0.5">
+                                                <p className="text-sm font-bold text-slate-800 leading-tight">{product.name}</p>
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{product.category}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-extrabold text-slate-900">{product.totalQuantity.toLocaleString()} <span className="text-[10px] text-slate-400">UNIT</span></p>
+                                            <p className="text-[10px] text-slate-400 font-bold">{product.transactionCount}x Transaksi</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-2 border-t border-slate-50">
+                                        <div className="flex flex-col">
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter leading-none mb-1">Pendapatan</span>
+                                            <span className="text-xs font-extrabold text-green-600">Rp {product.totalRevenue.toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter leading-none mb-1">Profit</span>
+                                            <span className="text-xs font-extrabold text-blue-600">Rp {product.totalProfit.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </CardContent>
             </Card>
