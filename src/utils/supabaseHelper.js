@@ -14,9 +14,14 @@ export const robustFetch = async (url, options, maxRetries = 3) => {
                 errStr.toLowerCase().includes('abort') ||
                 errStr.toLowerCase().includes('signal');
 
-            if (isAbort && i < maxRetries) {
+            const isNetworkError = errStr.includes('Failed to fetch') ||
+                errStr.includes('NetworkError') ||
+                errStr.includes('timed out') ||
+                errStr.includes('connection');
+
+            if ((isAbort || isNetworkError) && i < maxRetries) {
                 const delay = (i * 300) + 500;
-                console.warn(`robustFetch: Abort detected, retrying in ${delay}ms... (${i + 1}/${maxRetries}). Error: ${errStr}`);
+                console.warn(`robustFetch: ${isAbort ? 'Abort' : 'Network error'} detected, retrying in ${delay}ms... (${i + 1}/${maxRetries}). Error: ${errStr}`);
                 await new Promise(r => setTimeout(r, delay));
                 continue;
             }
@@ -137,6 +142,19 @@ export const safeSupabaseRpc = async (options) => {
     if (!rpcName) {
         console.error("safeSupabaseRpc: rpcName is required");
         return null;
+    }
+
+    // If SDK has been failing repeatedly, go directly to raw RPC
+    if (sdkFailureCount >= SDK_FAILURE_THRESHOLD) {
+        console.log(`safeSupabaseRpc: SDK failure count ${sdkFailureCount} >= threshold ${SDK_FAILURE_THRESHOLD}, using direct fetch for RPC ${rpcName}`);
+        try {
+            const result = await rawRpcFallback({ rpcName, params, accessToken: providedToken });
+            if (sdkFailureCount > 0) sdkFailureCount--;
+            return result;
+        } catch (directErr) {
+            console.error(`safeSupabaseRpc: Direct RPC failed for ${rpcName}:`, directErr);
+            throw directErr;
+        }
     }
 
     const controller = new AbortController();

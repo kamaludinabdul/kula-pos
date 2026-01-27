@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.9.0] - 2026-01-27
+### Added
+- **Wholesale Price**: Added Strategy B (Wholesale/Grosir Bertingkat). Uses threshold replacement logic (e.g. qty >= 10, price becomes Rp 8.000 for all items).
+- **Rental Penalty**: Added Overtime Penalty (Denda) for Daily service products.
+- **Universal Strategy**: Both Bundling and Wholesale strategies are now available for all product types (Retail & Service/Rental).
+
+### Improved
+- **Stability**: Implemented "API-First" strategy in `supabaseHelper.js` to bypass SDK connection issues.
+- **Resilience**: Enhanced `robustFetch` to retry on common network errors (Failed to fetch, Timeout).
+- **UI UX**: Improved `ProductForm` labels for tiered pricing (Minimal Qty & Harga Grosir).
+
+### Fixed
+- **Persistence**: Fixed `is_wholesale` field not saving in `DataContext`.
+- **UI Bug**: Fixed strategy selector hidden in Edit mode due to `pricingType` mismatch.
+- **Linting**: Fixed 8 critical lint errors in `RentalDashboard.jsx` and `GeneralSettings.jsx`.
+
 ## [0.8.19] - 2026-01-24
 ### Fixed
 - **Linting**: Fixed 12 lint errors across multiple files including `DataContext.jsx`, `CategorySales.jsx`, `Dashboard.jsx`, and others.

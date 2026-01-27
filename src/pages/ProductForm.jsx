@@ -52,6 +52,8 @@ const ProductForm = () => {
         // Bundling / Paket
         isBundlingEnabled: false,
         isWholesale: false, // New Wholesale Flag
+        overtime_hourly_penalty: 0,
+        overtime_trigger_hours: 1,
         pricingTiers: [] // [{ duration: 3, price: 10000 }]
     });
 
@@ -133,6 +135,8 @@ const ProductForm = () => {
                             isUnlimited: data.is_unlimited,
                             isBundlingEnabled: data.is_bundling_enabled,
                             isWholesale: data.is_wholesale || false,
+                            overtime_hourly_penalty: data.overtime_hourly_penalty || 0,
+                            overtime_trigger_hours: data.overtime_trigger_hours || 0,
                             pricingTiers: data.pricing_tiers || []
                         };
                     }
@@ -168,6 +172,8 @@ const ProductForm = () => {
                     isUnlimited: product.isUnlimited || product.is_unlimited || false,
                     isBundlingEnabled: product.isBundlingEnabled || product.is_bundling_enabled || false,
                     isWholesale: product.isWholesale || product.is_wholesale || false,
+                    overtime_hourly_penalty: product.overtime_hourly_penalty || product.overtime_hourly_penalty || 0,
+                    overtime_trigger_hours: product.overtime_trigger_hours || product.overtime_trigger_hours || 0,
                     pricingTiers: product.pricingTiers || product.pricing_tiers || []
                 });
             }
@@ -322,6 +328,8 @@ const ProductForm = () => {
             stock: formData.isUnlimited ? 999999 : Number(formData.stock),
             isBundlingEnabled: formData.isBundlingEnabled,
             isWholesale: formData.isWholesale,
+            overtime_hourly_penalty: Number(formData.overtime_hourly_penalty || 0),
+            overtime_trigger_hours: Number(formData.overtime_trigger_hours || 0),
             pricingTiers: formData.pricingTiers.map(t => ({ duration: Number(t.duration), price: Number(t.price) })).filter(t => t.duration > 0 && t.price >= 0)
         };
 
@@ -649,9 +657,7 @@ const ProductForm = () => {
                                     )}
                                     <div className="space-y-2">
                                         <div className="flex items-center h-6">
-                                            <Label htmlFor="sellPrice">
-                                                {formData.pricingType === 'hourly' ? 'Tarif Per Jam' : (formData.pricingType === 'daily' ? 'Tarif Per Hari' : 'Harga Jual')} <span className="text-destructive">*</span>
-                                            </Label>
+                                            <Label htmlFor="sellPrice">Harga Jual {formData.pricingType === 'hourly' ? '(Per Jam)' : (formData.pricingType === 'daily' ? '(Per Hari)' : '')} <span className="text-destructive">*</span></Label>
                                         </div>
                                         <div className="relative">
                                             <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">Rp</span>
@@ -736,11 +742,11 @@ const ProductForm = () => {
                                 <div className="space-y-4 pt-4 border-t">
                                     <div className="flex items-center justify-between gap-4">
                                         <div className="flex-1">
-                                            <Label className="text-base font-semibold">Harga Bundling / Paket</Label>
+                                            <Label className="text-base font-semibold">Harga Bundling / Grosir</Label>
                                             <p className="text-sm text-muted-foreground mt-0.5">
                                                 {formData.pricingType === 'hourly' || formData.pricingType === 'daily'
                                                     ? `Harga khusus untuk durasi tertentu (misal: 3 ${formData.pricingType === 'daily' ? 'Hari' : 'Jam'} = Rp 100rb).`
-                                                    : 'Harga khusus untuk jumlah tertentu (misal: Beli 3 = Rp 10rb).'
+                                                    : 'Harga khusus untuk jumlah tertentu. Pilih strategi "Eceran" untuk diskon bertahap, atau "Grosir" untuk harga pukul rata.'
                                                 }
                                             </p>
                                         </div>
@@ -756,8 +762,8 @@ const ProductForm = () => {
                                         </div>
                                     </div>
 
-                                    {/* Strategy Selector (Only for Fixed Price) */}
-                                    {formData.isBundlingEnabled && formData.pricingType === 'fixed' && (
+                                    {/* Strategy Selector (Available for ALL current product types) */}
+                                    {formData.isBundlingEnabled && (
                                         <div className="flex gap-4 p-3 bg-slate-50 border rounded-md">
                                             <div className="flex items-center space-x-2">
                                                 <input
@@ -825,7 +831,9 @@ const ProductForm = () => {
                                                         <div key={idx} className="flex gap-3 items-center bg-white p-3 rounded-md border">
                                                             <div className="flex-1">
                                                                 <Label className="text-xs text-muted-foreground mb-1 block">
-                                                                    {formData.pricingType === 'hourly' ? 'Durasi (Jam)' : (formData.pricingType === 'daily' ? 'Durasi (Hari)' : 'Jumlah (Qty)')}
+                                                                    {formData.isWholesale
+                                                                        ? 'Minimal Qty (Mulai Dari)'
+                                                                        : (formData.pricingType === 'hourly' ? 'Durasi (Jam)' : (formData.pricingType === 'daily' ? 'Durasi (Hari)' : 'Jumlah (Qty)'))}
                                                                 </Label>
                                                                 <Input
                                                                     type="number"
@@ -844,7 +852,7 @@ const ProductForm = () => {
                                                             </div>
                                                             <div className="flex-1">
                                                                 <Label className="text-xs text-muted-foreground mb-1 block">
-                                                                    {formData.isWholesale ? 'Harga Satuan (Per Pcs)' : 'Harga Paket (Total)'}
+                                                                    {formData.isWholesale ? 'Harga Satuan (Grosir)' : 'Harga Paket (Total)'}
                                                                 </Label>
                                                                 <div className="relative">
                                                                     <span className="absolute left-3 top-2.5 text-xs text-muted-foreground">Rp</span>

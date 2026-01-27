@@ -50,9 +50,9 @@ export const usePOS = () => {
                 return prev.map((item) => {
                     if (item.id === product.id) {
                         const newQty = item.qty + 1;
-                        // Recalculate price if wholesale
+                        // Recalculate price if tiered pricing exists
                         let newPrice = item.price;
-                        if (item.isWholesale) {
+                        if (item.pricingTiers && item.pricingTiers.length > 0) {
                             newPrice = calculateWholesaleUnitPrice(item, newQty);
                         }
                         return { ...item, qty: newQty, price: newPrice };
@@ -67,8 +67,10 @@ export const usePOS = () => {
 
             // Check initial wholesale price (usually base, but for robustness)
             // Note: quantity is 1 here
+            // Check initial tiered price (usually base, but for robustness)
+            // Note: quantity is 1 here
             let finalUnitPrice = unitPrice;
-            if (product.isWholesale) {
+            if (product.pricingTiers && product.pricingTiers.length > 0) {
                 finalUnitPrice = calculateWholesaleUnitPrice(product, 1);
             }
 
@@ -105,9 +107,9 @@ export const usePOS = () => {
                         return item; // Stock limit reached
                     }
 
-                    // Recalculate Price if Wholesale
+                    // Recalculate Price if Tiered Pricing exists
                     let newPrice = item.price;
-                    if (item.isWholesale) {
+                    if (item.pricingTiers && item.pricingTiers.length > 0) {
                         newPrice = calculateWholesaleUnitPrice(item, newQty);
                     }
 

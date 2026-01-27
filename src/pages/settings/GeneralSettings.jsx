@@ -20,7 +20,11 @@ const GeneralSettings = () => {
     const [allowBackdate, setAllowBackdate] = useState(false);
     const [isSavingBackdate, setIsSavingBackdate] = useState(false);
 
-    // Rental Mode setting
+    // Grace Period setting
+    const [gracePeriod, setGracePeriod] = useState(0);
+    const [isSavingGrace, setIsSavingGrace] = useState(false);
+
+    // Rental settings states
     const [enableRental, setEnableRental] = useState(false);
     const [isSavingRental, setIsSavingRental] = useState(false);
 
@@ -29,6 +33,7 @@ const GeneralSettings = () => {
         if (currentStore) {
             setAllowBackdate(currentStore.settings?.allowBackdateTransaction || false);
             setEnableRental(currentStore.enableRental || false);
+            setGracePeriod(currentStore.settings?.grace_period || 0);
         }
     }, [currentStore]);
 
@@ -97,6 +102,44 @@ const GeneralSettings = () => {
             });
         } finally {
             setIsSavingRental(false);
+        }
+    };
+
+    const handleGracePeriodChange = async (value) => {
+        if (!currentStore?.id) return;
+        const numValue = parseInt(value) || 0;
+        setGracePeriod(numValue); // Optimistic UI
+    };
+
+    const saveGracePeriod = async () => {
+        if (!currentStore?.id) return;
+        setIsSavingGrace(true);
+        try {
+            const { error } = await supabase
+                .from('stores')
+                .update({
+                    settings: {
+                        ...currentStore.settings,
+                        grace_period: gracePeriod,
+                        updatedAt: new Date().toISOString()
+                    }
+                })
+                .eq('id', currentStore.id);
+
+            if (error) throw error;
+            toast({
+                title: "Berhasil",
+                description: `Masa toleransi diatur ke ${gracePeriod} menit.`,
+            });
+        } catch (error) {
+            console.error('Error saving grace period:', error);
+            toast({
+                variant: "destructive",
+                title: "Gagal",
+                description: "Gagal menyimpan masa toleransi.",
+            });
+        } finally {
+            setIsSavingGrace(false);
         }
     };
 
@@ -223,6 +266,36 @@ const GeneralSettings = () => {
                             disabled={isSavingRental}
                         />
                     </div>
+
+                    {enableRental && (
+                        <div className="flex items-center justify-between p-4 border rounded-lg bg-indigo-50/30 border-indigo-100">
+                            <div className="space-y-1">
+                                <Label htmlFor="grace-period" className="font-medium text-indigo-900">
+                                    Masa Toleransi (Menit)
+                                </Label>
+                                <p className="text-xs text-indigo-700/70">
+                                    Waktu tambahan sebelum denda/tambahan jam dihitung (Grace Period).
+                                </p>
+                            </div>
+                            <div className="flex gap-2">
+                                <Input
+                                    id="grace-period"
+                                    type="number"
+                                    value={gracePeriod}
+                                    onChange={(e) => handleGracePeriodChange(e.target.value)}
+                                    className="w-20 bg-white"
+                                />
+                                <Button
+                                    size="sm"
+                                    onClick={saveGracePeriod}
+                                    disabled={isSavingGrace}
+                                    className="bg-indigo-600 hover:bg-indigo-700"
+                                >
+                                    {isSavingGrace ? '...' : 'Simpan'}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 

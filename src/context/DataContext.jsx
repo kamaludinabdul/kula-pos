@@ -433,6 +433,7 @@ export const DataProvider = ({ children }) => {
                     pricingType: p.pricing_type,
                     pricingTiers: p.pricing_tiers,
                     isBundlingEnabled: p.is_bundling_enabled,
+                    isWholesale: p.is_wholesale,
                     price: p.sell_price,
                     category: p.categories?.name || null
                 }))
@@ -896,7 +897,8 @@ export const DataProvider = ({ children }) => {
                         minStock: newRow.min_stock,
                         price: newRow.sell_price,
                         categoryId: newRow.category_id,
-                        storeId: newRow.store_id
+                        storeId: newRow.store_id,
+                        isWholesale: newRow.is_wholesale
                     };
                     setProducts(prev => {
                         const index = prev.findIndex(p => p.id === newRow.id);
@@ -1101,6 +1103,7 @@ export const DataProvider = ({ children }) => {
                 pricing_type: product.pricingType || 'standard',
                 pricing_tiers: product.pricingTiers || [],
                 is_bundling_enabled: product.isBundlingEnabled || false,
+                is_wholesale: product.isWholesale || false,
                 rack_location: product.shelf || product.rackLocation || null,
                 weight: product.weight || 0,
                 is_deleted: false
@@ -1182,6 +1185,7 @@ export const DataProvider = ({ children }) => {
                 pricing_type: rawData.pricingType || rawData.pricing_type,
                 pricing_tiers: rawData.pricingTiers || rawData.pricing_tiers,
                 is_bundling_enabled: rawData.isBundlingEnabled || rawData.is_bundling_enabled,
+                is_wholesale: rawData.isWholesale ?? rawData.is_wholesale,
                 category_id: rawData.categoryId ?? rawData.category_id
             };
 
@@ -2339,6 +2343,39 @@ export const DataProvider = ({ children }) => {
         }
     };
 
+    const calculateItemPrice = useCallback((product, qty) => {
+        if (!product || !product.pricingTiers || product.pricingTiers.length === 0) {
+            return Number(product.sellPrice || 0);
+        }
+
+        const sortedTiers = [...product.pricingTiers].sort((a, b) => b.duration - a.duration);
+        const basePrice = Number(product.sellPrice || 0);
+
+        if (product.isWholesale) {
+            // Strategy B: Wholesale (Threshold replacement)
+            // If qty >= tier.duration, use that price for ALL units
+            const activeTier = sortedTiers.find(t => qty >= t.duration);
+            return activeTier ? Number(activeTier.price) : basePrice;
+        } else {
+            // Strategy A: Bundling (Greedy Sum / Step-wise)
+            // Used for Rental packages or Retail Bundles
+            let totalPrice = 0;
+            let remaining = qty;
+
+            for (const tier of sortedTiers) {
+                while (remaining >= tier.duration) {
+                    totalPrice += Number(tier.price);
+                    remaining -= tier.duration;
+                }
+            }
+            if (remaining > 0) {
+                totalPrice += remaining * basePrice;
+            }
+            // Return average price PER UNIT for consistent cart handling
+            return totalPrice / qty;
+        }
+    }, []);
+
     return (
         <DataContext.Provider value={{
             categories,
@@ -2404,6 +2441,7 @@ export const DataProvider = ({ children }) => {
             isOnline,
             storesLoading,
             recalculateProductStats,
+            calculateItemPrice,
         }}>
             {children}
         </DataContext.Provider>

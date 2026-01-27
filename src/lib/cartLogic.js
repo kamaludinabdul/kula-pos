@@ -61,31 +61,44 @@ export const calculateCartTotals = (cart, discountType, discountValue, taxRate =
     };
 };
 
-// Helper: Hitung Harga Satuan berdasarkan Grosir (Wholesale)
-// Logic: Jika Qty >= Tier MinQty, maka Harga Satuan = Tier Price.
-// Ambil tier dengan MinQty terbesar yang masih masuk logic (Threshold).
+// Helper: Hitung Harga Satuan berdasarkan Grosir (Wholesale) atau Bundling (Paket)
 export const calculateWholesaleUnitPrice = (product, qty) => {
     const basePrice = parseInt(product.sellPrice || product.price) || 0;
 
     // Safety check
-    if (!product.isWholesale || !product.pricingTiers || product.pricingTiers.length === 0) {
+    if (!product.pricingTiers || product.pricingTiers.length === 0) {
         return basePrice;
     }
 
     // 1. Sort Tiers: Largest Qty (Duration) first
-    // Note: product.pricingTiers stores 'duration' as 'minQty' for wholesale context
     const sortedTiers = [...product.pricingTiers]
         .map(t => ({ minQty: parseFloat(t.duration), price: parseFloat(t.price) }))
         .sort((a, b) => b.minQty - a.minQty);
 
-    // 2. Find the first tier that matches the quantity threshold
-    const matchedTier = sortedTiers.find(t => qty >= t.minQty);
+    if (product.isWholesale) {
+        // Strategy B: Wholesale (Threshold replacement)
+        // Jika Qty >= threshold, gunakan harga tier tersebut untuk SELURUH unit.
+        const matchedTier = sortedTiers.find(t => qty >= t.minQty);
+        return matchedTier ? matchedTier.price : basePrice;
+    } else {
+        // Strategy A: Bundling (Greedy Sum / Step-wise)
+        // Digunakan untuk Paket Rental atau Paket Food.
+        // Formula: Mencari rata-rata harga per unit.
+        let totalPrice = 0;
+        let remaining = qty;
 
-    if (matchedTier) {
-        return matchedTier.price;
+        for (const tier of sortedTiers) {
+            while (remaining >= tier.minQty) {
+                totalPrice += tier.price;
+                remaining -= tier.minQty;
+            }
+        }
+        if (remaining > 0) {
+            totalPrice += remaining * basePrice;
+        }
+        // Kembalikan harga RATA-RATA per unit agar Cart (qty * price) tetap benar.
+        return totalPrice / qty;
     }
-
-    return basePrice;
 };
 
 export const calculateChange = (total, amountPaid) => {
