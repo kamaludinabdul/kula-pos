@@ -15,8 +15,8 @@ export const PLANS = {
     pro: {
         label: 'Pro',
         level: 1,
-        price: 0,
-        originalPrice: 150000,
+        price: 150000,
+        originalPrice: 250000,
         promoLabel: 'Promo',
         maxUsers: 5,
         maxProducts: -1 // Unlimited

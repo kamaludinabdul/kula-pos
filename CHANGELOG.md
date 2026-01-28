@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.1] - 2026-01-28
+### Added
+- **Subscription**: Added "Approval Langganan" page for Super Admin to review and approve PRO/Enterprise subscriptions.
+- **Subscription**: Enabled Direct Checkout for Enterprise Plan (previously required WhatsApp contact).
+- **Settings**: Added 1MB max file size limit for payment proof uploads to ensure performance.
+- **Security**: Implemented Signed URLs for secure viewing of private payment proof files.
+
 ## [0.11.0] - 2026-01-28
 ### Improved
 - **UI/UX Overhaul**: Successfully refactored 7 major pages (Dashboard, Products, Stores, Categories, Staff, Settings, Login) to use **shadcn/ui** components and Tailwind CSS.

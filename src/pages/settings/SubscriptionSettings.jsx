@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -7,11 +7,15 @@ import { Check, Crown, Zap, Shield } from 'lucide-react';
 
 
 
+import CheckoutDialog from './components/CheckoutDialog';
+
 const SubscriptionSettings = () => {
     const { currentStore, plans: contextPlans } = useData();
+    const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+    const [selectedPlan, setSelectedPlan] = useState(null);
 
-    console.log("DEBUG SubscriptionSettings: contextPlans", contextPlans);
-    console.log("DEBUG SubscriptionSettings: currentStore", currentStore);
+    // console.log("DEBUG SubscriptionSettings: contextPlans", contextPlans);
+    // console.log("DEBUG SubscriptionSettings: currentStore", currentStore);
 
     const currentPlanId = currentStore?.plan || 'free';
 
@@ -21,8 +25,6 @@ const SubscriptionSettings = () => {
         if (typeof price === 'string') return price;
         return `Rp ${price?.toLocaleString('id-ID')}`;
     };
-
-
 
     // Features list for mapping - Aligned with PlanManagement.jsx
     const FEATURE_LIST = {
@@ -123,14 +125,14 @@ const SubscriptionSettings = () => {
             price: formatPrice(dynamic.price ?? (base.id === 'free' ? 0 : (base.id === 'pro' ? 0 : 'Hubungi Kami'))),
             originalPrice: dynamic.originalPrice ? `Rp ${dynamic.originalPrice.toLocaleString('id-ID')}` : null,
             period: (dynamic.price > 0 || base.id === 'pro') ? '/bln' : '', // Show /bln even for Rp 0 Pro if it's a sub
-            features: features
+            features: features,
+            priceValue: dynamic.price // Store raw price for calculation logic
         };
     });
 
-    const handleUpgrade = (planId) => {
-        const message = `Halo Admin, saya ingin upgrade ke paket ${planId.toUpperCase()} untuk toko ${currentStore?.name}.`;
-        const whatsappUrl = `https://wa.me/6285712905780?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, '_blank');
+    const handleUpgrade = (plan) => {
+        setSelectedPlan(plan);
+        setIsCheckoutOpen(true);
     };
 
     return (
@@ -203,15 +205,21 @@ const SubscriptionSettings = () => {
                                     className="w-full"
                                     variant={isCurrent ? "secondary" : plan.btnVariant}
                                     disabled={isCurrent}
-                                    onClick={() => handleUpgrade(plan.id)}
+                                    onClick={() => handleUpgrade(plan)}
                                 >
-                                    {isCurrent ? 'Paket Saat Ini' : (plan.id === 'enterprise' ? 'Hubungi Sales' : 'Pilih Paket')}
+                                    {isCurrent ? 'Paket Saat Ini' : 'Pilih Paket'}
                                 </Button>
                             </CardFooter>
                         </Card>
                     );
                 })}
             </div>
+
+            <CheckoutDialog
+                isOpen={isCheckoutOpen}
+                onClose={() => setIsCheckoutOpen(false)}
+                plan={selectedPlan}
+            />
         </div>
     );
 };

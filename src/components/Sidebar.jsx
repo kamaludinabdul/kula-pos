@@ -6,13 +6,13 @@ import {
   ChevronDown, ChevronRight, Receipt, Store, Printer, UserCog, Layers, Shield, Percent,
   Gift, Sparkles, PanelLeftClose, PanelLeftOpen, Crown, ClipboardCheck, History, TrendingUp,
   Clock, TrendingDown, Send, Cloud, FileText, Copy, DollarSign, BrainCircuit, Lightbulb,
-  Key, BadgePercent, Factory, Ticket, Lock, Gamepad2
+  Key, BadgePercent, Factory, Ticket, Lock, Gamepad2, CheckCircle // Added CheckCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
-const APP_VERSION = '0.10.0';
+const APP_VERSION = '0.11.1';
 import { checkPlanAccess, hasFeatureAccess } from '../utils/plans';
 import UpgradeAlert from './UpgradeAlert';
 
@@ -255,6 +255,12 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
                 isActive={location.pathname === '/admin/plans'}
                 isExpanded={isExpanded}
                 onClick={() => navigate('/admin/plans')}
+              />
+              <NavItem
+                item={{ icon: CheckCircle, label: 'Approval Langganan', path: '/admin/subscriptions' }}
+                isActive={location.pathname === '/admin/subscriptions'}
+                isExpanded={isExpanded}
+                onClick={() => navigate('/admin/subscriptions')}
               />
             </>
           )}

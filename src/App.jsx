@@ -22,6 +22,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Transactions = lazy(() => import('./pages/Transactions'));
 const Stores = lazy(() => import('./pages/Stores'));
 const PlanManagement = lazy(() => import('./pages/PlanManagement'));
+const SubscriptionApproval = lazy(() => import('./pages/admin/SubscriptionApproval'));
 
 // Product Management
 const Products = lazy(() => import('./pages/Products'));
@@ -439,6 +440,11 @@ const App = () => {
                     <Route path="/admin/plans" element={
                       <PrivateRoute>
                         <PlanManagement />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/admin/subscriptions" element={
+                      <PrivateRoute>
+                        <SubscriptionApproval />
                       </PrivateRoute>
                     } />
                     <Route path="/settings" element={
