@@ -33,27 +33,42 @@ export const PLANS = {
 export const REQUIRED_PLANS = {
     // Reports
     'reports.profit_loss': 'pro',
-    'reports.cash_flow': 'pro', // Assuming this feature flag exists or will be mapped
+    'reports.cash_flow': 'pro',
     'reports.inventory_value': 'pro',
     'reports.shifts': 'pro',
     'reports.sales_forecast': 'enterprise',
+    'reports.top_selling': 'pro',
+    'reports.sales_items': 'free',
+    'reports.sales_categories': 'free',
+    'reports.forecast': 'enterprise',
+    'reports.expenses': 'free',
+    'reports.loyalty': 'pro',
+    'reports.performance': 'pro',
 
-    // Stock
+    // Stock & Inventory
     'products.stock_opname': 'pro',
     'products.stock_history': 'pro',
+    'products.stock': 'free',
 
-    // Staff
-    // 'staff.manage': 'pro', // Multi-user (Now Free, limited by quantity)
+    // Staff & Users
+    'others.staff': 'free', // Staff management is allowed on free (limited by quantity)
+    'others.login_history': 'pro',
     'staff.login_history': 'pro',
     'staff.sales_target': 'pro',
+    'sales.target': 'pro',
 
     // Settings
     'settings.loyalty': 'pro',
     'settings.telegram': 'pro',
+    'settings.sales_performance': 'pro',
 
-    // Advanced Features
-    'features.shopping_recommendations': 'enterprise',
-    'rental': 'pro'
+    // Modules & Advanced Features
+    'smart_insights': 'pro',
+    'rental': 'pro',
+    'finance.cash_flow': 'pro',
+    'customers.read': 'pro',
+    'others.recommendations': 'enterprise',
+    'features.shopping_recommendations': 'enterprise'
 };
 
 export const checkPlanAccess = (currentPlan, requiredPlan) => {

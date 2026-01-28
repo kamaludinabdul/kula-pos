@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0] - 2026-01-28
+### Improved
+- **UI/UX Overhaul**: Successfully refactored 7 major pages (Dashboard, Products, Stores, Categories, Staff, Settings, Login) to use **shadcn/ui** components and Tailwind CSS.
+- **Design**: Implemented a consistent, modern, mobile-first design system with professional card-based layouts and dark mode readiness.
+- **Components**: Added reusable `dialog.jsx` and `textarea.jsx` components.
+- **Codebase**: Removed legacy CSS files (`Dashboard.css`, `Products.css`, etc.) in favor of utility classes.
+
 ## [0.10.0] - 2026-01-27
 ### Added
 - **Shopping Recommendations**: Added premium AI/Excel configuration modal with responsive padding and optimized layouts.

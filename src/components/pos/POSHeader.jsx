@@ -30,8 +30,8 @@ const POSHeader = ({
     isOnline = true
 }) => {
     return (
-        <header className="px-4 py-3 bg-white border-b border-border flex items-center justify-between shrink-0 sticky top-0 z-30">
-            <div className="flex items-center gap-2 min-w-0">
+        <header className="px-2 sm:px-4 py-2 sm:py-3 bg-white border-b border-border flex items-center justify-between shrink-0 sticky top-0 z-30">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0 mr-2">
                 <Button
                     variant="ghost"
                     size="icon"
@@ -41,8 +41,8 @@ const POSHeader = ({
                 >
                     <ChevronLeft size={20} />
                 </Button>
-                <div className="bg-primary/10 p-1 rounded-lg flex items-center gap-1.5 shrink-0">
-                    <img src="/logo.png" alt="App Logo" className={cn("h-5 w-auto object-contain", currentStore?.logo ? "hidden sm:block" : "block")} />
+                <div className="bg-primary/10 p-1 rounded-lg flex items-center gap-1 sm:gap-1.5 shrink-0">
+                    <img src="/logo.png" alt="App Logo" className={cn("h-4 sm:h-5 w-auto object-contain", currentStore?.logo ? "hidden sm:block" : "block")} />
                     {currentStore?.logo && (
                         <>
                             <div className="h-3 w-px bg-primary/20 hidden sm:block" />
@@ -51,9 +51,9 @@ const POSHeader = ({
                     )}
                 </div>
                 {currentStore && (
-                    <div className="flex flex-col min-w-0">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                            <h1 className="text-sm font-bold tracking-tight leading-none truncate max-w-[80px] xs:max-w-[120px] sm:max-w-none">
+                    <div className="flex flex-col min-w-0 flex-1">
+                        <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
+                            <h1 className="text-[13px] sm:text-sm font-bold tracking-tight leading-none truncate max-w-[70px] xs:max-w-[100px] sm:max-w-none">
                                 {currentStore.name || 'Kasir Pro'}
                             </h1>
                             <div className={cn(
@@ -66,19 +66,19 @@ const POSHeader = ({
                                 <span className="hidden md:inline">{isOnline ? "Online" : "Offline"}</span>
                             </div>
                         </div>
-                        <span className="text-[10px] font-medium text-muted-foreground mt-0.5 truncate max-w-[100px] sm:max-w-none">
+                        <span className="text-[9px] sm:text-[10px] font-medium text-muted-foreground mt-0.5 truncate max-w-[80px] xs:max-w-[120px] sm:max-w-none">
                             {user?.name || 'Staff'}
                         </span>
                     </div>
                 )}
             </div>
 
-            <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex items-center gap-0.5 sm:gap-2 shrink-0">
                 <Button
                     variant={printerStatus.connected ? "outline" : "ghost"}
                     size="sm"
                     className={cn(
-                        "h-8 px-2 gap-1 transition-all",
+                        "h-8 px-1.5 sm:px-2 gap-1 transition-all",
                         printerStatus.connected
                             ? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
                             : "text-muted-foreground"
@@ -94,11 +94,11 @@ const POSHeader = ({
 
                 {/* Shift Controls */}
                 {currentShift ? (
-                    <div className="flex items-center gap-1 sm:gap-2">
+                    <div className="flex items-center gap-0.5 sm:gap-2">
                         <Button
                             variant="outline"
                             size="sm"
-                            className="h-8 px-2 gap-1"
+                            className="h-8 px-1.5 sm:px-2 gap-1"
                             onClick={onManageCash}
                             title="Kelola Kas"
                         >
@@ -108,7 +108,7 @@ const POSHeader = ({
                         <Button
                             variant="destructive"
                             size="sm"
-                            className="h-8 px-2 gap-1 shadow-sm"
+                            className="h-8 px-1.5 sm:px-2 gap-1 shadow-sm"
                             onClick={onEndShift}
                             title="Tutup Shift"
                         >
@@ -119,7 +119,7 @@ const POSHeader = ({
                 ) : (
                     <Button
                         size="sm"
-                        className="h-8 px-2 gap-1 bg-indigo-600 hover:bg-indigo-700 shadow-sm"
+                        className="h-8 px-1.5 sm:px-2 gap-1 bg-indigo-600 hover:bg-indigo-700 shadow-sm"
                         onClick={onStartShift}
                         title="Buka Shift"
                     >
@@ -128,7 +128,7 @@ const POSHeader = ({
                     </Button>
                 )}
 
-                <div className="h-4 w-px bg-border mx-0.5 sm:mx-1" />
+                <div className="h-4 w-px bg-border mx-0.5 sm:mx-1 invisible xs:visible" />
 
                 {/* Navigation Icons - Hidden on very small screens, use icon-only on mobile */}
                 <div className="flex items-center gap-0.5 sm:gap-1">
@@ -136,7 +136,7 @@ const POSHeader = ({
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-muted-foreground hidden xs:flex"
+                            className="h-8 w-8 text-muted-foreground hidden lg:flex"
                             onClick={() => onNavigate('/stock-management')}
                             title="Stok"
                         >
@@ -148,7 +148,7 @@ const POSHeader = ({
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-muted-foreground hidden xs:flex"
+                            className="h-8 w-8 text-muted-foreground hidden lg:flex"
                             onClick={() => onNavigate('/dashboard')}
                             title="Dashboard"
                         >

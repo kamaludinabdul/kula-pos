@@ -21,13 +21,17 @@ END $$;
 -- Add feature flags and settings
 DO $$ BEGIN
     ALTER TABLE public.stores ADD COLUMN IF NOT EXISTS enable_rental BOOLEAN DEFAULT FALSE;
-    ALTER TABLE public.stores ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'free';
+    ALTER TABLE public.stores ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'pro';
+    ALTER TABLE public.stores ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ;
     ALTER TABLE public.stores ADD COLUMN IF NOT EXISTS enable_discount BOOLEAN DEFAULT FALSE;
     ALTER TABLE public.stores ADD COLUMN IF NOT EXISTS discount_pin TEXT;
     ALTER TABLE public.stores ADD COLUMN IF NOT EXISTS tax_rate NUMERIC(15, 2) DEFAULT 0;
     ALTER TABLE public.stores ADD COLUMN IF NOT EXISTS service_charge NUMERIC(15, 2) DEFAULT 0;
     ALTER TABLE public.stores ADD COLUMN IF NOT EXISTS tax_type TEXT DEFAULT 'exclusive';
 END $$;
+
+-- Ensure store name is unique
+CREATE UNIQUE INDEX IF NOT EXISTS idx_stores_name_unique ON public.stores(name);
 
 -- 1.3 PRODUCTS
 -- Add new fields for rental, detailed inventory, and robust POS features

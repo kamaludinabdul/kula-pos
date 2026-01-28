@@ -86,7 +86,7 @@ const PageLoader = () => (
 
 import { checkPlanAccess, hasFeatureAccess } from './utils/plans';
 // Use a constant to avoid potential issues with JSON import in some environments
-const APP_VERSION = '0.8.20';
+const APP_VERSION = '0.10.0';
 
 const PrivateRoute = ({ children, feature, plan, permission }) => {
   const authContext = useAuth();
@@ -172,11 +172,11 @@ const PrivateRoute = ({ children, feature, plan, permission }) => {
     const dynamicPlans = dataContext.plans || {};
 
     // Check Plan & Feature Access
-    const hasPlanAccess = checkPlanAccess(currentPlan, plan);
-    const hasFeatAccess = hasFeatureAccess(currentPlan, feature, dynamicPlans);
+    const hasPlanAccess = plan ? checkPlanAccess(currentPlan, plan) : true;
+    const hasFeatAccess = feature ? hasFeatureAccess(currentPlan, feature, dynamicPlans) : true;
 
-    if (!hasPlanAccess && !hasFeatAccess) {
-      console.warn(`Access denied for ${feature} (Plan: ${currentPlan})`);
+    if (!hasPlanAccess || !hasFeatAccess) {
+      console.warn(`Access denied for ${feature || 'page'} (Plan: ${currentPlan})`);
       return <Navigate to="/dashboard" replace />;
     }
 
@@ -365,7 +365,7 @@ const App = () => {
                       </PrivateRoute>
                     } />
                     <Route path="/stock-opname" element={
-                      <PrivateRoute feature="products.stock">
+                      <PrivateRoute feature="products.stock_opname">
                         <StockOpname />
                       </PrivateRoute>
                     } />

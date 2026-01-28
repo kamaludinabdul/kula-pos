@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { X, Printer, Download } from 'lucide-react';
 import html2canvas from 'html2canvas';
-const APP_VERSION = "0.8.20";
+const APP_VERSION = "0.10.0";
 import { printerService } from '../services/printer';
 import { formatDate } from '../lib/utils';
 import { getOptimizedImage } from '../utils/supabaseImage';

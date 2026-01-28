@@ -42,10 +42,17 @@ const CashFlow = () => {
         date: new Date().toISOString().split('T')[0]
     });
 
-    const categories = {
+    const categories = React.useMemo(() => ({
         in: ['Penjualan (Manual)', 'Penjualan (Rekap)', 'Modal Tambahan', 'Pendapatan Lain-lain'],
         out: ['Operasional', 'Gaji Karyawan', 'Sewa Tempat', 'Listrik & Air', 'Internet', 'Maintenance', 'Perlengkapan', 'Lain-lain']
-    };
+    }), []);
+
+
+
+    const [filterGroup, setFilterGroup] = useState('all'); // all, operational, non_operational
+    const [filterType, setFilterType] = useState('all'); // all, in, out
+    const [filterCategory, setFilterCategory] = useState('all');
+    const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
 
     const fetchTransactions = React.useCallback(async () => {
         if (!currentStore) return;
@@ -76,49 +83,94 @@ const CashFlow = () => {
                     storeId: item.store_id,
                     performedBy: item.performed_by,
                     createdAt: item.created_at,
-                    expenseGroup: item.expense_group // Ensure snake_case mapping if needed
+                    expenseGroup: item.expense_group
                 })),
                 ...shiftData.map(item => ({
                     id: item.id,
                     storeId: item.store_id,
                     type: item.type,
-                    category: item.category || 'Operasional', // Default if null
+                    category: item.category || 'Operasional',
                     amount: item.amount,
-                    description: item.reason || 'Pengeluaran Kasir', // Map 'reason' to 'description'
+                    description: item.reason || 'Pengeluaran Kasir',
                     date: item.date,
                     performedBy: item.cashier,
                     createdAt: item.created_at,
-                    expenseGroup: item.expense_group || 'operational', // uses the new column
+                    expenseGroup: item.expense_group || 'operational',
                     source: 'Kasir (POS)'
                 }))
             ];
 
-            // Client-side filtering
-            const filteredData = allTransactions.filter(item => {
-                const itemDate = new Date(item.date);
-                if (!datePickerDate?.from) return true;
-                const start = new Date(datePickerDate.from);
-                start.setHours(0, 0, 0, 0);
-                const end = datePickerDate.to ? new Date(datePickerDate.to) : new Date(start);
-                end.setHours(23, 59, 59, 999);
-
-                return itemDate >= start && itemDate <= end;
-            });
-
-            // Sort by Date Descending
-            filteredData.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            setTransactions(filteredData);
+            setTransactions(allTransactions);
         } catch (error) {
             console.error("Error fetching cash flow:", error);
         } finally {
             setLoading(false);
         }
-    }, [currentStore, datePickerDate]);
+    }, [currentStore]);
 
     useEffect(() => {
         fetchTransactions();
     }, [fetchTransactions]);
+
+    const displayTransactions = React.useMemo(() => {
+        let filtered = transactions.filter(item => {
+            // Date Filter
+            const itemDate = new Date(item.date);
+            if (datePickerDate?.from) {
+                const start = new Date(datePickerDate.from);
+                start.setHours(0, 0, 0, 0);
+                const end = datePickerDate.to ? new Date(datePickerDate.to) : new Date(start);
+                end.setHours(23, 59, 59, 999);
+                if (itemDate < start || itemDate > end) return false;
+            }
+
+            // Group Filter (OPEX/CAPEX)
+            if (filterGroup !== 'all') {
+                // If a group filter is active (OPEX/CAPEX), only show 'out' transactions
+                if (item.type !== 'out') return false;
+                if (item.expenseGroup !== filterGroup) return false;
+            }
+
+            // Type Filter
+            if (filterType !== 'all' && item.type !== filterType) return false;
+
+            // Category Filter
+            if (filterCategory !== 'all' && item.category !== filterCategory) return false;
+
+            return true;
+        });
+
+        // Sorting
+        filtered.sort((a, b) => {
+            let valA, valB;
+            if (sortConfig.key === 'date') {
+                valA = new Date(a.date).getTime();
+                valB = new Date(b.date).getTime();
+            } else if (sortConfig.key === 'in') {
+                valA = a.type === 'in' ? a.amount : 0;
+                valB = b.type === 'in' ? b.amount : 0;
+            } else if (sortConfig.key === 'out') {
+                valA = a.type === 'out' ? a.amount : 0;
+                valB = b.type === 'out' ? b.amount : 0;
+            } else {
+                valA = a[sortConfig.key];
+                valB = b[sortConfig.key];
+            }
+
+            if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        return filtered;
+    }, [transactions, datePickerDate, filterGroup, filterType, filterCategory, sortConfig]);
+
+    const handleSort = (key) => {
+        setSortConfig(prev => ({
+            key,
+            direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+        }));
+    };
 
     const handleAddTransaction = async () => {
         if (!currentStore || !user) {
@@ -140,7 +192,7 @@ const CashFlow = () => {
                 store_id: currentStore.id,
                 type: formData.type,
                 category: formData.category,
-                expense_group: formData.expenseGroup || 'operational',
+                expense_group: formData.type === 'out' ? (formData.expenseGroup || 'operational') : null,
                 amount: Number(formData.amount),
                 description: formData.description,
                 date: formData.date,
@@ -153,6 +205,7 @@ const CashFlow = () => {
             setFormData({
                 type: 'out',
                 category: '',
+                expenseGroup: 'operational',
                 amount: '',
                 description: '',
                 date: new Date().toISOString().split('T')[0]
@@ -178,7 +231,7 @@ const CashFlow = () => {
         }
     };
 
-    const stats = React.useMemo(() => transactions.reduce((acc, curr) => {
+    const stats = React.useMemo(() => displayTransactions.reduce((acc, curr) => {
         if (curr.type === 'in') {
             acc.income += (curr.amount || 0);
         } else {
@@ -190,9 +243,8 @@ const CashFlow = () => {
             }
         }
         return acc;
-    }, { income: 0, expense: 0, capex: 0, opex: 0 }), [transactions]);
+    }, { income: 0, expense: 0, capex: 0, opex: 0 }), [displayTransactions]);
 
-    // New: Calculate All-Time Balance (Sisa Saldo)
     const [allTimeBalance, setAllTimeBalance] = useState({
         sales: 0,
         cashIn: 0,
@@ -204,7 +256,6 @@ const CashFlow = () => {
         const fetchAllTimeStats = async () => {
             if (!currentStore?.id) return;
             try {
-                // 1. Total Sales (Transactions)
                 const transData = await safeSupabaseQuery({
                     tableName: 'transactions',
                     queryBuilder: (q) => q.select('total, status').eq('store_id', currentStore.id),
@@ -218,7 +269,6 @@ const CashFlow = () => {
                     }
                 });
 
-                // 2. Total Cash Flow
                 const cashData = await safeSupabaseQuery({
                     tableName: 'cash_flow',
                     queryBuilder: (q) => q.select('amount, type').eq('store_id', currentStore.id),
@@ -247,13 +297,20 @@ const CashFlow = () => {
         };
 
         fetchAllTimeStats();
-    }, [currentStore, transactions]); // Refetch when transactions change (e.g. added new cash flow)
+    }, [currentStore, transactions]);
 
     const currentBalance = allTimeBalance.sales + allTimeBalance.cashIn - allTimeBalance.cashOut;
 
-
-
-
+    const availableCategories = React.useMemo(() => {
+        const cats = new Set();
+        if (filterType === 'all') {
+            categories.in.forEach(c => cats.add(c));
+            categories.out.forEach(c => cats.add(c));
+        } else {
+            categories[filterType].forEach(c => cats.add(c));
+        }
+        return Array.from(cats);
+    }, [filterType, categories]);
 
     return (
         <div className="space-y-6 p-6">
@@ -424,7 +481,7 @@ const CashFlow = () => {
             </Card>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
                 <Card className="border-none shadow-sm bg-white">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-4 pb-1 sm:pb-2">
                         <CardTitle className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Income</CardTitle>
@@ -453,7 +510,7 @@ const CashFlow = () => {
                     </CardContent>
                 </Card>
 
-                <Card className="border-none shadow-sm bg-white col-span-2 md:col-span-1">
+                <Card className="border-none shadow-sm bg-white">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-4 pb-1 sm:pb-2">
                         <CardTitle className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Net Flow</CardTitle>
                         <div className="p-1.5 bg-blue-50 rounded-lg">
@@ -466,26 +523,31 @@ const CashFlow = () => {
                         </div>
                     </CardContent>
                 </Card>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <Card className="bg-red-50/50 border-none shadow-sm h-full">
-                    <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
-                        <CardTitle className="text-[10px] font-bold text-red-800 uppercase tracking-widest">OPEX</CardTitle>
+                <Card className="border-none shadow-sm bg-white">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-4 pb-1 sm:pb-2">
+                        <CardTitle className="text-[10px] sm:text-xs font-bold text-red-800 uppercase tracking-wider">OPEX</CardTitle>
+                        <div className="p-1.5 bg-red-50 rounded-lg">
+                            <TrendingDown className="h-3.5 w-3.5 text-red-600" />
+                        </div>
                     </CardHeader>
                     <CardContent className="p-3 sm:p-4 pt-0">
-                        <div className="text-sm sm:text-base font-bold text-red-700">
+                        <div className="text-sm sm:text-lg font-bold text-red-700">
                             Rp {stats.opex.toLocaleString()}
                         </div>
-                        <p className="text-[9px] text-red-600/70 font-medium mt-1">Biaya Operasional</p>
+                        <p className="text-[9px] text-red-600/70 font-medium mt-1">Operasional</p>
                     </CardContent>
                 </Card>
-                <Card className="bg-orange-50/50 border-none shadow-sm h-full">
-                    <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
-                        <CardTitle className="text-[10px] font-bold text-orange-800 uppercase tracking-widest">CAPEX</CardTitle>
+
+                <Card className="border-none shadow-sm bg-white">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-4 pb-1 sm:pb-2">
+                        <CardTitle className="text-[10px] sm:text-xs font-bold text-orange-800 uppercase tracking-wider">CAPEX</CardTitle>
+                        <div className="p-1.5 bg-orange-50 rounded-lg">
+                            <TrendingDown className="h-3.5 w-3.5 text-orange-600" />
+                        </div>
                     </CardHeader>
                     <CardContent className="p-3 sm:p-4 pt-0">
-                        <div className="text-sm sm:text-base font-bold text-orange-700">
+                        <div className="text-sm sm:text-lg font-bold text-orange-700">
                             Rp {stats.capex.toLocaleString()}
                         </div>
                         <p className="text-[9px] text-orange-600/70 font-medium mt-1">Aset & Inventaris</p>
@@ -493,22 +555,93 @@ const CashFlow = () => {
                 </Card>
             </div>
 
+            {/* Filter Bar */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                <div className="space-y-1.5">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Grup Pengeluaran</Label>
+                    <Select value={filterGroup} onValueChange={setFilterGroup}>
+                        <SelectTrigger className="h-9">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Semua Grup</SelectItem>
+                            <SelectItem value="operational">OPEX (Operasional)</SelectItem>
+                            <SelectItem value="non_operational">CAPEX (Aset/Modal)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-1.5">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Jenis</Label>
+                    <Select value={filterType} onValueChange={(v) => { setFilterType(v); setFilterCategory('all'); }}>
+                        <SelectTrigger className="h-9">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Semua Jenis</SelectItem>
+                            <SelectItem value="in">Pemasukan (In)</SelectItem>
+                            <SelectItem value="out">Pengeluaran (Out)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-1.5">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Kategori</Label>
+                    <Select value={filterCategory} onValueChange={setFilterCategory}>
+                        <SelectTrigger className="h-9">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Semua Kategori</SelectItem>
+                            {availableCategories.map(cat => (
+                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
             {/* Desktop Table View */}
             <Card className="hidden lg:block border-none shadow-sm overflow-hidden rounded-xl">
-                <CardHeader className="bg-white border-b">
+                <CardHeader className="bg-white border-b flex flex-row items-center justify-between">
                     <CardTitle className="text-base font-bold">Riwayat Transaksi Kas</CardTitle>
+                    <div className="text-[10px] text-slate-400 font-medium">
+                        Menampilkan {displayTransactions.length} transaksi
+                    </div>
                 </CardHeader>
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-slate-50/50">
-                                <TableHead className="py-4">Tanggal</TableHead>
+                                <TableHead className="py-4">
+                                    <button
+                                        className="flex items-center gap-1 hover:text-indigo-600 transition-colors"
+                                        onClick={() => handleSort('date')}
+                                    >
+                                        Tanggal
+                                        {sortConfig.key === 'date' && (sortConfig.direction === 'asc' ? ' ↑' : ' ↓')}
+                                    </button>
+                                </TableHead>
                                 <TableHead>Sumber</TableHead>
                                 <TableHead>Kategori</TableHead>
                                 <TableHead>Keterangan</TableHead>
                                 <TableHead>Oleh</TableHead>
-                                <TableHead className="text-right">Masuk</TableHead>
-                                <TableHead className="text-right">Keluar</TableHead>
+                                <TableHead className="text-right">
+                                    <button
+                                        className="inline-flex items-center gap-1 hover:text-indigo-600 transition-colors"
+                                        onClick={() => handleSort('in')}
+                                    >
+                                        Masuk
+                                        {sortConfig.key === 'in' && (sortConfig.direction === 'asc' ? ' ↑' : ' ↓')}
+                                    </button>
+                                </TableHead>
+                                <TableHead className="text-right">
+                                    <button
+                                        className="inline-flex items-center gap-1 hover:text-indigo-600 transition-colors"
+                                        onClick={() => handleSort('out')}
+                                    >
+                                        Keluar
+                                        {sortConfig.key === 'out' && (sortConfig.direction === 'asc' ? ' ↑' : ' ↓')}
+                                    </button>
+                                </TableHead>
                                 <TableHead className="w-[80px] text-right">Aksi</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -517,12 +650,12 @@ const CashFlow = () => {
                                 <TableRow>
                                     <TableCell colSpan={8} className="text-center py-12 text-slate-400">Memuat data...</TableCell>
                                 </TableRow>
-                            ) : transactions.length === 0 ? (
+                            ) : displayTransactions.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="text-center py-12 text-slate-400 font-medium">Belum ada data transaksi</TableCell>
+                                    <TableCell colSpan={8} className="text-center py-12 text-slate-400 font-medium">Belum ada data transaksi sesuai filter</TableCell>
                                 </TableRow>
                             ) : (
-                                transactions.map((t) => (
+                                displayTransactions.map((t) => (
                                     <TableRow key={t.id} className="hover:bg-slate-50 transition-colors group">
                                         <TableCell>
                                             <span className="font-semibold text-slate-700">{format(new Date(t.date), 'dd MMM yyyy', { locale: id })}</span>
@@ -563,10 +696,10 @@ const CashFlow = () => {
             <div className="lg:hidden space-y-4">
                 {loading ? (
                     <div className="text-center py-12 bg-white rounded-2xl border border-dashed text-slate-400 font-medium">Memuat data...</div>
-                ) : transactions.length === 0 ? (
-                    <div className="text-center py-12 bg-white rounded-2xl border border-dashed text-slate-400 font-medium">Belum ada riwayat transaksi.</div>
+                ) : displayTransactions.length === 0 ? (
+                    <div className="text-center py-12 bg-white rounded-2xl border border-dashed text-slate-400 font-medium">Belum ada riwayat transaksi sesuai filter.</div>
                 ) : (
-                    transactions.map((t) => (
+                    displayTransactions.map((t) => (
                         <div key={t.id} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3 relative overflow-hidden">
                             <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${t.type === 'in' ? 'bg-green-500' : 'bg-red-500'}`} />
                             <div className="flex justify-between items-start pl-2">

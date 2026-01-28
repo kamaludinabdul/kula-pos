@@ -91,7 +91,7 @@ describe('PurchaseOrderForm', () => {
         // Check if item is added to table
         // We scope to the table to ensure we aren't finding the dropdown item if it persisted
         // There are two tables (one for form, one for print). We target the one in the "Daftar Barang" section.
-        const section = screen.getByText('Daftar Barang').closest('.space-y-4'); // Finding the container div
+        const section = screen.getByText('Daftar Barang').closest('.space-y-6'); // Finding the container div
         const table = within(section).getByRole('table');
 
         expect(within(table).getByText('Keramik')).toBeInTheDocument();
@@ -103,10 +103,10 @@ describe('PurchaseOrderForm', () => {
         // Qty PCS should be 1 * 50 = 50
 
         // Better: Find by display value
-        const qtyPOInput = screen.getByDisplayValue('1');
+        const qtyPOInput = screen.getAllByDisplayValue('1')[0];
         expect(qtyPOInput).toBeInTheDocument();
 
-        const qtyPCSInput = screen.getByDisplayValue('50'); // 1 Pallet * 50 Box/Pallet
+        const qtyPCSInput = screen.getAllByDisplayValue('50')[0]; // 1 Pallet * 50 Box/Pallet
         expect(qtyPCSInput).toBeInTheDocument(); // This verifies our FIX worked (calculation logic)
     });
 
@@ -118,13 +118,13 @@ describe('PurchaseOrderForm', () => {
         const productItem = await screen.findByText('Keramik');
         fireEvent.click(productItem);
 
-        const qtyPOInput = screen.getByDisplayValue('1');
+        const qtyPOInput = screen.getAllByDisplayValue('1')[0];
 
         // Change Qty PO to 2
         fireEvent.change(qtyPOInput, { target: { value: '2' } });
 
         // Qty PCS should become 100
-        expect(screen.getByDisplayValue('100')).toBeInTheDocument();
+        expect(screen.getAllByDisplayValue('100')[0]).toBeInTheDocument();
     });
 
     it('calculates PO Price correctly in table', async () => {
@@ -167,7 +167,7 @@ describe('PurchaseOrderForm', () => {
 
         // Check Price Input (Should be Base Price: 2500000)
         // With FormattedNumberInput, it might be formatted "2.500.000"
-        const priceInput = screen.getByDisplayValue('2500000');
+        const priceInput = screen.getAllByDisplayValue('2500000')[0];
         expect(priceInput).toBeInTheDocument();
 
         // Check Subtotal (Base Price * Total PCS)
@@ -191,7 +191,8 @@ describe('PurchaseOrderForm', () => {
         fireEvent.click(await screen.findByText('Keramik'));
 
         // Check Display
-        expect(screen.getByText('Total Berat: 750 Kg')).toBeInTheDocument();
+        expect(screen.getAllByText(/Total Berat:/)[0]).toBeInTheDocument();
+        expect(screen.getAllByText(/750 Kg/)[0]).toBeInTheDocument();
 
         // Add 10 Sacks of Semen (p1)
         // Weight per Sack = 40,000g (40kg)
@@ -206,7 +207,8 @@ describe('PurchaseOrderForm', () => {
         fireEvent.change(qtyInputs[1], { target: { value: '10' } });
 
         // Wait/Check
-        expect(await screen.findByText('Total Berat: 1.150 Kg')).toBeInTheDocument();
+        const weightElements = await screen.findAllByText(/1.150 Kg/);
+        expect(weightElements[0]).toBeInTheDocument();
     });
 
     it('sorts items when header is clicked', async () => {
@@ -247,10 +249,10 @@ describe('PurchaseOrderForm', () => {
     it('opens suggestion dialog', async () => {
         renderComponent();
 
-        const suggestButton = screen.getByText('Saran Restock AI');
+        const suggestButton = screen.getByText('Restock AI');
         fireEvent.click(suggestButton);
 
         // Dialog should open
-        expect(await screen.findByText('Produk berikut direkomendasikan berdasarkan analisis penjualan 30 hari terakhir.')).toBeInTheDocument();
+        expect(await screen.findByText(/Berdasarkan analisis penjualan 30 hari terakhir/)).toBeInTheDocument();
     });
 });

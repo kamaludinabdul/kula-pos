@@ -9,6 +9,7 @@ import { sendTransactionToTelegram } from '../services/telegram';
 import { printerService } from '../services/printer';
 import { usePOS } from '../hooks/usePOS';
 import { printReceiptBrowser } from '../lib/receiptHelper';
+import { cn } from '../lib/utils';
 
 // Components
 import POSHeader from '../components/pos/POSHeader';
@@ -519,7 +520,10 @@ const POS = () => {
 
             <div className="flex flex-1 overflow-hidden">
                 {/* Left: Product Area */}
-                <div className="flex-1 flex flex-col min-w-0 min-h-0 transition-all duration-300">
+                <div className={cn(
+                    "flex-1 flex flex-col min-w-0 min-h-0 transition-all duration-300",
+                    !isCartCollapsed && "hidden sm:flex"
+                )}>
                     <div className="p-4 pb-0">
                         <ProductFilter
                             activeCategory={activeCategory}
@@ -541,7 +545,10 @@ const POS = () => {
 
                 {/* Right: Cart Panel */}
                 <div
-                    className={`shrink-0 h-full transition-all duration-300 ease-in-out ${isCartCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-[400px] opacity-100'}`}
+                    className={cn(
+                        "shrink-0 h-full transition-all duration-300 ease-in-out",
+                        isCartCollapsed ? "w-0 opacity-0 overflow-hidden" : "w-full sm:w-[350px] lg:w-[400px] opacity-100"
+                    )}
                 >
                     <CartPanel
                         cart={cart}
