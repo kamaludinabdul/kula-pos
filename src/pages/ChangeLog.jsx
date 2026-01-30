@@ -2,23 +2,56 @@ import React from 'react';
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { GitCommit, Tag, Calendar } from 'lucide-react';
-const APP_VERSION = '0.10.0';
+const APP_VERSION = '0.12.0';
 
 // This data would ideally come from a database or a markdown file
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
+    {
+        version: "0.12.0",
+        date: "2026-01-30",
+        type: "minor",
+        title: "Multi-Store Architecture & Security Hardening",
+        changes: [
+            "Multi-Store: Implemented Per-Owner Subscription model and global Store Branching logic.",
+            "Owner Dashboard: Added comprehensive dashboard for store owners with aggregated financial summaries, daily sales charts, and low stock alerts.",
+            "Security: Hardened transactions with process_sale stock protection.",
+            "Security: Implemented staff email conflict checks to prevent account hijacking.",
+            "Sync: Automatic plan synchronization from owner profile to all managed stores."
+        ]
+    },
+    {
+        version: "0.11.1",
+        date: "2026-01-28",
+        type: "patch",
+        title: "Subscription Approval Workflow",
+        changes: [
+            "Subscription: Added 'Approval Langganan' page for Super Admin to review and approve PRO/Enterprise subscriptions.",
+            "Subscription: Enabled Direct Checkout for Enterprise Plan.",
+            "Security: Implemented Signed URLs for secure viewing of private payment proof files."
+        ]
+    },
+    {
+        version: "0.11.0",
+        date: "2026-01-28",
+        type: "minor",
+        title: "UI/UX Overhaul with shadcn/ui",
+        changes: [
+            "UI/UX Overhaul: Refactored 7 major pages to use modern shadcn/ui components.",
+            "Design: Implemented a consistent, modern, mobile-first design system.",
+            "Codebase: Large-scale cleanup of legacy CSS files in favor of Tailwind CSS."
+        ]
+    },
     {
         version: "0.10.0",
         date: "2026-01-27",
         type: "minor",
         title: "Mobile UI Premium Optimization & AI Refinement",
         changes: [
-            "POS: Overhauled POS Header for ultra-responsive mobile experience (reduced padding, improved truncation).",
-            "POS: Implemented 'Focus-Switch' logic in POS.jsx - show Grid or Cart on small screens to prevent overlap.",
-            "Purchase Order: Fully re-enabled 'Restock AI' (Sales Analysis) with refined mobile UI and logic.",
-            "Shopping Recommendations: Added premium configuration modal with responsive padding and optimized layouts.",
-            "Stability: Fixed 10+ critical lint errors and reference errors across Dashboard, MobilePOS, and PO Form.",
-            "Branding: Updated app-wide versioning to v0.10.0."
+            "POS: Overhauled POS Header for ultra-responsive mobile experience.",
+            "POS: Implemented 'Focus-Switch' logic for better small-screen usability.",
+            "Purchase Order: Refined 'Restock AI' calculations and UI.",
+            "Stability: Fixed multiple critical reference errors across Dashboard and PO Form."
         ]
     },
     {
