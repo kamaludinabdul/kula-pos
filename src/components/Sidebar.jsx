@@ -12,7 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
-const APP_VERSION = '0.11.1';
+const APP_VERSION = '0.12.0';
 import { checkPlanAccess, hasFeatureAccess } from '../utils/plans';
 import UpgradeAlert from './UpgradeAlert';
 

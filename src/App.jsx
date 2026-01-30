@@ -88,7 +88,7 @@ const PageLoader = () => (
 
 import { checkPlanAccess, hasFeatureAccess } from './utils/plans';
 // Use a constant to avoid potential issues with JSON import in some environments
-const APP_VERSION = '0.11.1';
+const APP_VERSION = '0.12.0';
 
 const PrivateRoute = ({ children, feature, plan, permission }) => {
   const authContext = useAuth();
