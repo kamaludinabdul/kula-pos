@@ -2,11 +2,24 @@ import React from 'react';
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { GitCommit, Tag, Calendar } from 'lucide-react';
-const APP_VERSION = '0.12.0';
+const APP_VERSION = '0.13.0';
 
 // This data would ideally come from a database or a markdown file
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
+    {
+        version: "0.13.0",
+        date: "2026-01-30",
+        type: "minor",
+        title: "Standardized UI & Visual Consistency",
+        changes: [
+            "Experience: Standardized 'Stats Cards' across the entire application using a unified design.",
+            "Visuals: Updated all Table and Status components with modern subtle badges.",
+            "Transactions: Refactored transaction summary stats.",
+            "Login History: Enhanced readability with role-based coloring (Owner, Admin, Staff).",
+            "Reports: Optimized stats layout in Category Sales report."
+        ]
+    },
     {
         version: "0.12.0",
         date: "2026-01-30",
