@@ -110,6 +110,7 @@ const MobilePOS = () => {
             cashAmount,
             change,
             cashier: user?.name || 'Mobile Staff',
+            cashierId: user?.id,
             status: 'completed',
             shiftId: currentShift?.id,
             storeName: currentStore?.name,

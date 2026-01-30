@@ -1847,7 +1847,9 @@ export const DataProvider = ({ children }) => {
                 p_rental_session_id: transactionData.rental_session_id || null,
                 p_points_earned: transactionData.pointsEarned || 0,
                 p_date: transactionData.date || new Date().toISOString(),
-                p_shift_id: transactionData.shiftId || null
+                p_shift_id: transactionData.shiftId || null,
+                p_cashier_id: transactionData.cashierId || null,
+                p_cashier_name: transactionData.cashier || null
             });
 
             if (error) throw error;
