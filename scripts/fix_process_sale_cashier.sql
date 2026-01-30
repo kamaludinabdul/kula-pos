@@ -1,6 +1,9 @@
 -- Fix: Update process_sale RPC to include cashier information
 -- This ensures transactions are linked to the correct staff member
 
+-- Drop old function signature to avoid ambiguity (PostgreSQL overload error)
+DROP FUNCTION IF EXISTS public.process_sale(UUID, TEXT, NUMERIC, NUMERIC, TEXT, JSONB, NUMERIC, NUMERIC, TEXT, UUID, JSONB, NUMERIC, UUID, TIMESTAMPTZ, NUMERIC);
+
 CREATE OR REPLACE FUNCTION process_sale(
     p_store_id UUID,
     p_customer_id TEXT,

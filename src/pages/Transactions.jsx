@@ -130,7 +130,7 @@ const Transactions = () => {
                 ...t,
                 paymentMethod: t.payment_method,
                 customerName: t.customer_name,
-                cashier: t.profiles?.name || '-', // From joined profiles table
+                cashier: t.profiles?.name || t.cashier || '-', // From joined profiles table or direct cashier column
                 // Extract details from payment_details JSONB if available
                 amountPaid: t.payment_details?.amount_paid || t.total,
                 change: t.payment_details?.change || 0,
