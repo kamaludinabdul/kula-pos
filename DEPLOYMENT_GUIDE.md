@@ -48,6 +48,16 @@ Sebelum melakukan deployment, pastikan kode aman dengan menjalankan test berikut
 ☐ Jalankan: scripts/sync-owner-plan-to-stores.sql
 ```
 
+### 1.3 Fix Foreign Keys (CRITICAL for Joins)
+**File:** `scripts/fix_foreign_keys.sql`
+- Mendefinisikan relasi `stores_owner_id_fkey` secara formal.
+- Memperbaiki data profil yang hilang.
+- Diperlukan agar query frontend `owner:profiles` tidak error 400.
+
+```
+☐ Jalankan: scripts/fix_foreign_keys.sql
+```
+
 ---
 
 ## Fase 2: RPCs Dasar (Store Dashboard)
@@ -168,11 +178,27 @@ Sebelum melakukan deployment, pastikan kode aman dengan menjalankan test berikut
 
 ---
 
+## Fase 7: Emergency Dashboard Fix (Data Angka 0)
+
+Jika dashboard Anda menampilkan angka 0 meskipun ada transaksi, jalankan script ini:
+
+**File:** `scripts/fix-dashboard-stats-final.sql`
+- Memperluas filter status transaksi (`completed`, `success`, `paid`).
+- Memperbaiki bug "Stok Habis" dan "Stok Menipis" yang tampil 0.
+- Mendukung Store ID berformat NanoID maupun UUID.
+
+```
+☐ Jalankan: scripts/fix-dashboard-stats-final.sql
+```
+
+---
+
 ## Checklist Final
 
 ```
 ☐ migrate-plan-to-owner.sql
 ☐ sync-owner-plan-to-stores.sql
+☐ fix_foreign_keys.sql ⭐ (CRITICAL - Fix Error 400 Joins)
 ☐ create_dashboard_rpc.sql
 ☐ simplified_copy_products.sql
 ☐ create-owner-dashboard-rpc.sql
@@ -184,6 +210,7 @@ Sebelum melakukan deployment, pastikan kode aman dengan menjalankan test berikut
 ☐ fix_profiles_rls.sql (New)
 ☐ fix_registration_trigger.sql (New)
 ☐ create_check_conflict_rpc.sql (New)
+☐ fix-dashboard-stats-final.sql ⭐ (EMERGENCY FIX - Dashboard 0)
 ☐ npm run build
 ☐ Deploy ke hosting
 ```
