@@ -4,7 +4,7 @@
 DROP FUNCTION IF EXISTS get_products_page(UUID, INT, INT, TEXT, TEXT, TEXT, TEXT, TEXT);
 
 CREATE OR REPLACE FUNCTION get_products_page(
-    p_store_id UUID,
+    p_store_id TEXT,
     p_page INT,
     p_page_size INT,
     p_search TEXT DEFAULT '',
@@ -28,7 +28,7 @@ BEGIN
     INTO v_total
     FROM products p
     LEFT JOIN categories c ON p.category_id = c.id
-    WHERE p.store_id = p_store_id
+    WHERE p.store_id::text = p_store_id
     AND p.is_deleted = false
     AND (
         p_search = '' OR
@@ -75,7 +75,7 @@ BEGIN
             (p.sell_price - p.buy_price) AS profit
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.id
-        WHERE p.store_id = p_store_id
+        WHERE p.store_id::text = p_store_id
         AND p.is_deleted = false
         AND (
             p_search = '' OR

@@ -15,16 +15,23 @@ const SubscriptionApproval = () => {
     const [processingId, setProcessingId] = useState(null);
 
     const fetchInvoices = async () => {
+        console.log("SubscriptionApproval: Fetching invoices (v2)...");
         setLoading(true);
         try {
             // Fetch pending subscription invoices
             const { data, error } = await supabase
                 .from('subscription_invoices')
                 .select(`
-                    *,
+                    id, amount, status, created_at, plan_id, duration_months, proof_url,
                     stores:store_id (
+                        id,
                         name,
-                        email
+                        email,
+                        owner:profiles!stores_owner_id_fkey (
+                            id,
+                            name,
+                            email
+                        )
                     )
                 `)
                 .order('created_at', { ascending: false });
@@ -48,7 +55,8 @@ const SubscriptionApproval = () => {
     }, []);
 
     const handleApprove = async (invoice) => {
-        if (!confirm(`Setujui langganan ${invoice.stores?.name} untuk paket ${invoice.plan_id.toUpperCase()}?`)) return;
+        const ownerName = invoice.stores?.owner?.name || invoice.stores?.name;
+        if (!confirm(`Setujui langganan untuk OWNER: ${ownerName} (Paket ${invoice.plan_id.toUpperCase()})?`)) return;
 
         setProcessingId(invoice.id);
         try {
@@ -141,8 +149,9 @@ const SubscriptionApproval = () => {
                                     <TableRow>
                                         <TableHead>Status</TableHead>
                                         <TableHead>Tgl Request</TableHead>
-                                        <TableHead>Nama Toko</TableHead>
+                                        <TableHead>Owner</TableHead>
                                         <TableHead>Email Owner</TableHead>
+                                        <TableHead>Toko Request</TableHead>
                                         <TableHead>Paket</TableHead>
                                         <TableHead>Total Bayar</TableHead>
                                         <TableHead>Bukti</TableHead>
@@ -164,8 +173,22 @@ const SubscriptionApproval = () => {
                                                     hour: '2-digit', minute: '2-digit'
                                                 })}
                                             </TableCell>
-                                            <TableCell className="font-medium">{inv.stores?.name || 'Unknown'}</TableCell>
-                                            <TableCell>{inv.stores?.email || '-'}</TableCell>
+                                            <TableCell className="font-medium">
+                                                <div className="flex flex-col">
+                                                    <span>{inv.stores?.owner?.name || 'Unknown User'}</span>
+                                                    {!inv.stores?.owner && (
+                                                        <Badge variant="destructive" className="text-[10px] w-fit px-1 py-0 mt-0.5">Missing Profile</Badge>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className={!inv.stores?.owner ? "text-orange-600 font-medium" : ""}>
+                                                    {inv.stores?.owner?.email || inv.stores?.email || '-'}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground text-sm">
+                                                {inv.stores?.name || 'Unknown Store'}
+                                            </TableCell>
                                             <TableCell>
                                                 <Badge variant={inv.plan_id === 'enterprise' ? 'default' : 'secondary'}>
                                                     {inv.plan_id.toUpperCase()} ({inv.duration_months} Bln)

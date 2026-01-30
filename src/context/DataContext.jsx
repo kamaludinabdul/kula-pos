@@ -22,14 +22,22 @@ const safeFetchSupabase = async (options) => {
         const data = await safeSupabaseQuery({
             tableName,
             queryBuilder: (q) => {
-                let baseQuery = q.eq('store_id', activeStoreId);
+                let baseQuery = q;
+                // If customStoreFilter is provided, use it (e.g. for shared customers)
+                // Otherwise use the default single activeStoreId filter
+                if (options.customStoreFilter) {
+                    baseQuery = options.customStoreFilter(baseQuery);
+                } else if (activeStoreId) {
+                    baseQuery = q.eq('store_id', activeStoreId);
+                }
+
                 if (queryBuilder && typeof queryBuilder === 'function') {
                     baseQuery = queryBuilder(baseQuery);
                 }
                 return baseQuery;
             },
             processFn,
-            fallbackParams: `?store_id=eq.${activeStoreId}&select=*`
+            fallbackParams: options.customStoreFilter ? null : `?store_id=eq.${activeStoreId}&select=*`
         });
 
         if (setterFn && data) {
@@ -58,6 +66,9 @@ export const DataProvider = ({ children }) => {
     const [salesTargets, setSalesTargets] = useState([]);
     const [promotions, setPromotions] = useState([]);
     const isFetchingRef = useRef(false);
+    const fetchingStoreIdRef = useRef(null);
+    // latestActiveStoreId moved down
+
 
     const [suppliers, setSuppliers] = useState([]);
     const [purchaseOrders, setPurchaseOrders] = useState([]);
@@ -84,10 +95,15 @@ export const DataProvider = ({ children }) => {
     };
 
     // Determine the effective store ID to use for queries
-    const activeStoreId = (user?.role === 'super_admin' && selectedStoreId)
+    const activeStoreId = ((user?.role === 'super_admin' || user?.role === 'owner') && selectedStoreId)
         ? selectedStoreId
         : user?.store_id;
     const currentStore = stores.find(s => s.id === activeStoreId) || null;
+
+    const latestActiveStoreId = useRef(activeStoreId);
+    useEffect(() => {
+        latestActiveStoreId.current = activeStoreId;
+    }, [activeStoreId]);
 
     // Sync across tabs
     useEffect(() => {
@@ -124,22 +140,155 @@ export const DataProvider = ({ children }) => {
 
 
 
+    const fetchStores = useCallback(async (isSilent = false) => {
+        if (!user) {
+            setStores([]);
+            setStoresLoading(false);
+            return;
+        }
+        if (!isSilent) setStoresLoading(true);
+        console.log("DataContext: fetchStores (v2)...");
+        try {
+            let query = supabase
+                .from('stores')
+                .select(`
+                    *,
+                    owner:profiles!stores_owner_id_fkey (
+                        id, name, email, plan, plan_expiry_date
+                    )
+                `);
+
+            if (user.role !== 'super_admin') {
+                // Determine effective store IDs for the user
+                // 1. Stores they own
+                // 2. Stores they are staff in (found via profiles.store_id) - handled by AuthContext but here we fetch list
+
+                // For 'owner', they see all stores where owner_id = user.id
+                if (user.role === 'owner') {
+                    query = query.eq('owner_id', user.id);
+                } else {
+                    // Staff usually only sees their assigned store data, handled by RLS mostly.
+                    // But if we want to be explicit:
+                    query = query.eq('id', user.store_id);
+                }
+            } else {
+                // Super Admin sees ALL stores, ordered by created_at desc
+                query = query.order('created_at', { ascending: false });
+            }
+
+            const { data, error } = await query;
+            if (error) throw error;
+
+            if (data) {
+                setStores(data.map(s => {
+                    // Handle join data that might be an array or null
+                    const profileData = Array.isArray(s.owner)
+                        ? (s.owner.find(p => p.id === s.owner_id) || s.owner[0])
+                        : s.owner;
+
+                    const hasProfile = !!profileData;
+
+                    // Plan Logic: Prioritize highest plan found in either profile or store
+                    const pPlan = profileData?.plan || 'free';
+                    const sPlan = s.plan || 'free';
+                    const effectivePlan = (pPlan === 'enterprise' || sPlan === 'enterprise')
+                        ? 'enterprise'
+                        : (pPlan === 'pro' || sPlan === 'pro')
+                            ? 'pro'
+                            : 'free';
+
+                    return {
+                        ...s,
+                        // Map snake_case to camelCase for frontend compatibility
+                        planExpiryDate: s.plan_expiry_date || profileData?.plan_expiry_date,
+                        enableSalesPerformance: s.enable_sales_performance,
+                        enableRental: s.enable_rental,
+                        enableDiscount: s.enable_discount,
+                        discountPin: s.discount_pin,
+                        taxRate: s.tax_rate,
+                        serviceCharge: s.service_charge,
+                        taxType: s.tax_type,
+                        petCareEnabled: s.pet_care_enabled,
+                        telegramBotToken: s.telegram_bot_token,
+                        telegramChatId: s.telegram_chat_id,
+
+                        // Owner data mapping (robust)
+                        ownerName: profileData?.name || s.owner_name || 'Owner',
+                        ownerEmail: profileData?.email || s.email || '-',
+                        ownerPlan: effectivePlan,
+                        plan: effectivePlan, // Overwrite with effective plan for app-wide consistency
+                        ownerId: s.owner_id,
+                        hasProfile: hasProfile,
+
+                        createdAt: s.created_at,
+
+                        // Feature flags based on effective plan
+                        isEnterprise: effectivePlan === 'enterprise',
+                        isPro: effectivePlan === 'pro' || effectivePlan === 'enterprise',
+
+                        // Extract settings for easier access
+                        loyaltySettings: s.settings?.loyaltySettings,
+                        autoPrintReceipt: s.settings?.autoPrintReceipt,
+                        printerType: s.settings?.printerType,
+                        printerWidth: s.settings?.printerWidth,
+                        receiptHeader: s.settings?.receiptHeader,
+                        receiptFooter: s.settings?.receiptFooter,
+                        permissions: normalizePermissions(s.settings?.permissions),
+                        logo: s.logo || s.settings?.logo,
+                        printerPaperSize: s.settings?.printerPaperSize
+                    };
+                }));
+
+                if (data.length > 0 && !isSilent) {
+                    console.log("DataContext: fetchStores SUCCESS. Sample:", {
+                        id: data[0].id,
+                        name: data[0].name,
+                        ownerJoin: data[0].owner,
+                        mappedOwnerPlan: (Array.isArray(data[0].owner) ? data[0].owner[0]?.plan : data[0].owner?.plan) || data[0].plan
+                    });
+                }
+            }
+        } catch (err) {
+            console.error("Store fetch exception:", err);
+        } finally {
+            if (!isSilent) setStoresLoading(false);
+        }
+    }, [user]);
+
     const addStore = async (storeData) => {
         try {
+            // Check store limits for non-super_admin (Per-Owner Limit)
+            if (user?.role !== 'super_admin') {
+                const ownerStores = stores.filter(s => s.owner_id === user?.id);
+
+                const userPlan = user?.plan || 'free';
+                // Use dynamic plan limits if available, otherwise fallback
+                const maxStores = plans[userPlan]?.maxStores || PLANS[userPlan]?.maxStores || 1;
+
+                if (ownerStores.length >= maxStores) {
+                    return {
+                        success: false,
+                        error: `Limit toko tercapai (${ownerStores.length}/${maxStores}). Upgrade plan untuk menambah toko.`
+                    };
+                }
+            }
+
             const { data, error } = await supabase
                 .from('stores')
                 .insert({
                     ...storeData,
+                    owner_id: storeData.owner_id || user?.id // Allow override for Super Admin
                 })
                 .select()
                 .single();
 
             if (error) throw error;
+            fetchStores(true); // Re-fetch store list silently
             fetchData();
             return { success: true, id: data.id };
         } catch (error) {
             console.error("Error adding store:", error);
-            return { success: false, error };
+            return { success: false, error: error.message || error };
         }
     };
 
@@ -218,6 +367,8 @@ export const DataProvider = ({ children }) => {
 
             if (error) throw error;
 
+            fetchStores(true); // Re-fetch store list silently
+
             // Simple Optimistic Update
             setStores(prev => prev.map(store => {
                 if (store.id === id) {
@@ -236,7 +387,7 @@ export const DataProvider = ({ children }) => {
             setStoresLoading(false);
             setStoresLoading(false);
         }
-    }, [user]);
+    }, [user, fetchStores]);
 
     /**
      * Check and reset expired points if expiry date has passed
@@ -304,6 +455,7 @@ export const DataProvider = ({ children }) => {
                 .eq('id', id);
 
             if (error) throw error;
+            fetchStores(true); // Re-fetch store list silently
             fetchData();
             return { success: true };
         } catch (error) {
@@ -439,6 +591,12 @@ export const DataProvider = ({ children }) => {
                 }))
             });
 
+            // STALE CHECK: If the store changed while we were fetching products, discard this result
+            if (storeId !== latestActiveStoreId.current) {
+                console.log("DataContext: fetchAllProducts ignored stale result for store", storeId);
+                return [];
+            }
+
             setProducts(processed || []);
             console.log(`DataContext: fetchAllProducts took: ${((performance.now() - phase2Start) / 1000).toFixed(2)}s`);
 
@@ -484,8 +642,8 @@ export const DataProvider = ({ children }) => {
             return;
         }
 
-        if (isFetchingRef.current) {
-            console.log("DataContext: Fetch already in progress, skipping redundant call");
+        if (isFetchingRef.current && fetchingStoreIdRef.current === activeStoreId) {
+            console.log("DataContext: Fetch already in progress for this store, skipping redundant call");
             return;
         }
 
@@ -496,12 +654,29 @@ export const DataProvider = ({ children }) => {
             setLoadingMessage("Menyiapkan koneksi aman...");
         }
 
+        // Lock needs to happen BEFORE the await to prevent double-entry
+        // But we allow re-entry if storeId Changed.
+        isFetchingRef.current = true;
+        fetchingStoreIdRef.current = activeStoreId;
+
         await new Promise(r => setTimeout(r, 1000));
+
+        // STALE CHECK 1: If store changed during wait, abort
+        if (activeStoreId !== latestActiveStoreId.current) {
+            console.log("DataContext: Aborting stale fetch (Pre-Settle)", activeStoreId, "vs", latestActiveStoreId.current);
+            return;
+        }
+
         if (shouldSetLoading) setLoadingMessage("Mengoptimalkan kecepatan data...");
         await new Promise(r => setTimeout(r, 2000));
+
+        // STALE CHECK 2
+        if (activeStoreId !== latestActiveStoreId.current) return;
+
         if (shouldSetLoading) setLoadingMessage("");
 
-        isFetchingRef.current = true;
+        // Removed the late setting of isFetchingRef here, moved up.
+
         if (shouldSetLoading) setLoading(true); // Only show loading for the very first critical part
         try {
             console.log("DataContext: Fetching data for user:", user?.email, "Role:", user?.role, "StoreId:", activeStoreId);
@@ -514,11 +689,20 @@ export const DataProvider = ({ children }) => {
                 try {
                     console.log("DataContext: Starting Phase 1 (Snapshot)...");
 
+                    // STALE CHECK 3 (Pre-RPC)
+                    if (activeStoreId !== latestActiveStoreId.current) return;
+
                     const snapshot = await safeSupabaseRpc({
                         rpcName: 'get_store_initial_snapshot',
                         params: { p_store_id: activeStoreId },
                         timeout: 15000
                     });
+
+                    // STALE CHECK 4 (Post-RPC)
+                    if (activeStoreId !== latestActiveStoreId.current) {
+                        console.log("DataContext: Ignoring stale snapshot for", activeStoreId);
+                        return;
+                    }
 
                     if (snapshot) {
                         console.log("DataContext: Initial snapshot loaded successfully");
@@ -535,7 +719,8 @@ export const DataProvider = ({ children }) => {
                 console.log(`DataContext: Phase 1 (Snapshot) took: ${((performance.now() - phase1Start) / 1000).toFixed(2)}s`);
 
                 // --- KEY CHANGE: Stop Loading Here ---
-                if (shouldSetLoading) setLoading(false);
+                // STALE CHECK: Only turn off loading if we are still on the same store
+                if (shouldSetLoading && activeStoreId === latestActiveStoreId.current) setLoading(false);
 
                 // --- PHASE 2: PRODUCTS (REMOVED FROM DEFAULT FETCH) ---
                 // We no longer fetch all 2000 products by default.
@@ -560,18 +745,40 @@ export const DataProvider = ({ children }) => {
                             amountPaid: t.amount_paid
                         }))
                     }),
-                    safeFetchSupabase({
-                        supabase, activeStoreId,
-                        tableName: 'customers',
-                        setterFn: setCustomers,
-                        queryBuilder: (q) => q.limit(2000),
-                        processFn: (data) => data.map(c => ({
-                            ...c,
-                            loyaltyPoints: c.loyalty_points || 0,
-                            totalSpent: c.total_spent || 0,
-                            totalLifetimePoints: c.total_lifetime_points || 0
-                        }))
-                    }),
+                    (currentStore?.settings?.enableSharedCustomers && user?.role === 'owner')
+                        ? (async () => {
+                            try {
+                                const data = await safeSupabaseRpc({
+                                    rpcName: 'get_shared_customers',
+                                    params: { p_owner_id: user.id }
+                                });
+                                if (data) {
+                                    const processed = data.map(c => ({
+                                        ...c,
+                                        loyaltyPoints: c.loyalty_points || 0,
+                                        totalSpent: c.total_spent || 0,
+                                        totalLifetimePoints: c.total_lifetime_points || 0
+                                    }));
+                                    setCustomers(processed);
+                                    return processed;
+                                }
+                            } catch (e) {
+                                console.error("Failed to fetch shared customers:", e);
+                            }
+                            return [];
+                        })()
+                        : safeFetchSupabase({
+                            supabase, activeStoreId,
+                            tableName: 'customers',
+                            setterFn: setCustomers,
+                            queryBuilder: (q) => q.limit(2000),
+                            processFn: (data) => data.map(c => ({
+                                ...c,
+                                loyaltyPoints: c.loyalty_points || 0,
+                                totalSpent: c.total_spent || 0,
+                                totalLifetimePoints: c.total_lifetime_points || 0
+                            }))
+                        }),
                     safeFetchSupabase({
                         supabase, activeStoreId,
                         tableName: 'sales_targets',
@@ -628,7 +835,12 @@ export const DataProvider = ({ children }) => {
                         }))
                     }),
                     fetchStockMovements()
-                ]).catch(err => console.error("DataContext: Phase 3 failed:", err));
+                ]).then(() => {
+                    // Final verification that we finished for the correct store
+                    if (activeStoreId === latestActiveStoreId.current) {
+                        console.log("DataContext: Phase 3 finished for active store.");
+                    }
+                }).catch(err => console.error("DataContext: Phase 3 failed:", err));
                 console.log(`DataContext: Phase 3 (Background) took: ${((performance.now() - phase3Start) / 1000).toFixed(2)}s`);
 
 
@@ -650,9 +862,12 @@ export const DataProvider = ({ children }) => {
             // We can check local storage directly or just leave it empty until POS loads
             if (shouldSetLoading) setLoading(false);
         } finally {
-            isFetchingRef.current = false;
+            if (fetchingStoreIdRef.current === activeStoreId) {
+                isFetchingRef.current = false;
+                fetchingStoreIdRef.current = null;
+            }
         }
-    }, [user, activeStoreId, fetchStockMovements]);
+    }, [user, activeStoreId, fetchStockMovements, currentStore?.settings?.enableSharedCustomers]);
 
     useEffect(() => {
         const fetchPlans = async () => {
@@ -715,96 +930,7 @@ export const DataProvider = ({ children }) => {
         }
     };
 
-    const fetchStores = useCallback(async (isSilent = false) => {
-        if (!user) {
-            setStores([]);
-            setStoresLoading(false);
-            return;
-        }
-        if (!isSilent) setStoresLoading(true);
-        try {
-            // OPTIMIZATION: If AuthContext already fetched the current store, use it!
-            if (user.stores && user.stores.id === activeStoreId && user.role !== 'super_admin') {
-                console.log("DataContext: Using pre-fetched store data from AuthContext");
-                const s = user.stores;
-                setStores([{
-                    ...s,
-                    planExpiryDate: s.plan_expiry_date,
-                    enableSalesPerformance: s.enable_sales_performance,
-                    enableRental: s.enable_rental,
-                    enableDiscount: s.enable_discount,
-                    discountPin: s.discount_pin,
-                    taxRate: s.tax_rate,
-                    serviceCharge: s.service_charge,
-                    taxType: s.tax_type,
-                    petCareEnabled: s.pet_care_enabled,
-                    telegramBotToken: s.telegram_bot_token,
-                    telegramChatId: s.telegram_chat_id,
-                    ownerName: s.owner_name,
-                    ownerId: s.owner_id,
-                    createdAt: s.created_at,
-                    loyaltySettings: s.settings?.loyaltySettings,
-                    autoPrintReceipt: s.settings?.autoPrintReceipt,
-                    printerType: s.settings?.printerType,
-                    printerWidth: s.settings?.printerWidth,
-                    receiptHeader: s.settings?.receiptHeader,
-                    receiptFooter: s.settings?.receiptFooter,
-                    permissions: normalizePermissions(s.settings?.permissions),
-                    logo: s.logo || s.settings?.logo,
-                    printerPaperSize: s.settings?.printerPaperSize
-                }]);
-                setStoresLoading(false);
-                return;
-            }
 
-            const data = await safeSupabaseQuery({
-                tableName: 'stores',
-                queryBuilder: (q) => {
-                    let base = q.select('*');
-                    if (user.role !== 'super_admin' && activeStoreId) {
-                        base = base.eq('id', activeStoreId);
-                    }
-                    return base;
-                },
-                fallbackParams: user.role !== 'super_admin' && activeStoreId ? `?id=eq.${activeStoreId}` : ''
-            });
-
-            if (data) {
-                setStores(data.map(s => ({
-                    ...s,
-                    // Map snake_case to camelCase for frontend compatibility
-                    planExpiryDate: s.plan_expiry_date,
-                    enableSalesPerformance: s.enable_sales_performance,
-                    enableRental: s.enable_rental,
-                    enableDiscount: s.enable_discount,
-                    discountPin: s.discount_pin,
-                    taxRate: s.tax_rate,
-                    serviceCharge: s.service_charge,
-                    taxType: s.tax_type,
-                    petCareEnabled: s.pet_care_enabled,
-                    telegramBotToken: s.telegram_bot_token,
-                    telegramChatId: s.telegram_chat_id,
-                    ownerName: s.owner_name,
-                    ownerId: s.owner_id,
-                    createdAt: s.created_at,
-                    // Extract settings for easier access
-                    loyaltySettings: s.settings?.loyaltySettings,
-                    autoPrintReceipt: s.settings?.autoPrintReceipt,
-                    printerType: s.settings?.printerType,
-                    printerWidth: s.settings?.printerWidth,
-                    receiptHeader: s.settings?.receiptHeader,
-                    receiptFooter: s.settings?.receiptFooter,
-                    permissions: normalizePermissions(s.settings?.permissions),
-                    logo: s.logo || s.settings?.logo,
-                    printerPaperSize: s.settings?.printerPaperSize
-                })));
-            }
-        } catch (err) {
-            console.error("Store fetch exception:", err);
-        } finally {
-            if (!isSilent) setStoresLoading(false);
-        }
-    }, [user, activeStoreId]);
 
     // Real-time Store Subscription
     useEffect(() => {
@@ -846,8 +972,17 @@ export const DataProvider = ({ children }) => {
                             petCareEnabled: newRow.pet_care_enabled,
                             telegramBotToken: newRow.telegram_bot_token,
                             telegramChatId: newRow.telegram_chat_id,
+
+                            // Feature flags
+                            isEnterprise: newRow.plan === 'enterprise',
+                            isPro: newRow.plan === 'pro' || newRow.plan === 'enterprise',
+
+                            // Owner data (Realtime payload doesn't have joins, use denormalized store columns)
                             ownerName: newRow.owner_name,
                             ownerId: newRow.owner_id,
+                            ownerPlan: newRow.plan || 'free',
+                            ownerEmail: newRow.email || '-',
+
                             createdAt: newRow.created_at,
                             loyaltySettings: newRow.settings?.loyaltySettings,
                             autoPrintReceipt: newRow.settings?.autoPrintReceipt,
@@ -962,11 +1097,43 @@ export const DataProvider = ({ children }) => {
     }, [stores]);
 
     // --- User Management ---
+    // --- User Management ---
     const addUser = async (userData) => {
         if (!activeStoreId) return { success: false, error: 'No active store' };
         try {
-            // Staff creation in Supabase usually requires an Edge Function or Admin Access
-            // For now, we'll just insert/update the profile if we have an ID
+            // 1. SECURITY CHECK: Prevent overriding staff from other stores
+            // Using RPC to check profile status safely (Security Definer)
+            const { data: checkData, error: checkError } = await supabase
+                .rpc('check_staff_conflict', {
+                    p_email: userData.email,
+                    p_target_store_id: activeStoreId
+                });
+
+            if (checkError) {
+                console.error("Staff conflict check failed:", checkError);
+                // Proceed with caution or fail? Better to fail safe.
+                return { success: false, error: "Gagal memverifikasi keamanan data staff." };
+            }
+
+            if (checkData && checkData.status === 'conflict') {
+                return {
+                    success: false,
+                    error: `Username/Email ini sudah digunakan oleh toko lain (${checkData.current_store_name}). Gunakan username unik.`
+                };
+            }
+
+            // 2. SAME STORE CHECK: Prevent accidental role downgrade or overwrite
+            if (checkData && checkData.status === 'same_store') {
+                // If attempting to ADD (no ID, meaning userData.id is undefined or null) but user exists -> Block to prevent overwrite
+                if (!userData.id) {
+                    return {
+                        success: false,
+                        error: `Staff ini sudah terdaftar di toko ini sebagai ${checkData.current_role}. Silakan EDIT data staff tersebut jika ingin mengubah role.`
+                    };
+                }
+            }
+
+            // 2. Upsert Profile (Safe to proceed)
             const { error } = await supabase
                 .from('profiles')
                 .upsert({
@@ -1056,7 +1223,7 @@ export const DataProvider = ({ children }) => {
     const addProduct = async (product) => {
         if (!activeStoreId) return { success: false, error: "No active store" };
         try {
-            const storePlan = currentStore?.plan || 'free';
+            const storePlan = currentStore?.ownerPlan || 'free';
             const limitCheck = checkPlanLimit(storePlan, 'products', products.length, plans);
 
             if (!limitCheck.allowed) {
@@ -2024,7 +2191,7 @@ export const DataProvider = ({ children }) => {
     const bulkAddProducts = async (newProducts) => {
         if (!activeStoreId) return;
         try {
-            const storePlan = currentStore?.plan || 'free';
+            const storePlan = currentStore?.ownerPlan || 'free';
             const limits = PLAN_LIMITS[storePlan] || PLAN_LIMITS.free;
 
             if (limits.maxProducts !== Infinity && (products.length + newProducts.length) > limits.maxProducts) {

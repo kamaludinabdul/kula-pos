@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.12.0] - 2026-01-30
+### Added
+- **Multi-Store**: Implemented Per-Owner Subscription model and global Store Branching logic.
+- **Owner Dashboard**: Added comprehensive dashboard for store owners with aggregated financial summaries, daily sales charts (hourly/daily), and cross-store low stock alerts.
+- **Database (RPC)**: Added `get_owner_dashboard_stats`, `get_owner_low_stock_alerts`, `get_owner_financial_summary`, and `get_owner_daily_sales` to support multi-store analytics.
+- **Security**: Hardened transactions with `process_sale` stock protection and implemented staff email conflict checks to prevent account hijacking.
+
+### Fixed
+- **Registration**: Fixed critical error in `handle_new_user` trigger that blocked staff registration.
+- **Permissions (RLS)**: Fixed Row Level Security policies to allow Owners to correctly view and manage their staff across all branch stores.
+- **Sync**: Implemented automatic plan synchronization from owner profile to all managed stores.
+
 ## [0.11.1] - 2026-01-28
 ### Added
 - **Subscription**: Added "Approval Langganan" page for Super Admin to review and approve PRO/Enterprise subscriptions.

@@ -270,9 +270,10 @@ async function rawRpcFallback({ rpcName, params, accessToken }) {
             body: JSON.stringify(params)
         });
 
-        if (response.ok) {
+        // Handle 300 Multiple Choices as a success for RPC (Supabase edge case)
+        if (response.ok || response.status === 300) {
             const json = await response.json();
-            console.log(`supabaseHelper: Raw RPC Fallback SUCCESS for ${rpcName}`);
+            console.log(`supabaseHelper: Raw RPC Fallback SUCCESS for ${rpcName} (Status ${response.status})`);
             return json;
         }
         throw new Error(`Raw RPC Fallback failed with status ${response.status}`);

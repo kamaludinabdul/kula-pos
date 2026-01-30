@@ -11,10 +11,16 @@
  * @returns {string} - The optimized image URL.
  */
 export const getOptimizedImage = (url, options = {}) => {
-    if (!url) return url;
+    if (!url) return 'https://placehold.co/400x300?text=No+Image'; // Robust fallback
 
-    // Don't transform Base64 data (backwards compatibility)
+    // Don't transform Base64 data
     if (url.startsWith('data:')) return url;
+
+    // Handle relative path "400x300.png" which seems to be appearing in data
+    // Return a valid placeholder instead of a broken relative link
+    if (url === '400x300.png' || url.match(/^\d+x\d+\.png$/)) {
+        return `https://placehold.co/${url}?text=Placeholder`;
+    }
 
     // Check if it's a Supabase storage URL
     // Format: https://[project-id].supabase.co/storage/v1/object/public/[bucket]/[path]

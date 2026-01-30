@@ -19,6 +19,7 @@ const POS = lazy(() => import('./pages/POS'));
 const MobilePOS = lazy(() => import('./pages/MobilePOS'));
 const RentalDashboard = lazy(() => import('./pages/RentalDashboard'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const OwnerDashboard = lazy(() => import('./pages/OwnerDashboard'));
 const Transactions = lazy(() => import('./pages/Transactions'));
 const Stores = lazy(() => import('./pages/Stores'));
 const PlanManagement = lazy(() => import('./pages/PlanManagement'));
@@ -87,7 +88,7 @@ const PageLoader = () => (
 
 import { checkPlanAccess, hasFeatureAccess } from './utils/plans';
 // Use a constant to avoid potential issues with JSON import in some environments
-const APP_VERSION = '0.10.0';
+const APP_VERSION = '0.11.1';
 
 const PrivateRoute = ({ children, feature, plan, permission }) => {
   const authContext = useAuth();
@@ -309,6 +310,13 @@ const App = () => {
                         <Dashboard />
                       </PrivateRoute>
                     } />
+
+                    <Route path="/owner-dashboard" element={
+                      <PrivateRoute feature="dashboard">
+                        <OwnerDashboard />
+                      </PrivateRoute>
+                    } />
+
 
                     <Route path="/rental" element={
                       <PrivateRoute feature="rental" permission="pos" plan="pro">

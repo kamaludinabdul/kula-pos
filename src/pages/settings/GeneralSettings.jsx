@@ -29,12 +29,17 @@ const GeneralSettings = () => {
     const [enableRental, setEnableRental] = useState(false);
     const [isSavingRental, setIsSavingRental] = useState(false);
 
+    // Shared Customers state
+    const [enableSharedCustomers, setEnableSharedCustomers] = useState(false);
+    const [isSavingSharedCustomers, setIsSavingSharedCustomers] = useState(false);
+
     // Load settings on mount
     useEffect(() => {
         if (currentStore) {
             setAllowBackdate(currentStore.settings?.allowBackdateTransaction || false);
             setEnableRental(currentStore.enableRental || false);
             setGracePeriod(currentStore.settings?.grace_period || 0);
+            setEnableSharedCustomers(currentStore.settings?.enableSharedCustomers || false);
         }
     }, [currentStore]);
 
@@ -103,6 +108,45 @@ const GeneralSettings = () => {
             });
         } finally {
             setIsSavingRental(false);
+        }
+    };
+
+    const handleSharedCustomersToggle = async (checked) => {
+        if (!currentStore?.id) return;
+        setIsSavingSharedCustomers(true);
+        try {
+            const { error } = await supabase
+                .from('stores')
+                .update({
+                    settings: {
+                        ...currentStore.settings,
+                        enableSharedCustomers: checked,
+                        updatedAt: new Date().toISOString()
+                    }
+                })
+                .eq('id', currentStore.id);
+
+            if (error) throw error;
+            setEnableSharedCustomers(checked);
+            toast({
+                title: checked ? "Database Dishared" : "Database Dipisah",
+                description: checked
+                    ? "Pelanggan dari seluruh toko Anda akan terlihat di sini."
+                    : "Hanya pelanggan yang terdaftar di toko ini yang akan muncul.",
+            });
+            // Background fetch to refresh data
+            updateStore(currentStore.id, {
+                settings: { ...currentStore.settings, enableSharedCustomers: checked }
+            });
+        } catch (error) {
+            console.error('Error saving shared customers setting:', error);
+            toast({
+                variant: "destructive",
+                title: "Gagal",
+                description: "Gagal menyimpan pengaturan.",
+            });
+        } finally {
+            setIsSavingSharedCustomers(false);
         }
     };
 
@@ -265,6 +309,23 @@ const GeneralSettings = () => {
                             checked={enableRental}
                             onCheckedChange={handleRentalToggle}
                             disabled={isSavingRental}
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="space-y-1">
+                            <Label htmlFor="shared-customers-switch" className="font-medium">
+                                Berbagi Database Pelanggan
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                                Gabungkan database pelanggan dari seluruh toko Anda dalam satu daftar.
+                            </p>
+                        </div>
+                        <Switch
+                            id="shared-customers-switch"
+                            checked={enableSharedCustomers}
+                            onCheckedChange={handleSharedCustomersToggle}
+                            disabled={isSavingSharedCustomers}
                         />
                     </div>
 

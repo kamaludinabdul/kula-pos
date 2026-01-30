@@ -10,7 +10,8 @@ export const PLANS = {
         level: 0,
         price: 0,
         maxUsers: 2,
-        maxProducts: 100
+        maxProducts: 100,
+        maxStores: 1
     },
     pro: {
         label: 'Pro',
@@ -19,14 +20,16 @@ export const PLANS = {
         originalPrice: 250000,
         promoLabel: 'Promo',
         maxUsers: 5,
-        maxProducts: -1 // Unlimited
+        maxProducts: -1, // Unlimited
+        maxStores: 3
     },
     enterprise: {
         label: 'Enterprise',
         level: 2,
         price: 350000,
         maxUsers: -1, // Unlimited
-        maxProducts: -1 // Unlimited
+        maxProducts: -1, // Unlimited
+        maxStores: 10
     }
 };
 

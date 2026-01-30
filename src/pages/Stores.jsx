@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
-import { Plus, Trash2, Store, MapPin, Phone, MessageCircle, Users, Edit, Crown, Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Plus, Trash2, Store, MapPin, Phone, MessageCircle, Users, Edit, Crown, Eye, EyeOff, ChevronRight } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -11,14 +12,83 @@ import { Badge } from '../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import AlertDialog from '../components/AlertDialog';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { PLANS } from '../utils/plans';
+
 
 const Stores = () => {
-    const { stores, addStore, updateStore, deleteStore, setSelectedStoreId, selectedStoreId, addUser, fetchUsersByStore } = useData();
+    const { stores, addStore, updateStore, deleteStore, setSelectedStoreId, selectedStoreId, addUser, fetchUsersByStore, plans: contextPlans } = useData();
+    const { user } = useAuth();
     const [isStoreModalOpen, setIsStoreModalOpen] = useState(false);
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [managingStore, setManagingStore] = useState(null);
     const [editingStore, setEditingStore] = useState(null);
     const [storeUsers, setStoreUsers] = useState([]);
+
+    // For Super Admin: Group stores by Owner
+    const owners = useMemo(() => {
+        if (user?.role !== 'super_admin' || !stores) return [];
+
+        const ownerMap = {};
+        stores.forEach(store => {
+            // Group by ownerId if available, otherwise by email (for new owners)
+            const groupId = store.ownerId || store.ownerEmail || store.email || 'unknown_owner';
+
+            if (!ownerMap[groupId]) {
+                const plan = store.ownerPlan || 'free';
+                const planInfo = contextPlans?.[plan] || PLANS[plan];
+
+                ownerMap[groupId] = {
+                    id: store.ownerId,
+                    name: store.ownerName || (store.ownerEmail ? 'Pending Signup' : 'Unknown'),
+                    email: store.ownerEmail || store.email || '-',
+                    plan: plan,
+                    planExpiryDate: store.planExpiryDate || store.plan_expiry_date,
+                    maxStores: planInfo?.maxStores || 1,
+                    stores: [],
+                    totalStores: 0,
+                    isPending: !store.ownerId
+                };
+            }
+            ownerMap[groupId].stores.push(store);
+            ownerMap[groupId].totalStores++;
+        });
+
+        return Object.values(ownerMap);
+    }, [stores, user, contextPlans]);
+
+    const [viewMode] = useState(user?.role === 'super_admin' ? 'owners' : 'stores');
+    const [selectedOwner, setSelectedOwner] = useState(null);
+
+    // Filter stores based on user role or selection
+    const visibleStores = useMemo(() => {
+        if (!stores) return [];
+        if (user?.role === 'super_admin') {
+            if (viewMode === 'owners' && selectedOwner) {
+                return selectedOwner.stores;
+            }
+            return stores; // Fallback or "All Stores" view if needed
+        }
+        if (user?.role === 'owner') {
+            return stores.filter(s => s.owner_id === user.id);
+        }
+        return []; // Staff usually don't see this page except via direct link, handled by PrivateRoute
+    }, [stores, user, viewMode, selectedOwner]);
+
+    // Calculate max stores based on the owner's plan (Per-Owner Subscription)
+    const maxStoresAllowed = useMemo(() => {
+        if (user?.role === 'super_admin') return -1; // Unlimited
+
+        // Use the plan from the User Profile (Owner's Plan)
+        const userPlan = user?.plan || 'free';
+
+        if (contextPlans && contextPlans[userPlan]) {
+            return contextPlans[userPlan].maxStores || 1;
+        }
+        return PLANS[userPlan]?.maxStores || 1;
+    }, [user, contextPlans]);
+
+    const canAddStore = user?.role === 'super_admin' || visibleStores.length < maxStoresAllowed;
+
 
     // Dialog States
     const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -30,6 +100,7 @@ const Stores = () => {
         name: '',
         address: '',
         phone: '',
+        ownerEmail: '', // New field for Super Admin
         telegramBotToken: '',
         telegramChatId: '',
         plan: 'free',
@@ -63,6 +134,7 @@ const Stores = () => {
                 name: store.name || '',
                 address: store.address || '',
                 phone: store.phone || '',
+                ownerEmail: store.ownerEmail || store.email || '',
                 telegramBotToken: store.telegramBotToken || '',
                 telegramChatId: store.telegramChatId || '',
                 plan: store.plan || 'free',
@@ -76,6 +148,7 @@ const Stores = () => {
                 name: '',
                 address: '',
                 phone: '',
+                ownerEmail: selectedOwner?.email || '',
                 telegramBotToken: '',
                 telegramChatId: '',
                 plan: 'free',
@@ -95,15 +168,19 @@ const Stores = () => {
             name: storeFormData.name,
             address: storeFormData.address,
             phone: storeFormData.phone,
-            plan: storeFormData.plan,
+            email: selectedOwner?.email || storeFormData.ownerEmail, // Priority to owner object
+            plan: selectedOwner?.plan || storeFormData.plan,
             telegram_bot_token: storeFormData.telegramBotToken,
             telegram_chat_id: storeFormData.telegramChatId,
             enable_sales_performance: storeFormData.enableSalesPerformance || false,
             pet_care_enabled: storeFormData.petCareEnabled || false
         };
 
-        // Calculate Expiry if plan is not free
-        if (storeFormData.plan !== 'free') {
+        // Calculate Expiry 
+        if (selectedOwner) {
+            // Inherit from owner
+            planData.plan_expiry_date = selectedOwner.planExpiryDate || selectedOwner.plan_expiry_date || null;
+        } else if (storeFormData.plan !== 'free') {
             const months = parseInt(storeFormData.duration);
             const expiryDate = new Date();
             expiryDate.setMonth(expiryDate.getMonth() + months);
@@ -113,14 +190,6 @@ const Stores = () => {
         }
 
         if (editingStore) {
-            // Check if plan changed to avoid overwriting expiry accidentally for simple edits?
-            // Re-requirement: "jika pilih pro/enterprise ada pilihan durasi".
-            // Since we expose the selector, we assume every save updates the terms.
-            // But if I just edit the name, I might reset the expiry?
-            // To be safe: Only update expiry if `plan` is being changed OR `duration` is explicitly set?
-            // Current simplified approach: Saving the form ALWAYS applies the new duration from NOW.
-            // This effectively "Renews" the plan.
-
             const result = await updateStore(editingStore.id, planData);
             if (result.success) {
                 setIsStoreModalOpen(false);
@@ -128,11 +197,17 @@ const Stores = () => {
                 showAlert('Failed', 'Failed to update store');
             }
         } else {
-            const result = await addStore(planData);
+            // If Super Admin is viewing a specific owner, assign the store to that owner
+            const finalStoreData = { ...planData };
+            if (user?.role === 'super_admin' && selectedOwner) {
+                finalStoreData.owner_id = selectedOwner.id;
+            }
+
+            const result = await addStore(finalStoreData);
             if (result.success) {
                 setIsStoreModalOpen(false);
             } else {
-                showAlert('Failed', 'Failed to add store');
+                showAlert('Failed', result.error || 'Failed to add store');
             }
         }
     };
@@ -192,101 +267,181 @@ const Stores = () => {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold">Store Management</h1>
-                    <p className="text-muted-foreground mt-1">Manage your stores, plans, and staff members</p>
+                    <p className="text-muted-foreground mt-1">
+                        Manage your stores, plans, and staff members
+                        {user?.role !== 'super_admin' && maxStoresAllowed > 0 && (
+                            <span className="ml-2 text-sm">
+                                (Toko: {visibleStores.length}/{maxStoresAllowed})
+                            </span>
+                        )}
+                    </p>
                 </div>
-                <Button onClick={() => handleOpenStoreModal()}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Store
-                </Button>
+                {canAddStore ? (
+                    <Button onClick={() => handleOpenStoreModal()}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Store
+                    </Button>
+                ) : (
+                    <Button variant="outline" disabled title="Upgrade untuk menambah toko">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Limit Tercapai
+                    </Button>
+                )}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {console.log("Stores Render:", stores)}
-                {stores && stores.map(store => {
-                    if (!store) return null;
-                    return (
-                        <Card key={store.id} className={selectedStoreId === store.id ? 'border-primary ring-1 ring-primary' : ''}>
-                            <CardHeader>
-                                <div className="flex items-start justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                                            <Store className="h-6 w-6 text-primary" />
-                                        </div>
-                                        <div>
-                                            <CardTitle className="text-lg">{store.name}</CardTitle>
-                                            <div className="flex gap-2 mt-1">
-                                                {selectedStoreId === store.id && (
-                                                    <Badge variant="success" className="bg-green-100 text-green-700">Active</Badge>
-                                                )}
-                                                <Badge className={getPlanBadgeColor(store.plan)}>
-                                                    {store.plan ? store.plan.toUpperCase() : 'FREE'}
-                                                </Badge>
-                                            </div>
-                                            {store.plan_expiry_date && store.plan !== 'free' && (
-                                                <p className="text-[10px] text-muted-foreground mt-1">
-                                                    Exp: {new Date(store.plan_expiry_date).toLocaleDateString()}
-                                                </p>
+
+            {user?.role === 'super_admin' && viewMode === 'owners' && !selectedOwner ? (
+                <div className="rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Owner Name</TableHead>
+                                <TableHead>Email</TableHead>
+                                <TableHead>Plan (Owner)</TableHead>
+                                <TableHead className="text-center">Store Usage</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {owners.map(owner => (
+                                <TableRow key={owner.id || owner.email}>
+                                    <TableCell className="font-medium">{owner.name}</TableCell>
+                                    <TableCell>{owner.email}</TableCell>
+                                    <TableCell>
+                                        <Badge className={getPlanBadgeColor(owner.plan)}>
+                                            {owner.plan.toUpperCase()}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        <div className="flex flex-col items-center">
+                                            <span className="font-semibold">{owner.totalStores} / {owner.maxStores}</span>
+                                            {owner.totalStores >= owner.maxStores && owner.maxStores !== -1 && (
+                                                <Badge variant="destructive" className="text-[10px] py-0 mt-0.5">LIMIT REACHED</Badge>
                                             )}
                                         </div>
-                                    </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                <div className="space-y-2 text-sm">
-                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                        <MapPin className="h-4 w-4" />
-                                        <span>{store.address || 'No Address'}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                        <Phone className="h-4 w-4" />
-                                        <span>{store.phone || 'No Phone'}</span>
-                                    </div>
-                                    {store.telegramBotToken && (
-                                        <div className="flex items-center gap-2 text-green-600">
-                                            <MessageCircle className="h-4 w-4" />
-                                            <span>Telegram Configured</span>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                                setSelectedOwner(owner);
+                                            }}
+                                        >
+                                            <Store className="h-4 w-4 mr-2" />
+                                            View Stores
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            ) : (
+                <>
+                    {/* Breadcrumb for Super Admin when viewing specific owner */}
+                    {user?.role === 'super_admin' && selectedOwner && (
+                        <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+                            <span
+                                className="cursor-pointer hover:text-primary hover:underline"
+                                onClick={() => setSelectedOwner(null)}
+                            >
+                                Owners
+                            </span>
+                            <ChevronRight className="h-4 w-4" />
+                            <span className="font-semibold text-foreground">{selectedOwner.name}</span>
+                        </div>
+                    )}
+
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {visibleStores && visibleStores.map(store => {
+                            if (!store) return null;
+                            return (
+                                <Card key={store.id} className={selectedStoreId === store.id ? 'border-primary ring-1 ring-primary' : ''}>
+                                    <CardHeader>
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                                                    <Store className="h-6 w-6 text-primary" />
+                                                </div>
+                                                <div>
+                                                    <CardTitle className="text-lg">{store.name}</CardTitle>
+                                                    <div className="flex gap-2 mt-1">
+                                                        {selectedStoreId === store.id && (
+                                                            <Badge variant="success" className="bg-green-100 text-green-700">Active</Badge>
+                                                        )}
+                                                        {/* Show STORE-level plan badge (inherited or specific) */}
+                                                        <Badge className={getPlanBadgeColor(store.plan)}>
+                                                            {store.plan ? store.plan.toUpperCase() : 'FREE'}
+                                                        </Badge>
+                                                    </div>
+                                                    {store.plan_expiry_date && store.plan !== 'free' && (
+                                                        <p className="text-[10px] text-muted-foreground mt-1">
+                                                            Exp: {new Date(store.plan_expiry_date).toLocaleDateString()}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                    )}
-                                </div>
-                                <div className="flex gap-2 pt-2">
-                                    <Button
-                                        variant={selectedStoreId === store.id ? "default" : "outline"}
-                                        size="sm"
-                                        className="flex-1"
-                                        onClick={() => handleSelectStore(store.id)}
-                                    >
-                                        {selectedStoreId === store.id ? 'Active' : 'Select'}
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleOpenStoreModal(store)}
-                                        title="Edit Store"
-                                    >
-                                        <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => openUserModal(store)}
-                                        title="Manage Users"
-                                    >
-                                        <Users className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleDeleteStore(store.id)}
-                                        className="text-destructive hover:text-destructive"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    );
-                })}
-            </div>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3">
+                                        <div className="space-y-2 text-sm">
+                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                                <MapPin className="h-4 w-4" />
+                                                <span>{store.address || 'No Address'}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                                <Phone className="h-4 w-4" />
+                                                <span>{store.phone || 'No Phone'}</span>
+                                            </div>
+                                            {store.telegramBotToken && (
+                                                <div className="flex items-center gap-2 text-green-600">
+                                                    <MessageCircle className="h-4 w-4" />
+                                                    <span>Telegram Configured</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex gap-2 pt-2">
+                                            <Button
+                                                variant={selectedStoreId === store.id ? "default" : "outline"}
+                                                size="sm"
+                                                className="flex-1"
+                                                onClick={() => handleSelectStore(store.id)}
+                                            >
+                                                {selectedStoreId === store.id ? 'Active' : 'Select'}
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleOpenStoreModal(store)}
+                                                title="Edit Store"
+                                            >
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => openUserModal(store)}
+                                                title="Manage Users"
+                                            >
+                                                <Users className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleDeleteStore(store.id)}
+                                                className="text-destructive hover:text-destructive"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
+                    </div>
+                </>
+            )}
 
             {/* Add/Edit Store Modal */}
             <Dialog open={isStoreModalOpen} onOpenChange={setIsStoreModalOpen}>
@@ -305,41 +460,56 @@ const Stores = () => {
                                 onChange={e => setStoreFormData({ ...storeFormData, name: e.target.value })}
                             />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="plan">Subscription Plan</Label>
-                            <Select
-                                value={storeFormData.plan}
-                                onValueChange={(value) => setStoreFormData({ ...storeFormData, plan: value })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select Plan" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="free">Free (Starter)</SelectItem>
-                                    <SelectItem value="pro">Pro</SelectItem>
-                                    <SelectItem value="enterprise">Enterprise</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        {storeFormData.plan !== 'free' && (
-                            <div className="space-y-2">
-                                <Label htmlFor="duration">Duration</Label>
-                                <Select
-                                    value={storeFormData.duration?.toString()}
-                                    onValueChange={(value) => setStoreFormData({ ...storeFormData, duration: parseInt(value) })}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select Duration" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                                            <SelectItem key={month} value={month.toString()}>
-                                                {month} Month{month > 1 ? 's' : ''}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                        {user?.role === 'super_admin' && (!selectedOwner || editingStore) && (
+                            <>
+                                <div className="space-y-2">
+                                    <Label htmlFor="ownerEmail">Owner Email (Register with this email to link)</Label>
+                                    <Input
+                                        id="ownerEmail"
+                                        type="email"
+                                        required
+                                        value={storeFormData.ownerEmail}
+                                        onChange={e => setStoreFormData({ ...storeFormData, ownerEmail: e.target.value })}
+                                        placeholder="owner@example.com"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="plan">Subscription Plan</Label>
+                                    <Select
+                                        value={storeFormData.plan}
+                                        onValueChange={(value) => setStoreFormData({ ...storeFormData, plan: value })}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select Plan" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="free">Free (Starter)</SelectItem>
+                                            <SelectItem value="pro">Pro</SelectItem>
+                                            <SelectItem value="enterprise">Enterprise</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                {storeFormData.plan !== 'free' && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="duration">Duration</Label>
+                                        <Select
+                                            value={storeFormData.duration?.toString()}
+                                            onValueChange={(value) => setStoreFormData({ ...storeFormData, duration: parseInt(value) })}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select Duration" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                                                    <SelectItem key={month} value={month.toString()}>
+                                                        {month} Month{month > 1 ? 's' : ''}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+                            </>
                         )}
                         <div className="space-y-2">
                             <Label htmlFor="address">Address</Label>
@@ -379,30 +549,7 @@ const Stores = () => {
                                 placeholder="-100..."
                             />
                         </div>
-                        <div className="flex items-center space-x-2 pt-2">
-                            <input
-                                type="checkbox"
-                                id="enableSalesPerformance"
-                                checked={storeFormData.enableSalesPerformance}
-                                onChange={(e) => setStoreFormData({ ...storeFormData, enableSalesPerformance: e.target.checked })}
-                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                            />
-                            <Label htmlFor="enableSalesPerformance" className="font-medium cursor-pointer">
-                                Enable Sales Performance Feature
-                            </Label>
-                        </div>
-                        <div className="flex items-center space-x-2 pt-2">
-                            <input
-                                type="checkbox"
-                                id="petCareEnabled"
-                                checked={storeFormData.petCareEnabled}
-                                onChange={(e) => setStoreFormData({ ...storeFormData, petCareEnabled: e.target.checked })}
-                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                            />
-                            <Label htmlFor="petCareEnabled" className="font-medium cursor-pointer">
-                                Enable Pet Care Module (Hotel & Grooming)
-                            </Label>
-                        </div>
+
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setIsStoreModalOpen(false)}>
                                 Cancel

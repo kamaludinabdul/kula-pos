@@ -6,7 +6,7 @@ import {
   ChevronDown, ChevronRight, Receipt, Store, Printer, UserCog, Layers, Shield, Percent,
   Gift, Sparkles, PanelLeftClose, PanelLeftOpen, Crown, ClipboardCheck, History, TrendingUp,
   Clock, TrendingDown, Send, Cloud, FileText, Copy, DollarSign, BrainCircuit, Lightbulb,
-  Key, BadgePercent, Factory, Ticket, Lock, Gamepad2, CheckCircle // Added CheckCircle
+  Key, BadgePercent, Factory, Ticket, Lock, Gamepad2, CheckCircle, Building2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -55,7 +55,7 @@ const NavItem = ({ item, isActive, onClick, className, isExpanded, isLocked }) =
 
 const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
   const { user, logout, checkPermission } = useAuth();
-  const { currentStore, plans: contextPlans } = useData();
+  const { currentStore, plans: contextPlans, stores, setSelectedStoreId } = useData();
   const navigate = useNavigate();
   const location = useLocation();
   const [isDatabaseOpen, setIsDatabaseOpen] = useState(false);
@@ -89,7 +89,9 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
   };
 
   const handleItemClick = (e, requiredPlan, feature) => {
-    const currentPlan = currentStore?.plan || 'free';
+    // Logic: Check user's plan if owner, otherwise fallback to store plan (for staff)
+    // We assume store.plan is synced via DB trigger from owner's profile
+    const currentPlan = (currentStore?.plan || user?.plan || 'free').toLowerCase();
 
     const hasAccess = feature
       ? hasFeatureAccess(currentPlan, feature, contextPlans)
@@ -193,7 +195,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
   const isSettingsActive = settingsItems.some(item => location.pathname.startsWith(item.path));
 
   const renderNavItem = (item) => {
-    const currentPlan = currentStore?.plan || 'free';
+    const currentPlan = (currentStore?.plan || user?.plan || 'free').toLowerCase();
 
     const isLocked = item.requiredPlan && !hasFeatureAccess(currentPlan, item.feature || item.path, contextPlans);
 
@@ -241,6 +243,36 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
           </div>
         )}
 
+        {/* Quick Store Switcher - for owners with multiple stores or super_admin */}
+        {(user?.role === 'owner' || user?.role === 'super_admin') && stores && stores.length > 1 && (
+          <div className={cn("px-3 py-2 border-b", !isExpanded && "px-2")}>
+            {isExpanded ? (
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground font-medium">Toko Aktif</label>
+                <select
+                  value={currentStore?.id || ''}
+                  onChange={(e) => setSelectedStoreId(e.target.value)}
+                  className="w-full px-2 py-1.5 text-sm border rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  {stores.map(store => (
+                    <option key={store.id} value={store.id}>
+                      {store.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsExpanded(true)}
+                className="w-full flex items-center justify-center p-2 rounded-md hover:bg-muted"
+                title={currentStore?.name || 'Switch Store'}
+              >
+                <Store size={20} className="text-primary" />
+              </button>
+            )}
+          </div>
+        )}
+
         <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-3 space-y-1 scrollbar-thin">
           {user?.role === 'super_admin' && (
             <>
@@ -263,6 +295,26 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
                 onClick={() => navigate('/admin/subscriptions')}
               />
             </>
+          )}
+
+          {/* Show Kelola Toko for owners */}
+          {user?.role === 'owner' && (
+            <NavItem
+              item={{ icon: Store, label: 'Kelola Toko', path: '/stores' }}
+              isActive={location.pathname === '/stores'}
+              isExpanded={isExpanded}
+              onClick={() => navigate('/stores')}
+            />
+          )}
+
+          {/* Show Owner Dashboard for owners with multi-store capable plans */}
+          {(user?.role === 'owner' || user?.role === 'super_admin') && stores && stores.length > 1 && (
+            <NavItem
+              item={{ icon: Building2, label: 'Dashboard Owner', path: '/owner-dashboard' }}
+              isActive={location.pathname === '/owner-dashboard'}
+              isExpanded={isExpanded}
+              onClick={() => navigate('/owner-dashboard')}
+            />
           )}
 
           {navItems.map((item) => {

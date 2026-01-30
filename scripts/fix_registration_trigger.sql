@@ -18,8 +18,9 @@ BEGIN
     -- Default role logic
     target_role := COALESCE(new.raw_user_meta_data->>'role', 'staff');
 
-    -- 2. If store_name is present, create a store with 7-DAY PRO TRIAL
-    IF store_name IS NOT NULL THEN
+    -- 2. If store_name is present AND NOT staff registration, create a store with 7-DAY PRO TRIAL
+    -- (Safety check: 'is_staff_registration' flag from frontend)
+    IF store_name IS NOT NULL AND (new.raw_user_meta_data->>'is_staff_registration') IS DISTINCT FROM 'true' THEN
         INSERT INTO public.stores (name, plan, trial_ends_at, plan_expiry_date, owner_id, owner_name, email)
         VALUES (
             store_name, 
@@ -43,10 +44,9 @@ BEGIN
     END IF;
 
     -- 3. Create Profile
-    INSERT INTO public.profiles (id, username, name, email, role, store_id)
+    INSERT INTO public.profiles (id, name, email, role, store_id)
     VALUES (
         new.id, 
-        new.email, -- username default to email
         COALESCE(owner_name, new.email),
         new.email, 
         target_role, 

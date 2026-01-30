@@ -330,7 +330,7 @@ const Staff = () => {
                     data: {
                         name: name || 'Staff Member',
                         role: role || 'staff',
-                        store_name: 'No Store Name', // Legacy requirement potentially
+                        // store_name removed to prevent trigger from creating a new Store
                         store_id: storeId, // CRITICAL: Required for profiles trigger
                         // Mark as staff registration to potentially handle differently in triggers if needed
                         is_staff_registration: true,
@@ -353,7 +353,8 @@ const Staff = () => {
                     // Success! We recovered the existing user's ID
                     return { success: true, user: loginData.user, session: loginData.session, recovered: true };
                 } catch (loginErr) { // eslint-disable-line no-unused-vars
-                    return { success: false, error: "Email sudah terdaftar tapi password salah. Gunakan password asli atau email baru." };
+                    // Simplify error message as requested by user
+                    return { success: false, error: "Email/Username sudah terdaftar. Gunakan email/username lain atau hubungi Admin." };
                 }
             }
 

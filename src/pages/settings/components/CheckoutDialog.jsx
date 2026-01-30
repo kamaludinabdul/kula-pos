@@ -202,14 +202,16 @@ const CheckoutDialog = ({ isOpen, onClose, plan }) => {
                             <div className="flex flex-col items-center justify-center space-y-3 p-4 border rounded-lg">
                                 <span className="text-sm font-medium">Scan QRIS untuk Membayar</span>
                                 <div className="bg-white p-2 rounded-lg border shadow-sm">
-                                    {/* Placeholder QRIS - Replace with actual image later */}
+                                    {/* Try loading qris.png from public folder, fallback to SVG placeholder */}
                                     <img
-                                        src="/qris-placeholder.png"
+                                        src="/qris.png"
                                         alt="QRIS Code"
                                         className="w-48 h-48 object-contain"
                                         onError={(e) => {
                                             e.target.onerror = null;
-                                            e.target.src = "https://via.placeholder.com/200?text=QRIS+CODE";
+                                            e.target.src = `data:image/svg+xml;utf8,${encodeURIComponent(
+                                                '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="#f1f5f9"/><text x="50%" y="50%" font-family="sans-serif" font-size="20" text-anchor="middle" dy=".3em" fill="#64748b">QRIS CODE</text></svg>'
+                                            )}`;
                                         }}
                                     />
                                 </div>

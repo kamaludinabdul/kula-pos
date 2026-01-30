@@ -280,6 +280,27 @@ const PlanManagement = () => {
                                     )}
                                 </div>
                             </div>
+                            <div className="grid grid-cols-1 gap-4 pt-0 border-t-0">
+                                <div className="space-y-2">
+                                    <Label className="text-xs">Max Toko</Label>
+                                    {isEditing ? (
+                                        <div className="space-y-1">
+                                            <Input
+                                                type="number"
+                                                value={plan.maxStores ?? ''}
+                                                onChange={(e) => handleLimitChange(id, 'maxStores', e.target.value)}
+                                                className="h-8 text-sm"
+                                                placeholder="e.g. 1"
+                                            />
+                                            <p className="text-[10px] text-muted-foreground">-1 = Tanpa Batas</p>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm font-semibold">
+                                            {plan.maxStores === -1 ? 'Unlimited' : (plan.maxStores ?? 'Not set')}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
 
                             <div className="space-y-4 pt-4 border-t">
                                 <h3 className="font-semibold text-sm">Akses Fitur</h3>

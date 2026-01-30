@@ -4,9 +4,12 @@ import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { getOptimizedImage } from '../utils/supabaseImage';
 
-import { Search, Plus, Upload, Trash2, Edit, MoreVertical, FileDown, ArrowUpDown, ArrowUp, ArrowDown, Printer, Package } from 'lucide-react';
+import { Search, Plus, Upload, Trash2, Edit, MoreVertical, FileDown, ArrowUpDown, ArrowUp, ArrowDown, Printer, Package, Copy } from 'lucide-react';
+import AlertDialog from '../components/AlertDialog';
+import { safeSupabaseRpc } from '../utils/supabaseHelper';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -39,8 +42,8 @@ import {
 
 const Products = () => {
     const navigate = useNavigate();
-    const { checkPermission } = useAuth();
-    const { deleteProduct, bulkAddProducts, categories, fetchProductsPage, fetchAllProducts, activeStoreId } = useData();
+    const { checkPermission, user } = useAuth();
+    const { deleteProduct, bulkAddProducts, categories, fetchProductsPage, fetchAllProducts, activeStoreId, stores } = useData();
 
     // Server-side state
     const [currentProducts, setCurrentProducts] = useState([]);
@@ -70,6 +73,12 @@ const Products = () => {
     const [isImportResultOpen, setIsImportResultOpen] = useState(false);
     const [isBarcodeDialogOpen, setIsBarcodeDialogOpen] = useState(false);
     const [selectedProducts, setSelectedProducts] = useState([]);
+
+    // Copy to Store States
+    const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
+    const [targetStoreId, setTargetStoreId] = useState('');
+    const [isCopying, setIsCopying] = useState(false);
+    const [copyAlert, setCopyAlert] = useState({ open: false, title: '', message: '' });
 
     // Import Progress State
     const [isImporting, setIsImporting] = useState(false);
@@ -147,6 +156,51 @@ const Products = () => {
         }
         setSelectedProducts([]);
         loadProducts(); // Refresh
+    };
+
+    const handleBulkCopy = async () => {
+        if (!targetStoreId) {
+            setCopyAlert({ open: true, title: 'Validasi', message: 'Silakan pilih toko tujuan terlebih dahulu.' });
+            return;
+        }
+
+        if (targetStoreId === activeStoreId) {
+            setCopyAlert({ open: true, title: 'Validasi', message: 'Toko tujuan tidak boleh sama dengan toko saat ini.' });
+            return;
+        }
+
+        setIsCopying(true);
+        try {
+            const result = await safeSupabaseRpc({
+                rpcName: 'copy_products_to_store',
+                params: {
+                    p_source_store_id: activeStoreId,
+                    p_target_store_id: targetStoreId,
+                    p_product_ids: selectedProducts
+                }
+            });
+
+            if (result && result.success) {
+                setCopyAlert({
+                    open: true,
+                    title: 'Sukses',
+                    message: `${result.copiedCount} produk berhasil disalin. ${result.skippedCount} produk dilewati karena sudah ada.`
+                });
+                setIsCopyModalOpen(false);
+                setSelectedProducts([]); // Clear selection
+            } else {
+                setCopyAlert({
+                    open: true,
+                    title: 'Gagal',
+                    message: result?.error || 'Terjadi kesalahan saat menyalin produk.'
+                });
+            }
+        } catch (error) {
+            console.error("Error in handleBulkCopy:", error);
+            setCopyAlert({ open: true, title: 'Error', message: 'Terjadi kesalahan sistem.' });
+        } finally {
+            setIsCopying(false);
+        }
     };
 
     // Sorting function
@@ -427,6 +481,16 @@ const Products = () => {
                                 >
                                     <Trash2 className="mr-2 h-4 w-4" />
                                     Delete ({selectedProducts.length})
+                                </Button>
+                            )}
+                            {(user?.role === 'owner' || user?.role === 'super_admin') && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setIsCopyModalOpen(true)}
+                                    className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200"
+                                >
+                                    <Copy className="mr-2 h-4 w-4" />
+                                    Salin ke Toko ({selectedProducts.length})
                                 </Button>
                             )}
                         </>
@@ -1021,6 +1085,59 @@ const Products = () => {
                 isOpen={isBarcodeDialogOpen}
                 onClose={() => setIsBarcodeDialogOpen(false)}
                 products={currentProducts.filter(p => selectedProducts.includes(p.id))}
+            />
+
+            {/* Copy to Store Dialog */}
+            <Dialog open={isCopyModalOpen} onOpenChange={setIsCopyModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Salin Produk ke Toko Lain</DialogTitle>
+                        <DialogDescription>
+                            Pilih toko tujuan untuk menyalin {selectedProducts.length} produk terpilih.
+                            Katalog produk akan diduplikasi (stok mulai dari 0 di toko tujuan).
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                        <div className="space-y-2">
+                            <Label>Toko Tujuan</Label>
+                            <Select value={targetStoreId} onValueChange={setTargetStoreId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Pilih Toko" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {stores
+                                        .filter(s => s.id !== activeStoreId && (user?.role === 'super_admin' || s.owner_id === user?.id))
+                                        .map(store => (
+                                            <SelectItem key={store.id} value={store.id}>
+                                                {store.name}
+                                            </SelectItem>
+                                        ))
+                                    }
+                                    {stores.filter(s => s.id !== activeStoreId && (user?.role === 'super_admin' || s.owner_id === user?.id)).length === 0 && (
+                                        <SelectItem disabled value="none">Tidak ada toko lain</SelectItem>
+                                    )}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsCopyModalOpen(false)}>Batal</Button>
+                        <Button
+                            onClick={handleBulkCopy}
+                            disabled={isCopying || !targetStoreId}
+                            className="bg-indigo-600 hover:bg-indigo-700"
+                        >
+                            {isCopying ? "Menyalin..." : "Salin Sekarang"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <AlertDialog
+                isOpen={copyAlert.open}
+                onClose={() => setCopyAlert({ ...copyAlert, open: false })}
+                title={copyAlert.title}
+                message={copyAlert.message}
             />
         </div >
     );

@@ -35,13 +35,18 @@ const POS = () => {
     } = useData();
 
     // Ensure we have products for the POS (since DataContext no longer fetches them globally by default)
-    // Ensure we have products for the POS (since DataContext no longer fetches them globally by default)
     useEffect(() => {
-        if (fetchAllProducts && currentStore?.id && products.length === 0) {
-            console.log("[POS] Fetching all products...");
+        if (!fetchAllProducts || !currentStore?.id) return;
+
+        const hasProducts = products.length > 0;
+        // Check if existing products belong to a different store (Stale Data)
+        const isWrongStore = hasProducts && products[0].storeId !== currentStore.id;
+
+        if (!hasProducts || isWrongStore) {
+            console.log("[POS] Fetching all products...", { reason: isWrongStore ? 'Stale Data (Wrong Store)' : 'Empty List' });
             fetchAllProducts(currentStore.id);
         }
-    }, [currentStore?.id, fetchAllProducts, products.length]);
+    }, [currentStore?.id, fetchAllProducts, products]);
 
 
 
