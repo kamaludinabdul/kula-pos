@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
-import { Download, ArrowUpDown, DollarSign, TrendingUp } from 'lucide-react';
+import { Download, ArrowUpDown, DollarSign, TrendingUp, RefreshCw } from 'lucide-react';
 import { exportToCSV, getDateRange } from '../../lib/utils';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -30,48 +30,49 @@ const ItemSales = () => {
     }, [datePickerDate?.from]);
 
     // Fetch Aggregated Item Sales
-    useEffect(() => {
-        const fetchData = async () => {
-            if (!currentStore?.id || !datePickerDate?.from) return;
+    const fetchData = React.useCallback(async () => {
+        if (!currentStore?.id || !datePickerDate?.from) return;
 
-            setIsLoading(true);
-            try {
-                const startDate = datePickerDate.from;
-                const endDate = datePickerDate.to || datePickerDate.from;
-                const endDateTime = new Date(endDate);
-                endDateTime.setHours(23, 59, 59, 999);
+        setIsLoading(true);
+        try {
+            const startDate = datePickerDate.from;
+            const endDate = datePickerDate.to || datePickerDate.from;
+            const endDateTime = new Date(endDate);
+            endDateTime.setHours(23, 59, 59, 999);
 
-                // Call the high-performance RPC via Safe Helper
-                const data = await safeSupabaseRpc({
-                    rpcName: 'get_product_sales_report',
-                    params: {
-                        p_store_id: currentStore.id,
-                        p_start_date: startDate.toISOString(),
-                        p_end_date: endDateTime.toISOString()
-                    }
-                });
+            // Call the high-performance RPC via Safe Helper
+            const data = await safeSupabaseRpc({
+                rpcName: 'get_product_sales_report',
+                params: {
+                    p_store_id: currentStore.id,
+                    p_start_date: startDate.toISOString(),
+                    p_end_date: endDateTime.toISOString()
+                }
+            });
 
-                // Map database fields to UI fields
-                const processedData = (data || []).map(row => ({
-                    id: row.product_id,
-                    name: row.product_name,
-                    qty: parseFloat(row.total_qty),
-                    revenue: parseFloat(row.total_revenue),
-                    cogs: parseFloat(row.total_cogs),
-                    profit: parseFloat(row.total_profit),
-                    category: row.category_name
-                }));
+            // Map database fields to UI fields
+            const processedData = (data || []).map(row => ({
+                id: row.product_id,
+                name: row.product_name,
+                qty: parseFloat(row.total_qty),
+                revenue: parseFloat(row.total_revenue),
+                cogs: parseFloat(row.total_cogs),
+                profit: parseFloat(row.total_profit),
+                category: row.category_name
+            }));
 
-                setFetchedTransactions(processedData);
+            setFetchedTransactions(processedData);
 
-            } catch (error) {
-                console.error("Error fetching item sales RPC:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchData();
+        } catch (error) {
+            console.error("Error fetching item sales RPC:", error);
+        } finally {
+            setIsLoading(false);
+        }
     }, [currentStore, datePickerDate]);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     const [sortConfig, setSortConfig] = useState({ key: 'revenue', direction: 'desc' });
 
@@ -121,6 +122,10 @@ const ItemSales = () => {
                     <p className="text-muted-foreground">Analisis performa penjualan per item.</p>
                 </div>
                 <div className="flex w-full lg:w-auto gap-2">
+                    <Button variant="outline" onClick={fetchData} className="flex-1 lg:flex-none">
+                        <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
                     <Button variant="outline" onClick={handleExport} className="flex-1 lg:flex-none">
                         <Download className="mr-2 h-4 w-4" />
                         Export CSV

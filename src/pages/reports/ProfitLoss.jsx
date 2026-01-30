@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { DollarSign, TrendingUp, ShoppingBag, TrendingDown, Download, Eye, XCircle, AlertTriangle, ArrowUp, ArrowDown, ArrowUpDown, Search } from 'lucide-react';
+import { DollarSign, TrendingUp, ShoppingBag, TrendingDown, Download, Eye, XCircle, AlertTriangle, ArrowUp, ArrowDown, ArrowUpDown, Search, RefreshCw } from 'lucide-react';
 import ReceiptModal from '../../components/ReceiptModal';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
@@ -82,68 +82,68 @@ const ProfitLoss = () => {
     });
 
     // Data Fetching Effect
-    useEffect(() => {
-        const fetchReportData = async () => {
-            if (!currentStore?.id || !datePickerDate?.from || !datePickerDate?.to) return;
+    const fetchReportData = React.useCallback(async () => {
+        if (!currentStore?.id || !datePickerDate?.from || !datePickerDate?.to) return;
 
-            setIsLoading(true);
-            try {
-                const start = new Date(datePickerDate.from);
-                start.setHours(0, 0, 0, 0);
+        setIsLoading(true);
+        try {
+            const start = new Date(datePickerDate.from);
+            start.setHours(0, 0, 0, 0);
 
-                const end = datePickerDate.to ? new Date(datePickerDate.to) : new Date(start);
-                end.setHours(23, 59, 59, 999);
+            const end = datePickerDate.to ? new Date(datePickerDate.to) : new Date(start);
+            end.setHours(23, 59, 59, 999);
 
-                const startDateStr = start.toISOString();
-                const endDateStr = end.toISOString();
+            const startDateStr = start.toISOString();
+            const endDateStr = end.toISOString();
 
-                // 1. Fetch Transactions for the table
-                const transData = await safeSupabaseQuery({
-                    tableName: 'transactions',
-                    queryBuilder: (q) => q.eq('store_id', currentStore.id)
-                        .gte('date', startDateStr)
-                        .lte('date', endDateStr)
-                        .order('date', { ascending: false })
-                        .limit(100),
-                    fallbackParams: `?store_id=eq.${currentStore.id}&date=gte.${startDateStr}&date=lte.${endDateStr}&order=date.desc&limit=100`
-                });
+            // 1. Fetch Transactions for the table
+            const transData = await safeSupabaseQuery({
+                tableName: 'transactions',
+                queryBuilder: (q) => q.eq('store_id', currentStore.id)
+                    .gte('date', startDateStr)
+                    .lte('date', endDateStr)
+                    .order('date', { ascending: false })
+                    .limit(100),
+                fallbackParams: `?store_id=eq.${currentStore.id}&date=gte.${startDateStr}&date=lte.${endDateStr}&order=date.desc&limit=100`
+            });
 
-                setTransactions(transData || []);
+            setTransactions(transData || []);
 
-                // 2. Fetch Aggregated Stats via RPC
-                const reportStats = await safeSupabaseRpc({
-                    rpcName: 'get_profit_loss_report',
-                    params: {
-                        p_store_id: currentStore.id,
-                        p_start_date: startDateStr,
-                        p_end_date: endDateStr
-                    }
-                });
-
-                if (reportStats) {
-                    setStats(prev => ({
-                        ...prev,
-                        totalSales: reportStats.total_sales || 0,
-                        totalCOGS: reportStats.total_cogs || 0,
-                        totalExpenses: reportStats.total_expenses || 0,
-                        otherIncome: reportStats.other_income || 0,
-                        netProfit: reportStats.net_profit || 0,
-                        totalTransactions: reportStats.total_transactions || 0,
-                        totalItems: reportStats.total_items || 0,
-                        totalTax: reportStats.total_tax || 0,
-                        totalDiscount: reportStats.total_discount || 0,
-                        totalAssets: reportStats.total_assets || 0
-                    }));
+            // 2. Fetch Aggregated Stats via RPC
+            const reportStats = await safeSupabaseRpc({
+                rpcName: 'get_profit_loss_report',
+                params: {
+                    p_store_id: currentStore.id,
+                    p_start_date: startDateStr,
+                    p_end_date: endDateStr
                 }
-            } catch (error) {
-                console.error("Error fetching report data:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+            });
 
+            if (reportStats) {
+                setStats(prev => ({
+                    ...prev,
+                    totalSales: reportStats.total_sales || 0,
+                    totalCOGS: reportStats.total_cogs || 0,
+                    totalExpenses: reportStats.total_expenses || 0,
+                    otherIncome: reportStats.other_income || 0,
+                    netProfit: reportStats.net_profit || 0,
+                    totalTransactions: reportStats.total_transactions || 0,
+                    totalItems: reportStats.total_items || 0,
+                    totalTax: reportStats.total_tax || 0,
+                    totalDiscount: reportStats.total_discount || 0,
+                    totalAssets: reportStats.total_assets || 0
+                }));
+            }
+        } catch (error) {
+            console.error("Error fetching report data:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [currentStore, datePickerDate]);
+
+    useEffect(() => {
         fetchReportData();
-    }, [currentStore, datePickerDate]); // Re-fetch when Store or Date Range changes
+    }, [fetchReportData]);
 
     // Update filtering to work with local 'transactions' state
     const filteredTransactions = useMemo(() => {
@@ -376,6 +376,10 @@ const ProfitLoss = () => {
                 </div>
                 <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-2">
                     <div className="flex gap-2 w-full lg:w-auto">
+                        <Button variant="outline" onClick={fetchReportData} disabled={isLoading} className="flex-1 lg:flex-none">
+                            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                            Refresh
+                        </Button>
                         <Button variant="outline" onClick={handleExportPDF} disabled={isLoading} className="flex-1 lg:flex-none">
                             <Download className="mr-2 h-4 w-4" />
                             PDF

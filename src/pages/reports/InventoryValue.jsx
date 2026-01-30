@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { DollarSign, TrendingUp, Package, Download } from 'lucide-react';
+import { DollarSign, TrendingUp, Package, Download, RefreshCw } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { exportToCSV } from '../../lib/utils';
 import { Button } from '../../components/ui/button';
@@ -80,10 +80,16 @@ const InventoryValue = () => {
                     <h2 className="text-2xl font-bold tracking-tight">Laporan Nilai Stok</h2>
                     <p className="text-muted-foreground">Analisis nilai aset dan potensi keuntungan stok.</p>
                 </div>
-                <Button variant="outline" onClick={handleExport} className="w-full lg:w-auto">
-                    <Download className="mr-2 h-4 w-4" />
-                    Export CSV
-                </Button>
+                <div className="flex gap-2 w-full lg:w-auto">
+                    <Button variant="outline" onClick={() => fetchAllProducts(activeStoreId)} className="flex-1 lg:flex-none">
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Refresh
+                    </Button>
+                    <Button variant="outline" onClick={handleExport} className="flex-1 lg:flex-none">
+                        <Download className="mr-2 h-4 w-4" />
+                        Export CSV
+                    </Button>
+                </div>
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

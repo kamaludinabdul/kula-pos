@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.13.1] - 2026-01-31
+### Added
+- **UI Enhancements**: Added manual "Refresh" buttons to Transactions, Rental Dashboard, Products, Login History, Cash Flow, and all Report/Insight pages to allow data reloading without refreshing the browser.
+- **Subscription**: Added "Subscription History" table in Settings to view past invoices and status.
+- **Subscription**: Added "Rejection Reason" dialog for admins to provide feedback when rejecting payment proofs.
+
+### Fixed
+- **Transactions**: Fixed critical `ReferenceError` crash and regained standard functionality.
+- **Subscription**: Fixed issue where re-uploaded payment proofs did not correctly update invoice status to "Pending" (Implemented remote `reupload_payment_proof` RPC).
+- **Code Quality**: Resolved multiple linting errors across the codebase.
+
 ## [0.13.0] - 2026-01-30
 ### Improved
 - **UI Design System**: Standardized "Stats Cards" across the entire application using a unified `InfoCard` component (Transactions, Login History, Category Sales, etc.).

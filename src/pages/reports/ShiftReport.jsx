@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../supabase';
-import { Calendar, Clock, User, FileText, Download } from 'lucide-react';
+import { Calendar, Clock, User, FileText, Download, RefreshCw } from 'lucide-react';
 import { exportToCSV } from '../../lib/utils';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -129,10 +129,16 @@ const ShiftReport = () => {
                     <h2 className="text-2xl font-bold tracking-tight">Laporan Shift</h2>
                     <p className="text-muted-foreground">Riwayat shift kasir dan ringkasan penjualan.</p>
                 </div>
-                <Button variant="outline" onClick={handleExport} className="w-full lg:w-auto">
-                    <Download className="mr-2 h-4 w-4" />
-                    Export CSV
-                </Button>
+                <div className="flex gap-2 w-full lg:w-auto">
+                    <Button variant="outline" onClick={fetchShifts} disabled={loading} className="flex-1 lg:flex-none">
+                        <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
+                    <Button variant="outline" onClick={handleExport} className="flex-1 lg:flex-none">
+                        <Download className="mr-2 h-4 w-4" />
+                        Export CSV
+                    </Button>
+                </div>
             </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">

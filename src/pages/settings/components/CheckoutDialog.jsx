@@ -10,6 +10,7 @@ import { Info, Upload, CheckCircle2, Loader2, Copy } from 'lucide-react';
 import { toast } from '../../../components/ui/use-toast';
 import { supabase } from '../../../supabase';
 import { useData } from '../../../context/DataContext';
+import { compressImage } from '../../../utils/imageCompressor';
 
 const CheckoutDialog = ({ isOpen, onClose, plan }) => {
     const { currentStore } = useData();
@@ -59,19 +60,43 @@ const CheckoutDialog = ({ isOpen, onClose, plan }) => {
         });
     };
 
-    const handleFileChange = (e) => {
+
+
+    // Helper to convert Data URL to Blob for upload
+    const dataURLToBlob = async (dataUrl) => {
+        const res = await fetch(dataUrl);
+        return await res.blob();
+    };
+
+    const handleFileChange = async (e) => {
         const selectedFile = e.target.files[0];
         if (selectedFile) {
-            if (selectedFile.size > 1 * 1024 * 1024) { // 1MB limit
+            // Check original size (optional check, but good for UX)
+            // if (selectedFile.size > 5 * 1024 * 1024) { ... } 
+
+            try {
+                // Compress image
+                // Max width 1000px, Quality 0.7
+                const compressedDataUrl = await compressImage(selectedFile, 1000, 0.7);
+                const compressedBlob = await dataURLToBlob(compressedDataUrl);
+
+                // Create a new File object from the Blob to keep original name/type
+                const compressedFile = new File([compressedBlob], selectedFile.name, {
+                    type: selectedFile.type,
+                    lastModified: Date.now(),
+                });
+
+                setFile(compressedFile);
+                setPreviewUrl(compressedDataUrl); // Can use data URL directly for preview
+
+            } catch (error) {
+                console.error("Compression error:", error);
                 toast({
-                    title: "Ukuran file terlalu besar",
-                    description: "Maksimal ukuran file adalah 1MB",
+                    title: "Gagal memproses gambar",
+                    description: "Terjadi kesalahan saat mengkompresi gambar.",
                     variant: "destructive"
                 });
-                return;
             }
-            setFile(selectedFile);
-            setPreviewUrl(URL.createObjectURL(selectedFile));
         }
     };
 
@@ -90,6 +115,8 @@ const CheckoutDialog = ({ isOpen, onClose, plan }) => {
             // 1. Upload File
             const fileExt = file.name.split('.').pop();
             const fileName = `${currentStore.id}/${Date.now()}.${fileExt}`;
+
+            // File is already compressed from handleFileChange
             const { error: uploadError } = await supabase.storage
                 .from('payment-proofs')
                 .upload(fileName, file);
@@ -246,9 +273,9 @@ const CheckoutDialog = ({ isOpen, onClose, plan }) => {
                                 </AlertDescription>
                             </Alert>
 
-                            <div className="grid w-full max-w-sm items-center gap-1.5">
+                            <div className="grid w-full items-center gap-1.5">
                                 <Label htmlFor="picture">Bukti Transfer</Label>
-                                <Input id="picture" type="file" accept="image/*" onChange={handleFileChange} />
+                                <Input id="picture" type="file" accept="image/*" onChange={handleFileChange} className="w-full" />
                             </div>
 
                             {previewUrl && (

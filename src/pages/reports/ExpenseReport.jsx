@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { SmartDatePicker } from '../../components/SmartDatePicker';
 import { supabase } from '../../supabase';
-import { Calendar, FileText, Download, TrendingDown } from 'lucide-react';
+import { Calendar, FileText, Download, TrendingDown, RefreshCw } from 'lucide-react';
 import { exportToCSV } from '../../lib/utils';
 import { exportExpenseReportToPDF } from '../../lib/pdfExport';
 import { useData } from '../../context/DataContext';
@@ -126,6 +126,10 @@ const ExpenseReport = () => {
                     <p className="text-muted-foreground">Arus kas keluar dari POS & Back Office</p>
                 </div>
                 <div className="flex w-full lg:w-auto gap-2">
+                    <Button variant="outline" onClick={fetchExpenses} disabled={loading} className="flex-1 lg:flex-none">
+                        <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
                     <Button variant="outline" onClick={handleExportPDF} className="flex-1 lg:flex-none">
                         <Download className="mr-2 h-4 w-4" />
                         PDF

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { safeSupabaseRpc } from '../../utils/supabaseHelper';
-import { TrendingUp, Package, Download, DollarSign, Layers } from 'lucide-react';
+import { TrendingUp, Package, Download, DollarSign, Layers, RefreshCw } from 'lucide-react';
 import { exportToCSV } from '../../lib/utils';
 import { exportTopSellingToPDF } from '../../lib/pdfExport';
 import { useData } from '../../context/DataContext';
@@ -115,6 +115,10 @@ const TopSellingProducts = () => {
                 </div>
                 <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-2">
                     <div className="flex gap-2 w-full lg:w-auto">
+                        <Button variant="outline" onClick={fetchTopProducts} disabled={loading} className="flex-1 lg:flex-none">
+                            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                            Refresh
+                        </Button>
                         <Button variant="outline" onClick={handleExportPDF} className="flex-1 lg:flex-none">
                             <Download className="mr-2 h-4 w-4" />
                             PDF

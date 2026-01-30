@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../..
 import { InfoCard } from '../../components/ui/info-card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
-import { Loader2, ShoppingBag, ArrowRight, Tag, Lightbulb } from 'lucide-react';
+import { Loader2, ShoppingBag, ArrowRight, Tag, Lightbulb, RefreshCw } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 
 const MarketBasketAnalysis = () => {
@@ -15,7 +15,7 @@ const MarketBasketAnalysis = () => {
     const [analyzedCount, setAnalyzedCount] = useState(0);
 
     // AI Logic: Simple Association Rule Mining
-    const analyzeBundles = async () => {
+    const analyzeBundles = React.useCallback(async () => {
         if (!currentStore?.id) return;
         setLoading(true);
         try {
@@ -80,20 +80,26 @@ const MarketBasketAnalysis = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [currentStore, products]);
 
     useEffect(() => {
         analyzeBundles();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentStore?.id]);
+
+    }, [analyzeBundles]);
 
     return (
         <div className="space-y-6 p-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Bundling Pintar</h1>
-                <p className="text-muted-foreground">
-                    Analisis keranjang belanja untuk menemukan peluang paket produk (bundling).
-                </p>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Bundling Pintar</h1>
+                    <p className="text-muted-foreground">
+                        Analisis keranjang belanja untuk menemukan peluang paket produk (bundling).
+                    </p>
+                </div>
+                <Button variant="outline" onClick={analyzeBundles} disabled={loading}>
+                    <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                    Refresh Analisis
+                </Button>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

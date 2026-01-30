@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../..
 import { InfoCard } from '../../components/ui/info-card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
-import { Loader2, Users, Star, UserX, UserPlus, MessageCircle } from 'lucide-react';
+import { Loader2, Users, Star, UserX, UserPlus, MessageCircle, RefreshCw } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 
 const CustomerSegmentation = () => {
@@ -19,7 +19,7 @@ const CustomerSegmentation = () => {
         new: []
     });
 
-    const analyzeCustomers = async () => {
+    const analyzeCustomers = React.useCallback(async () => {
         if (!currentStore?.id || customers.length === 0) return;
         setLoading(true);
 
@@ -108,12 +108,12 @@ const CustomerSegmentation = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [currentStore, customers]);
 
     useEffect(() => {
         analyzeCustomers();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentStore?.id, customers.length]);
+
+    }, [analyzeCustomers]);
 
     const renderCustomerTable = (list) => (
         <div className="border rounded-md mt-4">
@@ -170,11 +170,17 @@ const CustomerSegmentation = () => {
 
     return (
         <div className="space-y-6 p-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Segmentasi Pelanggan</h1>
-                <p className="text-muted-foreground">
-                    Kelompokkan pelanggan berdasarkan perilaku belanja (RFM) untuk pemasaran yang lebih efektif.
-                </p>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Segmentasi Pelanggan</h1>
+                    <p className="text-muted-foreground">
+                        Kelompokkan pelanggan berdasarkan perilaku belanja (RFM) untuk pemasaran yang lebih efektif.
+                    </p>
+                </div>
+                <Button variant="outline" onClick={analyzeCustomers} disabled={loading}>
+                    <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                    Refresh Analisis
+                </Button>
             </div>
 
             <div className="grid gap-4 md:grid-cols-5">

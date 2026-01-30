@@ -2,11 +2,23 @@ import React from 'react';
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { GitCommit, Tag, Calendar } from 'lucide-react';
-const APP_VERSION = '0.13.0';
+const APP_VERSION = '0.13.1';
 
 // This data would ideally come from a database or a markdown file
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
+    {
+        version: "0.13.1",
+        date: "2026-01-31",
+        type: "patch",
+        title: "Refresh Controls & Stability Fixes",
+        changes: [
+            "UI Enhancements: Added manual 'Refresh' buttons to Transactions, Rental, Products, and Report pages.",
+            "Subscription: Added 'Subscription History' and 'Rejection Reason' features.",
+            "Stability: Fixed critical Transaction page crash and re-upload logic for payment proofs.",
+            "Code Quality: Resolved linting errors across the codebase."
+        ]
+    },
     {
         version: "0.13.0",
         date: "2026-01-30",

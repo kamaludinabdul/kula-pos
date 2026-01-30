@@ -4,7 +4,7 @@ import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { getOptimizedImage } from '../utils/supabaseImage';
 
-import { Search, Plus, Upload, Trash2, Edit, MoreVertical, FileDown, ArrowUpDown, ArrowUp, ArrowDown, Printer, Package, Copy } from 'lucide-react';
+import { Search, Plus, Upload, Trash2, Edit, MoreVertical, FileDown, ArrowUpDown, ArrowUp, ArrowDown, Printer, Package, Copy, RefreshCw } from 'lucide-react';
 import AlertDialog from '../components/AlertDialog';
 import { safeSupabaseRpc } from '../utils/supabaseHelper';
 import { Button } from '../components/ui/button';
@@ -464,6 +464,14 @@ const Products = () => {
                     <p className="text-muted-foreground">Manage your product inventory</p>
                 </div>
                 <div className="flex flex-wrap gap-2 w-full xl:w-auto">
+                    <Button
+                        variant="outline"
+                        onClick={loadProducts}
+                        disabled={isLoading}
+                    >
+                        <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
                     {selectedProducts.length > 0 && (
                         <>
                             <Button

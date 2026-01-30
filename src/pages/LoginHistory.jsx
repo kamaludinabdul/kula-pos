@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
 import { InfoCard } from '../components/ui/info-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Input } from '../components/ui/input';
-import { Search, CheckCircle2, XCircle, LogOut, User, Clock } from 'lucide-react';
+import { Search, CheckCircle2, XCircle, LogOut, User, Clock, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 
@@ -128,6 +129,10 @@ const LoginHistory = () => {
                     <p className="text-muted-foreground">Monitor aktivitas login pengguna</p>
                 </div>
                 <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={fetchLoginHistory} disabled={loading}>
+                        <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
                     <Select value={filterStatus} onValueChange={setFilterStatus}>
                         <SelectTrigger className="w-[140px]">
                             <SelectValue placeholder="Status" />

@@ -1,7 +1,8 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
-import { DollarSign, TrendingUp, Star, Percent } from 'lucide-react';
+import { DollarSign, TrendingUp, Star, Percent, RefreshCw } from 'lucide-react';
+import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { InfoCard } from '../../components/ui/info-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
@@ -28,59 +29,60 @@ const CategorySales = () => {
     }, [datePickerDate]);
 
     // Fetch Aggregated Category Sales
-    useEffect(() => {
-        const fetchData = async () => {
-            if (!currentStore?.id || !datePickerDate?.from) return;
+    const fetchData = React.useCallback(async () => {
+        if (!currentStore?.id || !datePickerDate?.from) return;
 
-            setIsLoading(true);
-            try {
-                const startDate = datePickerDate.from;
-                const endDate = datePickerDate.to || datePickerDate.from;
-                const endDateTime = new Date(endDate);
-                endDateTime.setHours(23, 59, 59, 999);
+        setIsLoading(true);
+        try {
+            const startDate = datePickerDate.from;
+            const endDate = datePickerDate.to || datePickerDate.from;
+            const endDateTime = new Date(endDate);
+            endDateTime.setHours(23, 59, 59, 999);
 
-                // Call the high-performance RPC via Safe Helper
-                const data = await safeSupabaseRpc({
-                    rpcName: 'get_product_sales_report',
-                    params: {
-                        p_store_id: currentStore.id,
-                        p_start_date: startDate.toISOString(),
-                        p_end_date: endDateTime.toISOString()
-                    }
-                });
+            // Call the high-performance RPC via Safe Helper
+            const data = await safeSupabaseRpc({
+                rpcName: 'get_product_sales_report',
+                params: {
+                    p_store_id: currentStore.id,
+                    p_start_date: startDate.toISOString(),
+                    p_end_date: endDateTime.toISOString()
+                }
+            });
 
-                // Aggregate product data by category for this report
-                const categoryMap = {};
-                (data || []).forEach(row => {
-                    const catName = row.category_name || 'Uncategorized';
-                    if (!categoryMap[catName]) {
-                        categoryMap[catName] = {
-                            name: catName,
-                            value: 0,
-                            cost: 0,
-                            profit: 0
-                        };
-                    }
-                    categoryMap[catName].value += parseFloat(row.total_revenue || 0);
-                    categoryMap[catName].cost += parseFloat(row.total_cogs || 0);
-                    categoryMap[catName].profit += parseFloat(row.total_profit || 0);
-                });
+            // Aggregate product data by category for this report
+            const categoryMap = {};
+            (data || []).forEach(row => {
+                const catName = row.category_name || 'Uncategorized';
+                if (!categoryMap[catName]) {
+                    categoryMap[catName] = {
+                        name: catName,
+                        value: 0,
+                        cost: 0,
+                        profit: 0
+                    };
+                }
+                categoryMap[catName].value += parseFloat(row.total_revenue || 0);
+                categoryMap[catName].cost += parseFloat(row.total_cogs || 0);
+                categoryMap[catName].profit += parseFloat(row.total_profit || 0);
+            });
 
-                const processedData = Object.values(categoryMap).map(item => ({
-                    ...item,
-                    margin: item.value > 0 ? (item.profit / item.value) * 100 : 0
-                })).sort((a, b) => b.value - a.value);
+            const processedData = Object.values(categoryMap).map(item => ({
+                ...item,
+                margin: item.value > 0 ? (item.profit / item.value) * 100 : 0
+            })).sort((a, b) => b.value - a.value);
 
-                setFetchedTransactions(processedData);
+            setFetchedTransactions(processedData);
 
-            } catch (error) {
-                console.error("Error fetching category sales RPC:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchData();
+        } catch (error) {
+            console.error("Error fetching category sales RPC:", error);
+        } finally {
+            setIsLoading(false);
+        }
     }, [currentStore, datePickerDate]);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
 
     const categoryStats = useMemo(() => {
@@ -96,7 +98,11 @@ const CategorySales = () => {
                         Analisis penjualan dan performa profit berdasarkan kategori produk.
                     </p>
                 </div>
-                <div className="w-full lg:w-auto">
+                <div className="flex gap-2 w-full lg:w-auto">
+                    <Button variant="outline" onClick={fetchData} disabled={isLoading} className="flex-1 lg:flex-none">
+                        <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
                     <SmartDatePicker
                         date={datePickerDate}
                         onDateChange={setDatePickerDate}

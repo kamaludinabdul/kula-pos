@@ -19,7 +19,7 @@ import {
     DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Search, Filter, Download, Trash2, Edit, Eye, ChevronDown, RotateCcw, Ban, ArrowUpDown, ArrowUp, ArrowDown, BookLock, Wallet, TrendingUp, TrendingDown, MoreVertical } from 'lucide-react';
+import { Search, Filter, Download, Trash2, Edit, Eye, ChevronDown, RotateCcw, Ban, ArrowUpDown, ArrowUp, ArrowDown, BookLock, Wallet, TrendingUp, TrendingDown, MoreVertical, RefreshCw } from 'lucide-react';
 import ReceiptModal from '../components/ReceiptModal';
 import { SmartDatePicker } from '../components/SmartDatePicker';
 import { format, startOfDay, endOfDay } from 'date-fns';
@@ -165,74 +165,82 @@ const Transactions = () => {
     }, [storeId]);
 
 
+    // [MOVED] Fetch Summary Logic (Refactored to be callable)
+    const fetchSummary = useCallback(async () => {
+        if (!storeId) return;
+        setSummaryStats(prev => ({ ...prev, loading: true }));
+
+        try {
+            console.log("Transactions: Fetching Summary for store", storeId);
+            // Use date-fns for robust date range calculation
+            const start = startOfDay(new Date(dateFromStr));
+            const end = endOfDay(dateToStr ? new Date(dateToStr) : new Date(dateFromStr));
+
+            // Use a broader select to ensure we get all needed fields
+            let query = supabase
+                .from('transactions')
+                .select('id, total, status, payment_method')
+                .eq('store_id', storeId)
+                .gte('date', start.toISOString())
+                .lte('date', end.toISOString());
+
+            const { data, error } = await query;
+            if (error) throw error;
+
+            // Filter valid transactions in JS for maximum reliability
+            const validTxs = (data || []).filter(tx =>
+                tx.status !== 'void' &&
+                tx.status !== 'refunded' &&
+                tx.status !== 'cancelled'
+            );
+
+            const revenue = validTxs.reduce((sum, tx) => sum + (parseFloat(tx.total) || 0), 0);
+            const count = validTxs.length;
+
+            // Calculate per-method totals with case-insensitivity and fallback for Indonesian labels
+            const cash = validTxs
+                .filter(tx => {
+                    const m = tx.payment_method?.toLowerCase();
+                    return m === 'cash' || m === 'tunai';
+                })
+                .reduce((sum, tx) => sum + (parseFloat(tx.total) || 0), 0);
+
+            const qris = validTxs
+                .filter(tx => tx.payment_method?.toLowerCase() === 'qris')
+                .reduce((sum, tx) => sum + (parseFloat(tx.total) || 0), 0);
+
+            const transfer = validTxs
+                .filter(tx => tx.payment_method?.toLowerCase() === 'transfer')
+                .reduce((sum, tx) => sum + (parseFloat(tx.total) || 0), 0);
+
+            setSummaryStats({
+                revenue,
+                count,
+                cash,
+                qris,
+                transfer,
+                loading: false
+            });
+
+        } catch (error) {
+            console.error("Error fetching summary stats:", error);
+            setSummaryStats(prev => ({ ...prev, loading: false }));
+        }
+    }, [storeId, dateFromStr, dateToStr]);
+
+
     useEffect(() => {
-        const fetchSummary = async () => {
-            if (!storeId) return;
-            setSummaryStats(prev => ({ ...prev, loading: true }));
-
-            try {
-                console.log("Transactions: Fetching Summary for store", storeId);
-                // Use date-fns for robust date range calculation
-                const start = startOfDay(new Date(dateFromStr));
-                const end = endOfDay(dateToStr ? new Date(dateToStr) : new Date(dateFromStr));
-
-                // Use a broader select to ensure we get all needed fields
-                let query = supabase
-                    .from('transactions')
-                    .select('id, total, status, payment_method')
-                    .eq('store_id', storeId)
-                    .gte('date', start.toISOString())
-                    .lte('date', end.toISOString());
-
-                const { data, error } = await query;
-                if (error) throw error;
-
-                // Filter valid transactions in JS for maximum reliability
-                const validTxs = (data || []).filter(tx =>
-                    tx.status !== 'void' &&
-                    tx.status !== 'refunded' &&
-                    tx.status !== 'cancelled'
-                );
-
-                const revenue = validTxs.reduce((sum, tx) => sum + (parseFloat(tx.total) || 0), 0);
-                const count = validTxs.length;
-
-                // Calculate per-method totals with case-insensitivity and fallback for Indonesian labels
-                const cash = validTxs
-                    .filter(tx => {
-                        const m = tx.payment_method?.toLowerCase();
-                        return m === 'cash' || m === 'tunai';
-                    })
-                    .reduce((sum, tx) => sum + (parseFloat(tx.total) || 0), 0);
-
-                const qris = validTxs
-                    .filter(tx => tx.payment_method?.toLowerCase() === 'qris')
-                    .reduce((sum, tx) => sum + (parseFloat(tx.total) || 0), 0);
-
-                const transfer = validTxs
-                    .filter(tx => tx.payment_method?.toLowerCase() === 'transfer')
-                    .reduce((sum, tx) => sum + (parseFloat(tx.total) || 0), 0);
-
-                setSummaryStats({
-                    revenue,
-                    count,
-                    cash,
-                    qris,
-                    transfer,
-                    loading: false
-                });
-
-            } catch (error) {
-                console.error("Error fetching summary stats:", error);
-                setSummaryStats(prev => ({ ...prev, loading: false }));
-            }
-        };
-
         const timer = setTimeout(() => {
             fetchSummary();
         }, 300);
         return () => clearTimeout(timer);
-    }, [storeId, dateFromStr, dateToStr]);
+    }, [fetchSummary]);
+
+    // [NEW] Handle Manual Refresh
+    const handleRefresh = () => {
+        fetchTransactions(currentPage);
+        fetchSummary();
+    };
 
     // Effect: Trigger fetch on filters change
     useEffect(() => {
@@ -505,6 +513,10 @@ const Transactions = () => {
                     <p className="text-muted-foreground">Kelola dan pantau riwayat transaksi penjualan.</p>
                 </div>
                 <div className="flex flex-wrap gap-2 w-full xl:w-auto">
+                    <Button variant="outline" onClick={handleRefresh} className="flex-1 sm:flex-none" title="Segarkan Data">
+                        <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
                     <Button variant="outline" onClick={handleOpenCloseBookDialog} disabled={isProcessingCloseBook} className="flex-1 sm:flex-none">
                         <BookLock className="mr-2 h-4 w-4" />
                         {isProcessingCloseBook ? "..." : "Tutup Buku Harian"}

@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Textarea } from '../../components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '../../components/ui/dialog';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Trash2, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { Plus, Trash2, TrendingUp, TrendingDown, DollarSign, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { SmartDatePicker } from '../../components/SmartDatePicker';
@@ -325,6 +325,10 @@ const CashFlow = () => {
                         date={datePickerDate}
                         onDateChange={setDatePickerDate}
                     />
+
+                    <Button variant="outline" size="icon" onClick={fetchTransactions} disabled={loading} className="h-9 w-9">
+                        <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                    </Button>
 
                     <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                         <DialogTrigger asChild>

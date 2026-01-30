@@ -8,13 +8,23 @@ import { Badge } from '../../components/ui/badge';
 import { Loader2, CheckCircle, ExternalLink, RefreshCw } from 'lucide-react';
 import { toast } from '../../components/ui/use-toast';
 
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { Textarea } from '../../components/ui/textarea';
+import { Label } from '../../components/ui/label';
+
 const SubscriptionApproval = () => {
     const { user } = useAuth();
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState(null);
 
+    // Rejection Dialog State
+    const [isRejectOpen, setIsRejectOpen] = useState(false);
+    const [selectedInvoice, setSelectedInvoice] = useState(null);
+    const [rejectReason, setRejectReason] = useState("");
+
     const fetchInvoices = async () => {
+        // ... (existing fetchInvoices logic remains the same, assuming it's above or below this block in full file)
         console.log("SubscriptionApproval: Fetching invoices (v2)...");
         setLoading(true);
         try {
@@ -123,6 +133,57 @@ const SubscriptionApproval = () => {
         }
     };
 
+    // Open Reject Dialog
+    const handleRejectClick = (invoice) => {
+        setSelectedInvoice(invoice);
+        setRejectReason(""); // Reset reason
+        setIsRejectOpen(true);
+    };
+
+    // Confirm Rejection
+    const handleConfirmReject = async () => {
+        if (!selectedInvoice) return;
+
+        if (!rejectReason.trim()) {
+            toast({
+                title: "Alasan wajib diisi",
+                description: "Mohon sertakan alasan penolakan agar user mengerti.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        setProcessingId(selectedInvoice.id);
+        try {
+            const { data, error } = await supabase.rpc('reject_subscription_invoice', {
+                p_invoice_id: selectedInvoice.id,
+                p_admin_id: user.id,
+                p_reason: rejectReason
+            });
+
+            if (error) throw error;
+            if (data && !data.success) throw new Error(data.error || 'Rejection failed');
+
+            toast({
+                title: "Langganan Ditolak",
+                description: `Permintaan ditolak dengan alasan: ${rejectReason}`
+            });
+
+            setIsRejectOpen(false);
+            fetchInvoices();
+
+        } catch (error) {
+            console.error("Rejection Error:", error);
+            toast({
+                title: "Gagal menolak",
+                description: error.message,
+                variant: "destructive"
+            });
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
     return (
         <div className="p-6 space-y-6">
             <div className="flex justify-between items-center">
@@ -162,9 +223,11 @@ const SubscriptionApproval = () => {
                                     {invoices.map((inv) => (
                                         <TableRow key={inv.id}>
                                             <TableCell>
-                                                <Badge variant={inv.status === 'approved' ? 'success' : inv.status === 'pending' ? 'outline' : 'destructive'}
-                                                    className={inv.status === 'approved' ? 'bg-green-100 text-green-800 hover:bg-green-100' : ''}>
-                                                    {inv.status === 'approved' ? 'Aktif' : 'Pending'}
+                                                <Badge
+                                                    variant={inv.status === 'approved' ? 'success' : inv.status === 'pending' ? 'outline' : 'destructive'}
+                                                    className={inv.status === 'approved' ? 'bg-green-100 text-green-800 hover:bg-green-100' : ''}
+                                                >
+                                                    {inv.status === 'approved' ? 'Aktif' : inv.status === 'failed' ? 'Ditolak' : 'Pending'}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
@@ -195,9 +258,6 @@ const SubscriptionApproval = () => {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="font-mono">
-                                                {/* Calculate total with unique code if needed, but DB stores the final amount? 
-                                                    Wait, my schema insert logic in CheckoutDialog puts final amount in 'amount' column.
-                                                */}
                                                 {formatCurrency(inv.amount)}
                                             </TableCell>
                                             <TableCell>
@@ -211,23 +271,41 @@ const SubscriptionApproval = () => {
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 {inv.status === 'pending' ? (
-                                                    <Button
-                                                        size="sm"
-                                                        onClick={() => handleApprove(inv)}
-                                                        disabled={processingId === inv.id}
-                                                        className="bg-green-600 hover:bg-green-700"
-                                                    >
-                                                        {processingId === inv.id ? (
-                                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                                        ) : (
-                                                            <>
-                                                                <CheckCircle className="h-4 w-4 mr-1" /> Setujui
-                                                            </>
-                                                        )}
-                                                    </Button>
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="destructive"
+                                                            onClick={() => handleRejectClick(inv)}
+                                                            disabled={processingId === inv.id}
+                                                        >
+                                                            Tolak
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => handleApprove(inv)}
+                                                            disabled={processingId === inv.id}
+                                                            className="bg-green-600 hover:bg-green-700"
+                                                        >
+                                                            {processingId === inv.id ? (
+                                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                            ) : (
+                                                                <>
+                                                                    <CheckCircle className="h-4 w-4 mr-1" /> Setujui
+                                                                </>
+                                                            )}
+                                                        </Button>
+                                                    </div>
                                                 ) : (
                                                     <span className="text-xs text-muted-foreground flex items-center justify-end gap-1">
-                                                        <CheckCircle className="h-3 w-3" /> Disetujui
+                                                        {inv.status === 'approved' ? (
+                                                            <>
+                                                                <CheckCircle className="h-3 w-3 text-green-600" /> Disetujui
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Loader2 className="h-3 w-3 text-red-600" /> Ditolak
+                                                            </>
+                                                        )}
                                                     </span>
                                                 )}
                                             </TableCell>
@@ -239,6 +317,43 @@ const SubscriptionApproval = () => {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Rejection Dialog */}
+            <Dialog open={isRejectOpen} onOpenChange={setIsRejectOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-red-600">Tolak Langganan</DialogTitle>
+                        <DialogDescription>
+                            Tindakan ini akan membatalkan permintaan langganan dari <strong>{selectedInvoice?.stores?.name}</strong>.
+                            Status invoice akan berubah menjadi 'Failed'.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="reason">Alasan Penolakan <span className="text-red-500">*</span></Label>
+                            <Textarea
+                                id="reason"
+                                placeholder="Contoh: Bukti transfer tidak valid, Nominal tidak sesuai..."
+                                value={rejectReason}
+                                onChange={(e) => setRejectReason(e.target.value)}
+                                className="min-h-[100px]"
+                            />
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsRejectOpen(false)}>Batal</Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleConfirmReject}
+                            disabled={!rejectReason.trim() || processingId === selectedInvoice?.id}
+                        >
+                            {processingId === selectedInvoice?.id ? "Memproses..." : "Tolak Permintaan"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

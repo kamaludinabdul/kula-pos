@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../compone
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import ProductSelectorDialog from '../components/ProductSelectorDialog';
-import { Play, Square, Plus, MonitorPlay, Coffee, Settings, Search, X, Trash2, Edit2, Link as LinkIcon, Check, Loader2, Eye, User, Bluetooth } from 'lucide-react';
+import { Play, Square, Plus, MonitorPlay, Coffee, Settings, Search, X, Trash2, Edit2, Link as LinkIcon, Check, Loader2, Eye, User, Bluetooth, RefreshCw } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -1252,6 +1252,17 @@ const RentalDashboard = () => {
         }
     };
 
+    const handleRefresh = async () => {
+        setIsLoadingUnits(true);
+        await Promise.all([
+            refreshData(),
+            fetchUnits(),
+            fetchSessions()
+        ]);
+        setIsLoadingUnits(false);
+        toast({ title: "Data Diperbarui", description: "Halaman telah disegarkan." });
+    };
+
     return (
         <div className="p-4 space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -1260,6 +1271,10 @@ const RentalDashboard = () => {
                     <p className="text-muted-foreground">Kelola sesi rental dan unit layanan.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoadingUnits}>
+                        <RefreshCw className={`w-4 h-4 mr-2 ${isLoadingUnits ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
                     <Button
                         variant={printerStatus.connected ? "outline" : "ghost"}
                         size="sm"
