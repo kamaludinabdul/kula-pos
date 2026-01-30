@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { supabase } from '../../supabase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import { InfoCard } from '../../components/ui/info-card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Loader2, ShoppingBag, ArrowRight, Tag, Lightbulb } from 'lucide-react';
@@ -96,26 +97,20 @@ const MarketBasketAnalysis = () => {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Transaksi Dianalisis</CardTitle>
-                        <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{analyzedCount}</div>
-                        <p className="text-xs text-muted-foreground">Transaksi terakhir</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Peluang Bundling</CardTitle>
-                        <Lightbulb className="h-4 w-4 text-yellow-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{bundles.length}</div>
-                        <p className="text-xs text-muted-foreground">Kombinasi potensial ditemukan</p>
-                    </CardContent>
-                </Card>
+                <InfoCard
+                    title="Transaksi Dianalisis"
+                    value={analyzedCount}
+                    icon={ShoppingBag}
+                    description="Transaksi terakhir"
+                    variant="primary"
+                />
+                <InfoCard
+                    title="Peluang Bundling"
+                    value={bundles.length}
+                    icon={Lightbulb}
+                    description="Kombinasi potensial"
+                    variant="warning"
+                />
             </div>
 
             <Card className="col-span-4">

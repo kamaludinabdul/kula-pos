@@ -595,17 +595,17 @@ const Products = () => {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="w-[50px]">
+                            <TableHead className="w-[50px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                                 <Checkbox
                                     checked={selectedProducts.length === currentProducts.length && currentProducts.length > 0}
                                     onCheckedChange={handleSelectAll}
                                 />
                             </TableHead>
-                            <TableHead className="min-w-[250px]">
+                            <TableHead className="min-w-[250px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                                 <Button
                                     variant="ghost"
                                     onClick={() => handleSort('name')}
-                                    className="h-8 px-2 hover:bg-transparent"
+                                    className="h-8 px-2 hover:bg-transparent text-[10px] font-bold text-slate-500 uppercase tracking-widest"
                                 >
                                     Produk
                                     {sortConfig.key === 'name' ? (
@@ -619,11 +619,11 @@ const Products = () => {
                                     )}
                                 </Button>
                             </TableHead>
-                            <TableHead className="w-[120px]">
+                            <TableHead className="w-[120px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                                 <Button
                                     variant="ghost"
                                     onClick={() => handleSort('category')}
-                                    className="h-8 px-2 hover:bg-transparent"
+                                    className="h-8 px-2 hover:bg-transparent text-[10px] font-bold text-slate-500 uppercase tracking-widest"
                                 >
                                     Kategori
                                     {sortConfig.key === 'category' ? (
@@ -637,11 +637,11 @@ const Products = () => {
                                     )}
                                 </Button>
                             </TableHead>
-                            <TableHead className="w-[130px]">
+                            <TableHead className="w-[130px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                                 <Button
                                     variant="ghost"
                                     onClick={() => handleSort('buyPrice')}
-                                    className="h-8 px-2 hover:bg-transparent"
+                                    className="h-8 px-2 hover:bg-transparent text-[10px] font-bold text-slate-500 uppercase tracking-widest"
                                 >
                                     Harga Dasar
                                     {sortConfig.key === 'buyPrice' ? (
@@ -655,11 +655,11 @@ const Products = () => {
                                     )}
                                 </Button>
                             </TableHead>
-                            <TableHead className="w-[130px]">
+                            <TableHead className="w-[130px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                                 <Button
                                     variant="ghost"
                                     onClick={() => handleSort('sellPrice')}
-                                    className="h-8 px-2 hover:bg-transparent"
+                                    className="h-8 px-2 hover:bg-transparent text-[10px] font-bold text-slate-500 uppercase tracking-widest"
                                 >
                                     Harga Jual
                                     {sortConfig.key === 'sellPrice' ? (
@@ -673,11 +673,11 @@ const Products = () => {
                                     )}
                                 </Button>
                             </TableHead>
-                            <TableHead className="w-[140px]">
+                            <TableHead className="w-[140px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                                 <Button
                                     variant="ghost"
                                     onClick={() => handleSort('profit')}
-                                    className="h-8 px-2 hover:bg-transparent"
+                                    className="h-8 px-2 hover:bg-transparent text-[10px] font-bold text-slate-500 uppercase tracking-widest"
                                 >
                                     Keuntungan
                                     {sortConfig.key === 'profit' ? (
@@ -691,11 +691,11 @@ const Products = () => {
                                     )}
                                 </Button>
                             </TableHead>
-                            <TableHead className="w-[80px]">
+                            <TableHead className="w-[80px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                                 <Button
                                     variant="ghost"
                                     onClick={() => handleSort('stock')}
-                                    className="h-8 px-2 hover:bg-transparent"
+                                    className="h-8 px-2 hover:bg-transparent text-[10px] font-bold text-slate-500 uppercase tracking-widest"
                                 >
                                     Stok
                                     {sortConfig.key === 'stock' ? (
@@ -709,13 +709,13 @@ const Products = () => {
                                     )}
                                 </Button>
                             </TableHead>
-                            <TableHead className="w-[120px]">Status Stok</TableHead>
-                            <TableHead className="w-[120px]">Satuan PO</TableHead>
-                            <TableHead className="w-[100px]">
+                            <TableHead className="w-[120px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status Stok</TableHead>
+                            <TableHead className="w-[120px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Satuan PO</TableHead>
+                            <TableHead className="w-[100px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                                 <Button
                                     variant="ghost"
                                     onClick={() => handleSort('discount')}
-                                    className="h-8 px-2 hover:bg-transparent"
+                                    className="h-8 px-2 hover:bg-transparent text-[10px] font-bold text-slate-500 uppercase tracking-widest"
                                 >
                                     Diskon
                                     {sortConfig.key === 'discount' ? (
@@ -729,7 +729,7 @@ const Products = () => {
                                     )}
                                 </Button>
                             </TableHead>
-                            <TableHead className="w-[80px] text-right">Aksi</TableHead>
+                            <TableHead className="w-[80px] p-4 text-right text-[10px] font-bold text-slate-500 uppercase tracking-widest">Aksi</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -758,16 +758,16 @@ const Products = () => {
                                 const discount = parseFloat(product.discount) || 0;
 
                                 let stockStatus = 'Aman';
-                                let stockColor = 'text-green-600';
+                                let stockVariant = 'success-subtle';
                                 if (product.isUnlimited) {
                                     stockStatus = 'Unlimited';
-                                    stockColor = 'text-blue-600';
+                                    stockVariant = 'info-subtle';
                                 } else if (stock === 0) {
                                     stockStatus = 'Habis';
-                                    stockColor = 'text-red-600';
+                                    stockVariant = 'error-subtle';
                                 } else if (stock <= 5) {
                                     stockStatus = 'Rendah';
-                                    stockColor = 'text-orange-600';
+                                    stockVariant = 'warning-subtle';
                                 }
 
                                 return (
@@ -808,12 +808,12 @@ const Products = () => {
                                             <div className="flex flex-wrap gap-1">
                                                 {Array.isArray(product.category) ? (
                                                     product.category.map((cat, idx) => (
-                                                        <Badge key={idx} variant="secondary" className="text-[10px] px-1 py-0">
+                                                        <Badge key={idx} variant="indigo-subtle" className="text-[10px] px-1.5 py-0 border-none font-bold uppercase">
                                                             {typeof cat === 'object' && cat?.name ? cat.name : cat}
                                                         </Badge>
                                                     ))
                                                 ) : (
-                                                    <Badge variant="secondary">
+                                                    <Badge variant="indigo-subtle" className="text-[10px] px-1.5 py-0 border-none font-bold uppercase">
                                                         {typeof product.category === 'object' && product.category?.name
                                                             ? product.category.name
                                                             : product.category}
@@ -839,13 +839,13 @@ const Products = () => {
                                             </span>
                                         </TableCell>
                                         <TableCell>
-                                            <span className={`font-medium ${stockColor}`}>
+                                            <Badge variant={stockVariant} className="font-bold border-none uppercase text-[10px] px-2 py-0.5">
                                                 {stockStatus}
-                                            </span>
+                                            </Badge>
                                         </TableCell>
                                         <TableCell>
                                             {product.purchaseUnit && product.conversionToUnit > 0 ? (
-                                                <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200">
+                                                <Badge variant="info-subtle" className="font-bold border-none uppercase text-[10px] px-2 py-0.5">
                                                     {product.purchaseUnit}
                                                 </Badge>
                                             ) : (

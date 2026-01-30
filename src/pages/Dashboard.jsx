@@ -4,6 +4,7 @@ import ReceiptModal from '../components/ReceiptModal';
 import { useData } from '../context/DataContext';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { InfoCard } from '../components/ui/info-card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Input } from '../components/ui/input';
@@ -12,35 +13,8 @@ import { safeSupabaseRpc } from '../utils/supabaseHelper';
 
 
 
-// eslint-disable-next-line no-unused-vars
-const StatCard = ({ title, value, change, icon: Icon, color, bgColor }) => {
-    return (
-        <Card className="rounded-2xl border-none shadow-sm bg-white overflow-hidden relative group transition-all duration-300 hover:shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-1 sm:pb-2">
-                <CardTitle className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
-                    {title}
-                </CardTitle>
-                <div className={`p-2 rounded-xl transition-colors duration-300 ${bgColor || 'bg-slate-50'}`}>
-                    <Icon className="h-4 w-4" style={{ color: color || '#64748b' }} />
-                </div>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-                <div className="text-xl sm:text-2xl font-extrabold text-slate-900 truncate">
-                    {value}
-                </div>
-                {change !== undefined && change !== 0 && (
-                    <div className="flex items-center gap-1.5 mt-1 sm:mt-2">
-                        <div className={`flex items-center text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded-md ${change >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                            {change >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1 shrink-0" />}
-                            {Math.abs(change)}%
-                        </div>
-                        <span className="text-[9px] sm:text-[10px] text-slate-400 font-medium uppercase tracking-tighter">vs periode lalu</span>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    );
-};
+
+
 
 import { useAuth } from '../context/AuthContext';
 
@@ -286,46 +260,41 @@ const Dashboard = () => {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {canViewFinancials && (
                     <>
-                        <StatCard
+                        <InfoCard
                             title="Total Penjualan"
                             value={`Rp ${stats.totalSales.toLocaleString()}`}
                             icon={DollarSign}
-                            color="#4f46e5"
-                            bgColor="bg-indigo-50"
+                            variant="primary"
                         />
-                        <StatCard
+                        <InfoCard
                             title="Rata-rata Order"
                             value={`Rp ${Math.round(stats.avgOrder).toLocaleString()}`}
                             icon={TrendingUp}
-                            color="#d97706"
-                            bgColor="bg-orange-50"
+                            variant="warning"
                         />
                     </>
                 )}
 
-                <StatCard
+                <InfoCard
                     title="Total Transaksi"
                     value={stats.totalTransactions}
                     icon={ShoppingBag}
-                    color="#db2777"
-                    bgColor="bg-pink-50"
+                    variant="pink"
                 />
 
                 {canViewStock && (
                     <>
-                        <StatCard
+                        <InfoCard
                             title="Stok Habis"
                             value={stockCounts.outOfStock}
                             icon={AlertTriangle}
-                            color="#dc2626"
-                            bgColor="bg-red-50"
+                            variant="danger"
                         />
-                        <StatCard
+                        <InfoCard
                             title="Stok Menipis"
                             value={stockCounts.lowStock}
                             icon={Package}
-                            color="#d97706"
-                            bgColor="bg-orange-50"
+                            variant="warning"
                         />
                     </>
                 )}

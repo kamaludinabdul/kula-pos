@@ -190,7 +190,7 @@ const Customers = () => {
                         <TableHeader>
                             <TableRow>
                                 <TableHead
-                                    className="w-[250px] cursor-pointer hover:bg-muted/50 transition-colors"
+                                    className="w-[250px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:bg-muted/50 transition-colors"
                                     onClick={() => handleSort('name')}
                                 >
                                     <div className="flex items-center">
@@ -198,10 +198,10 @@ const Customers = () => {
                                         {getSortIcon('name')}
                                     </div>
                                 </TableHead>
-                                <TableHead>Kontak</TableHead>
-                                <TableHead>Alamat</TableHead>
+                                <TableHead className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Kontak</TableHead>
+                                <TableHead className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Alamat</TableHead>
                                 <TableHead
-                                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                    className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:bg-muted/50 transition-colors"
                                     onClick={() => handleSort('registered')}
                                 >
                                     <div className="flex items-center">
@@ -210,7 +210,7 @@ const Customers = () => {
                                     </div>
                                 </TableHead>
                                 <TableHead
-                                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                    className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:bg-muted/50 transition-colors"
                                     onClick={() => handleSort('lastTrx')}
                                 >
                                     <div className="flex items-center">
@@ -218,7 +218,7 @@ const Customers = () => {
                                         {getSortIcon('lastTrx')}
                                     </div>
                                 </TableHead>
-                                <TableHead className="text-right">Aksi</TableHead>
+                                <TableHead className="text-right p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Aksi</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>

@@ -6,29 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../co
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
+import { InfoCard } from '../components/ui/info-card';
 import { safeSupabaseRpc } from '../utils/supabaseHelper';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
 
-const StatCard = (props) => {
-    const { title, value, icon: Icon, color, bgColor } = props;
-    return (
-        <Card className="rounded-2xl border-none shadow-sm bg-white overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
-                <CardTitle className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                    {title}
-                </CardTitle>
-                <div className={`p-2 rounded-xl ${bgColor || 'bg-slate-50'}`}>
-                    <Icon className="h-4 w-4" style={{ color: color || '#64748b' }} />
-                </div>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-                <div className="text-2xl font-extrabold text-slate-900">
-                    {value}
-                </div>
-            </CardContent>
-        </Card>
-    );
-};
+
 
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#14b8a6'];
 
@@ -493,33 +475,29 @@ const OwnerDashboard = () => {
 
             {/* Summary Stats Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard
+                <InfoCard
                     title="Total Omzet"
                     value={`Rp ${stats.sales.toLocaleString('en-US')}`}
                     icon={DollarSign}
-                    color="#4f46e5"
-                    bgColor="bg-indigo-50"
+                    variant="primary"
                 />
-                <StatCard
+                <InfoCard
                     title="Total Transaksi"
                     value={stats.transactions.toLocaleString('en-US')}
                     icon={ShoppingBag}
-                    color="#db2777"
-                    bgColor="bg-pink-50"
+                    variant="pink"
                 />
-                <StatCard
+                <InfoCard
                     title="Rata-rata Order"
                     value={`Rp ${Math.round(stats.avgOrder).toLocaleString('en-US')}`}
                     icon={TrendingUp}
-                    color="#d97706"
-                    bgColor="bg-orange-50"
+                    variant="warning"
                 />
-                <StatCard
+                <InfoCard
                     title="Jumlah Toko"
                     value={stats.storeCount.toLocaleString('en-US')}
                     icon={Building2}
-                    color="#059669"
-                    bgColor="bg-emerald-50"
+                    variant="success"
                 />
             </div>
 

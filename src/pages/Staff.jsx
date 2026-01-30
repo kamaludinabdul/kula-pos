@@ -489,11 +489,11 @@ const Staff = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-[80px]">Foto</TableHead>
-                                <TableHead>Nama</TableHead>
-                                <TableHead>Role</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="text-right">Aksi</TableHead>
+                                <TableHead className="w-[80px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Foto</TableHead>
+                                <TableHead className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nama</TableHead>
+                                <TableHead className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Role</TableHead>
+                                <TableHead className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status</TableHead>
+                                <TableHead className="text-right p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Aksi</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -528,17 +528,25 @@ const Staff = () => {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant={staff.role === 'owner' ? 'default' : staff.role === 'admin' ? 'default' : staff.role === 'sales' ? 'outline' : 'secondary'}>
-                                                    {staff.role === 'owner' ? 'Owner' : staff.role === 'admin' ? 'Administrator' : staff.role === 'sales' ? 'Sales' : 'Kasir'}
+                                                <Badge
+                                                    variant={
+                                                        staff.role === 'owner' ? 'indigo-subtle' :
+                                                            staff.role === 'admin' ? 'info-subtle' :
+                                                                staff.role === 'sales' ? 'warning-subtle' :
+                                                                    'neutral-subtle'
+                                                    }
+                                                    className="font-bold border-none uppercase text-[10px]"
+                                                >
+                                                    {staff.role === 'owner' ? 'Owner' : staff.role === 'admin' ? 'Admin' : staff.role === 'sales' ? 'Sales' : 'Kasir'}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <Circle className={`h-3 w-3 fill-current ${status === 'login' ? 'text-green-500' : 'text-gray-300'}`} />
-                                                    <span className={status === 'login' ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
-                                                        {status === 'login' ? 'Sedang Login' : 'Logout'}
-                                                    </span>
-                                                </div>
+                                                <Badge
+                                                    variant={status === 'login' ? 'success-subtle' : 'neutral-subtle'}
+                                                    className="font-bold border-none uppercase text-[10px]"
+                                                >
+                                                    {status === 'login' ? 'Online' : 'Offline'}
+                                                </Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-2">
@@ -638,15 +646,23 @@ const Staff = () => {
                                 </div>
 
                                 <div className="flex items-center justify-between pt-3 border-t">
-                                    <Badge variant={staff.role === 'owner' ? 'default' : staff.role === 'admin' ? 'default' : staff.role === 'sales' ? 'outline' : 'secondary'}>
-                                        {staff.role === 'owner' ? 'Owner' : staff.role === 'admin' ? 'Administrator' : staff.role === 'sales' ? 'Sales' : 'Kasir'}
+                                    <Badge
+                                        variant={
+                                            staff.role === 'owner' ? 'indigo-subtle' :
+                                                staff.role === 'admin' ? 'info-subtle' :
+                                                    staff.role === 'sales' ? 'warning-subtle' :
+                                                        'neutral-subtle'
+                                        }
+                                        className="font-bold border-none uppercase text-[10px]"
+                                    >
+                                        {staff.role === 'owner' ? 'Owner' : staff.role === 'admin' ? 'Admin' : staff.role === 'sales' ? 'Sales' : 'Kasir'}
                                     </Badge>
-                                    <div className="flex items-center gap-2">
-                                        <Circle className={`h-2.5 w-2.5 fill-current ${status === 'login' ? 'text-green-500' : 'text-gray-300'}`} />
-                                        <span className={`text-xs ${status === 'login' ? 'text-green-600 font-bold' : 'text-slate-400 font-medium'}`}>
-                                            {status === 'login' ? 'ONLINE' : 'OFFLINE'}
-                                        </span>
-                                    </div>
+                                    <Badge
+                                        variant={status === 'login' ? 'success-subtle' : 'neutral-subtle'}
+                                        className="font-bold border-none uppercase text-[10px]"
+                                    >
+                                        {status === 'login' ? 'Online' : 'Offline'}
+                                    </Badge>
                                 </div>
                             </div>
                         );

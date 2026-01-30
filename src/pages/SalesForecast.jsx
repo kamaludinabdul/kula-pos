@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { supabase } from '../supabase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { InfoCard } from '../components/ui/info-card';
 import { Button } from '../components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { CloudRain, Sun, Cloud, MapPin, TrendingUp, AlertTriangle, Calendar } from 'lucide-react';
+import { CloudRain, Sun, Cloud, MapPin, TrendingUp, AlertTriangle, Calendar, BarChart3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const SalesForecast = () => {
@@ -263,6 +264,35 @@ const SalesForecast = () => {
                     Prediksi penjualan 14 hari ke depan berdasarkan data historis dan prakiraan cuaca.
                 </p>
             </header>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <InfoCard
+                    title="Total Prediksi (14 Hari)"
+                    value={`Rp ${forecastData.filter(d => d.type === 'forecast').reduce((sum, p) => sum + p.predictedSales, 0).toLocaleString()}`}
+                    icon={TrendingUp}
+                    variant="primary"
+                />
+                <InfoCard
+                    title="Rata-rata Harian"
+                    value={`Rp ${Math.round(forecastData.filter(d => d.type === 'forecast').reduce((sum, p) => sum + p.predictedSales, 0) / 14 || 0).toLocaleString()}`}
+                    icon={BarChart3}
+                    variant="info"
+                />
+                <InfoCard
+                    title="Potensi Hujan"
+                    value={`${weatherForecast.filter(w => w.rain > 5).length} Hari`}
+                    icon={CloudRain}
+                    variant={weatherForecast.filter(w => w.rain > 5).length > 3 ? "danger" : "success"}
+                    description="Dalam 14 hari ke depan"
+                />
+                <InfoCard
+                    title="Cuaca Panas"
+                    value={`${weatherForecast.filter(w => w.tempMax > 33).length} Hari`}
+                    icon={Sun}
+                    variant="warning"
+                    description="Suhu > 33°C"
+                />
+            </div>
 
             {/* Insights Section */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

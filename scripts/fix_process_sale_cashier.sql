@@ -108,6 +108,23 @@ BEGIN
             debt = CASE WHEN p_payment_method = 'debt' THEN debt + p_total ELSE debt END
         WHERE id = p_customer_id AND store_id = p_store_id;
     END IF;
+    
+    -- 5. Update Shift Statistics if shift_id is provided
+    IF p_shift_id IS NOT NULL THEN
+        UPDATE shifts
+        SET 
+            total_sales = COALESCE(total_sales, 0) + p_total,
+            total_discount = COALESCE(total_discount, 0) + p_discount,
+            total_cash_sales = CASE 
+                WHEN p_payment_method = 'cash' THEN COALESCE(total_cash_sales, 0) + p_total 
+                ELSE COALESCE(total_cash_sales, 0) 
+            END,
+            total_non_cash_sales = CASE 
+                WHEN p_payment_method != 'cash' THEN COALESCE(total_non_cash_sales, 0) + p_total 
+                ELSE COALESCE(total_non_cash_sales, 0) 
+            END
+        WHERE id = p_shift_id;
+    END IF;
 
     RETURN jsonb_build_object('success', true, 'transaction_id', v_new_transaction_id);
 EXCEPTION WHEN OTHERS THEN

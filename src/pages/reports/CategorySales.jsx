@@ -1,7 +1,9 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
+import { DollarSign, TrendingUp, Star, Percent } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { InfoCard } from '../../components/ui/info-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { SmartDatePicker } from '../../components/SmartDatePicker';
 import { getDateRange } from '../../lib/utils';
@@ -100,6 +102,35 @@ const CategorySales = () => {
                         onDateChange={setDatePickerDate}
                     />
                 </div>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <InfoCard
+                    title="Total Penjualan"
+                    value={`Rp ${categoryStats.reduce((sum, item) => sum + item.value, 0).toLocaleString()}`}
+                    icon={DollarSign}
+                    variant="primary"
+                />
+                <InfoCard
+                    title="Total Profit"
+                    value={`Rp ${categoryStats.reduce((sum, item) => sum + item.profit, 0).toLocaleString()}`}
+                    icon={TrendingUp}
+                    variant="success"
+                />
+                <InfoCard
+                    title="Kategori Terlaris"
+                    value={categoryStats.length > 0 ? categoryStats[0].name : '-'}
+                    icon={Star}
+                    variant="warning"
+                />
+                <InfoCard
+                    title="Margin Rata-rata"
+                    value={`${categoryStats.length > 0
+                        ? (categoryStats.reduce((sum, item) => sum + item.profit, 0) / categoryStats.reduce((sum, item) => sum + item.value, 0) * 100).toFixed(1)
+                        : 0}%`}
+                    icon={Percent}
+                    variant="info"
+                />
             </div>
 
             {/* Desktop Table View */}

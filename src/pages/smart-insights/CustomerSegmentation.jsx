@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { supabase } from '../../supabase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import { InfoCard } from '../../components/ui/info-card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Loader2, Users, Star, UserX, UserPlus, MessageCircle } from 'lucide-react';
@@ -177,56 +178,43 @@ const CustomerSegmentation = () => {
             </div>
 
             <div className="grid gap-4 md:grid-cols-5">
-                <Card className="bg-purple-50 border-purple-100">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-sm font-medium text-purple-700">Champions</CardTitle>
-                        <Star className="h-4 w-4 text-purple-500" />
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-2xl font-bold text-purple-900">{segments.champions.length}</div>
-                        <p className="text-xs text-purple-600">Pelanggan terbaik</p>
-                    </CardContent>
-                </Card>
-                <Card className="bg-blue-50 border-blue-100">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-sm font-medium text-blue-700">Loyal</CardTitle>
-                        <Users className="h-4 w-4 text-blue-500" />
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-2xl font-bold text-blue-900">{segments.loyal.length}</div>
-                        <p className="text-xs text-blue-600">Rutin belanja</p>
-                    </CardContent>
-                </Card>
-                <Card className="bg-green-50 border-green-100">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-sm font-medium text-green-700">New</CardTitle>
-                        <UserPlus className="h-4 w-4 text-green-500" />
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-2xl font-bold text-green-900">{segments.new.length}</div>
-                        <p className="text-xs text-green-600">Baru bergabung</p>
-                    </CardContent>
-                </Card>
-                <Card className="bg-orange-50 border-orange-100">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-sm font-medium text-orange-700">At Risk</CardTitle>
-                        <UserX className="h-4 w-4 text-orange-500" />
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-2xl font-bold text-orange-900">{segments.atRisk.length}</div>
-                        <p className="text-xs text-orange-600">Mulai jarang datang</p>
-                    </CardContent>
-                </Card>
-                <Card className="bg-red-50 border-red-100">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-sm font-medium text-red-700">Lost</CardTitle>
-                        <UserX className="h-4 w-4 text-red-500" />
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-2xl font-bold text-red-900">{segments.lost.length}</div>
-                        <p className="text-xs text-red-600">Hampir hilang</p>
-                    </CardContent>
-                </Card>
+                <div className="grid gap-4 md:grid-cols-5">
+                    <InfoCard
+                        title="Champions"
+                        value={segments.champions.length}
+                        icon={Star}
+                        variant="purple"
+                        description="Pelanggan terbaik"
+                    />
+                    <InfoCard
+                        title="Loyal"
+                        value={segments.loyal.length}
+                        icon={Users}
+                        variant="info"
+                        description="Rutin belanja"
+                    />
+                    <InfoCard
+                        title="New"
+                        value={segments.new.length}
+                        icon={UserPlus}
+                        variant="success"
+                        description="Baru bergabung"
+                    />
+                    <InfoCard
+                        title="At Risk"
+                        value={segments.atRisk.length}
+                        icon={UserX}
+                        variant="warning"
+                        description="Mulai jarang"
+                    />
+                    <InfoCard
+                        title="Lost"
+                        value={segments.lost.length}
+                        icon={UserX}
+                        variant="danger"
+                        description="Hampir hilang"
+                    />
+                </div>
             </div>
 
             <Card className="col-span-4">

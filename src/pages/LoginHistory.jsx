@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { InfoCard } from '../components/ui/info-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
@@ -81,21 +82,21 @@ const LoginHistory = () => {
         switch (status) {
             case 'success':
                 return (
-                    <Badge className="bg-green-600 gap-1">
+                    <Badge variant="success-subtle" className="gap-1">
                         <CheckCircle2 className="h-3 w-3" />
                         Berhasil
                     </Badge>
                 );
             case 'failed':
                 return (
-                    <Badge variant="destructive" className="gap-1">
+                    <Badge variant="error-subtle" className="gap-1">
                         <XCircle className="h-3 w-3" />
                         Gagal
                     </Badge>
                 );
             case 'logout':
                 return (
-                    <Badge variant="outline" className="gap-1">
+                    <Badge variant="neutral-subtle" className="gap-1">
                         <LogOut className="h-3 w-3" />
                         Logout
                     </Badge>
@@ -103,6 +104,14 @@ const LoginHistory = () => {
             default:
                 return <Badge variant="outline">{status}</Badge>;
         }
+    };
+
+    const getRoleBadgeVariant = (role) => {
+        const normalizedRole = (role || '').toLowerCase();
+        if (normalizedRole.includes('owner')) return 'indigo-subtle';
+        if (normalizedRole.includes('admin')) return 'purple-subtle';
+        if (normalizedRole.includes('kasir') || normalizedRole.includes('cashier')) return 'info-subtle';
+        return 'neutral-subtle';
     };
 
     const stats = {
@@ -146,39 +155,24 @@ const LoginHistory = () => {
 
             {/* Stats Cards */}
             <div className="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                            Login Berhasil
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-green-600">{stats.totalLogins}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <XCircle className="h-4 w-4 text-red-600" />
-                            Percobaan Gagal
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-red-600">{stats.failedAttempts}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <User className="h-4 w-4 text-blue-600" />
-                            Pengguna Unik
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-blue-600">{stats.uniqueUsers}</div>
-                    </CardContent>
-                </Card>
+                <InfoCard
+                    title="Login Berhasil"
+                    value={stats.totalLogins}
+                    icon={CheckCircle2}
+                    variant="success"
+                />
+                <InfoCard
+                    title="Percobaan Gagal"
+                    value={stats.failedAttempts}
+                    icon={XCircle}
+                    variant="danger"
+                />
+                <InfoCard
+                    title="Pengguna Unik"
+                    value={stats.uniqueUsers}
+                    icon={User}
+                    variant="info"
+                />
             </div>
 
             {/* Search */}
@@ -192,63 +186,113 @@ const LoginHistory = () => {
                 />
             </div>
 
-            {/* History Table */}
-            <Card>
+            {/* History List */}
+            <Card className="rounded-xl border-none shadow-sm overflow-hidden">
+                <CardHeader className="pb-3 border-b bg-white">
+                    <CardTitle className="text-lg font-bold">Detail Aktivitas</CardTitle>
+                </CardHeader>
                 <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Waktu</TableHead>
-                                <TableHead>User</TableHead>
-                                <TableHead>Role</TableHead>
-                                <TableHead>Toko</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Device</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {loading ? (
+                    {/* Desktop View */}
+                    <div className="hidden lg:block">
+                        <Table>
+                            <TableHeader className="bg-slate-50">
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-8">
-                                        Memuat data...
-                                    </TableCell>
+                                    <TableHead>Waktu</TableHead>
+                                    <TableHead>User</TableHead>
+                                    <TableHead>Role</TableHead>
+                                    <TableHead>Toko</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Device</TableHead>
                                 </TableRow>
-                            ) : filteredHistory.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                                        Tidak ada riwayat login
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                filteredHistory.map(h => (
-                                    <TableRow key={h.id}>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2 text-sm">
-                                                <Clock className="h-4 w-4 text-muted-foreground" />
-                                                <div>
-                                                    <div>{new Date(h.created_at || h.loginTime).toLocaleDateString('id-ID')}</div>
-                                                    <div className="text-xs text-muted-foreground">
-                                                        {new Date(h.created_at || h.loginTime).toLocaleTimeString('id-ID')}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="font-medium">{h.user_name || h.userName}</TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className="capitalize">
-                                                {h.user_role || h.userRole || '-'}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>{h.store_name || h.storeName || '-'}</TableCell>
-                                        <TableCell>{getStatusBadge(h.status)}</TableCell>
-                                        <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
-                                            {(h.user_agent || h.userAgent) ? (h.user_agent || h.userAgent).split(' ').slice(0, 3).join(' ') : '-'}
+                            </TableHeader>
+                            <TableBody>
+                                {loading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center py-8">
+                                            Memuat data...
                                         </TableCell>
                                     </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
+                                ) : filteredHistory.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                            Tidak ada riwayat login
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    filteredHistory.map(h => (
+                                        <TableRow key={h.id} className="hover:bg-slate-50 transition-colors">
+                                            <TableCell>
+                                                <div className="flex items-center gap-2 text-sm">
+                                                    <Clock className="h-4 w-4 text-muted-foreground" />
+                                                    <div>
+                                                        <div className="font-medium text-slate-900">{new Date(h.created_at || h.loginTime).toLocaleDateString('id-ID')}</div>
+                                                        <div className="text-xs text-muted-foreground">
+                                                            {new Date(h.created_at || h.loginTime).toLocaleTimeString('id-ID')}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="font-medium text-slate-700">{h.user_name || h.userName}</TableCell>
+                                            <TableCell>
+                                                <Badge
+                                                    variant={getRoleBadgeVariant(h.user_role || h.userRole)}
+                                                    className="capitalize"
+                                                >
+                                                    {h.user_role || h.userRole || '-'}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-slate-600">{h.store_name || h.storeName || '-'}</TableCell>
+                                            <TableCell>{getStatusBadge(h.status)}</TableCell>
+                                            <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+                                                {(h.user_agent || h.userAgent) ? (h.user_agent || h.userAgent).split(' ').slice(0, 3).join(' ') : '-'}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    {/* Mobile View */}
+                    <div className="lg:hidden p-4 space-y-4 bg-slate-50/50">
+                        {loading ? (
+                            <div className="text-center py-8 text-muted-foreground">Memuat data...</div>
+                        ) : filteredHistory.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">Tidak ada riwayat login</div>
+                        ) : (
+                            filteredHistory.map(h => (
+                                <div key={h.id} className="bg-white rounded-xl p-4 shadow-sm border space-y-3 relative overflow-hidden">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="font-bold text-slate-800">{h.user_name || h.userName}</p>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <Badge
+                                                    variant={getRoleBadgeVariant(h.user_role || h.userRole)}
+                                                    className="text-[10px] h-5 px-1.5 capitalize"
+                                                >
+                                                    {h.user_role || h.userRole || '-'}
+                                                </Badge>
+                                                <span className="text-xs text-slate-500">{h.store_name || h.storeName || '-'}</span>
+                                            </div>
+                                        </div>
+                                        {getStatusBadge(h.status)}
+                                    </div>
+
+                                    <div className="pt-2 border-t mt-2 flex items-center justify-between text-xs text-slate-500">
+                                        <div className="flex items-center gap-1.5">
+                                            <Clock className="h-3 w-3" />
+                                            <span>
+                                                {new Date(h.created_at || h.loginTime).toLocaleDateString('id-ID')} • {new Date(h.created_at || h.loginTime).toLocaleTimeString('id-ID')}
+                                            </span>
+                                        </div>
+                                        <div className="max-w-[120px] truncate" title={h.user_agent || h.userAgent}>
+                                            {(h.user_agent || h.userAgent) || 'Unknown Device'}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </CardContent>
             </Card>
         </div>

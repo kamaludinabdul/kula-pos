@@ -4,6 +4,7 @@ import { useData } from '../../context/DataContext';
 import { exportToCSV } from '../../lib/utils';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { InfoCard } from '../../components/ui/info-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 
 const InventoryValue = () => {
@@ -86,38 +87,30 @@ const InventoryValue = () => {
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="rounded-xl border-none shadow-sm bg-slate-50">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total Stok</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl lg:text-2xl font-extrabold text-slate-900">{stats.totalStock.toLocaleString()} <span className="text-xs font-normal text-slate-400">unit</span></div>
-                    </CardContent>
-                </Card>
-                <Card className="rounded-xl border-none shadow-sm bg-blue-50">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-[10px] font-bold text-blue-800 uppercase tracking-widest">Total Modal</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl lg:text-2xl font-extrabold text-blue-600">Rp {stats.totalCapital.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
-                <Card className="rounded-xl border-none shadow-sm bg-indigo-50">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-[10px] font-bold text-indigo-800 uppercase tracking-widest">Potensi Omzet</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl lg:text-2xl font-extrabold text-indigo-600">Rp {stats.potentialRevenue.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
-                <Card className="rounded-xl border-none shadow-sm bg-green-50">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-[10px] font-bold text-green-800 uppercase tracking-widest">Potensi Laba</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl lg:text-2xl font-extrabold text-green-600">Rp {stats.potentialProfit.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
+                <InfoCard
+                    title="Total Stok"
+                    value={`${stats.totalStock.toLocaleString()} unit`}
+                    icon={Package}
+                    variant="default"
+                />
+                <InfoCard
+                    title="Total Modal"
+                    value={`Rp ${stats.totalCapital.toLocaleString()}`}
+                    icon={DollarSign}
+                    variant="info"
+                />
+                <InfoCard
+                    title="Potensi Omzet"
+                    value={`Rp ${stats.potentialRevenue.toLocaleString()}`}
+                    icon={TrendingUp}
+                    variant="primary"
+                />
+                <InfoCard
+                    title="Potensi Laba"
+                    value={`Rp ${stats.potentialProfit.toLocaleString()}`}
+                    icon={DollarSign}
+                    variant="success"
+                />
             </div>
 
             {/* Desktop Table View */}

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { safeSupabaseRpc } from '../../utils/supabaseHelper';
-import { TrendingUp, Package, Download } from 'lucide-react';
+import { TrendingUp, Package, Download, DollarSign, Layers } from 'lucide-react';
 import { exportToCSV } from '../../lib/utils';
 import { exportTopSellingToPDF } from '../../lib/pdfExport';
 import { useData } from '../../context/DataContext';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { InfoCard } from '../../components/ui/info-card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
@@ -149,44 +150,30 @@ const TopSellingProducts = () => {
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="rounded-xl border-none shadow-sm bg-slate-50">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Unit Terjual</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl lg:text-2xl font-extrabold text-slate-900">
-                            {products.reduce((sum, p) => sum + p.totalQuantity, 0).toLocaleString()}
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="rounded-xl border-none shadow-sm bg-green-50">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-[10px] font-bold text-green-800 uppercase tracking-widest">Total Pendapatan</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl lg:text-2xl font-extrabold text-green-600">
-                            Rp {products.reduce((sum, p) => sum + p.totalRevenue, 0).toLocaleString()}
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="rounded-xl border-none shadow-sm bg-blue-50">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-[10px] font-bold text-blue-800 uppercase tracking-widest">Total Profit</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl lg:text-2xl font-extrabold text-blue-600">
-                            Rp {products.reduce((sum, p) => sum + p.totalProfit, 0).toLocaleString()}
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="rounded-xl border-none shadow-sm bg-indigo-50">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-[10px] font-bold text-indigo-800 uppercase tracking-widest">Variasi Produk</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl lg:text-2xl font-extrabold text-indigo-600">{products.length}</div>
-                    </CardContent>
-                </Card>
+                <InfoCard
+                    title="Unit Terjual"
+                    value={products.reduce((sum, p) => sum + p.totalQuantity, 0).toLocaleString()}
+                    icon={Package}
+                    variant="default"
+                />
+                <InfoCard
+                    title="Total Pendapatan"
+                    value={`Rp ${products.reduce((sum, p) => sum + p.totalRevenue, 0).toLocaleString()}`}
+                    icon={DollarSign}
+                    variant="success"
+                />
+                <InfoCard
+                    title="Total Profit"
+                    value={`Rp ${products.reduce((sum, p) => sum + p.totalProfit, 0).toLocaleString()}`}
+                    icon={TrendingUp}
+                    variant="info"
+                />
+                <InfoCard
+                    title="Variasi Produk"
+                    value={products.length}
+                    icon={Layers} // Using Layers as 'Box/Variation' isn't imported, or use generic
+                    variant="purple"
+                />
             </div>
 
             <Card className="rounded-xl border-none shadow-sm overflow-hidden">

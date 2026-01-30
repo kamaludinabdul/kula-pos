@@ -1,10 +1,11 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
-import { Download, ArrowUpDown } from 'lucide-react';
+import { Download, ArrowUpDown, DollarSign, TrendingUp } from 'lucide-react';
 import { exportToCSV, getDateRange } from '../../lib/utils';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { InfoCard } from '../../components/ui/info-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { SmartDatePicker } from '../../components/SmartDatePicker';
 import { safeSupabaseRpc } from '../../utils/supabaseHelper';
@@ -134,26 +135,18 @@ const ItemSales = () => {
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="rounded-xl border-none shadow-sm bg-indigo-50">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-[10px] font-bold text-indigo-800 uppercase tracking-widest">Total Pendapatan</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl lg:text-2xl font-extrabold text-indigo-600">
-                            Rp {itemStats.reduce((acc, curr) => acc + curr.revenue, 0).toLocaleString()}
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="rounded-xl border-none shadow-sm bg-green-50">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-[10px] font-bold text-green-800 uppercase tracking-widest">Total Keuntungan</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl lg:text-2xl font-extrabold text-green-600">
-                            Rp {itemStats.reduce((acc, curr) => acc + curr.profit, 0).toLocaleString()}
-                        </div>
-                    </CardContent>
-                </Card>
+                <InfoCard
+                    title="Total Pendapatan"
+                    value={`Rp ${itemStats.reduce((acc, curr) => acc + curr.revenue, 0).toLocaleString()}`}
+                    icon={DollarSign}
+                    variant="primary"
+                />
+                <InfoCard
+                    title="Total Keuntungan"
+                    value={`Rp ${itemStats.reduce((acc, curr) => acc + curr.profit, 0).toLocaleString()}`}
+                    icon={TrendingUp}
+                    variant="success"
+                />
             </div>
 
             {/* Desktop Table View */}

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { InfoCard } from '../components/ui/info-card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { supabase } from '../supabase';
@@ -527,71 +528,43 @@ const Transactions = () => {
 
 
             {/* Summary Cards */}
+            {/* Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Pendapatan</CardTitle>
-                        <Wallet className="h-4 w-4 text-emerald-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-xl font-bold text-emerald-600">
-                            {summaryStats.loading ? "..." : `Rp ${summaryStats.revenue.toLocaleString()}`}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">Total pendapatan bersih</p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Tunai (Cash)</CardTitle>
-                        <Wallet className="h-4 w-4 text-orange-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-xl font-bold text-orange-600">
-                            {summaryStats.loading ? "..." : `Rp ${summaryStats.cash.toLocaleString()}`}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">Pembayaran tunai</p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">QRIS / E-Wallet</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-purple-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-xl font-bold text-purple-600">
-                            {summaryStats.loading ? "..." : `Rp ${summaryStats.qris.toLocaleString()}`}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">Dompet digital</p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Transfer Bank</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-blue-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-xl font-bold text-blue-600">
-                            {summaryStats.loading ? "..." : `Rp ${summaryStats.transfer.toLocaleString()}`}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">Transfer langsung</p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Transaksi</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-slate-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-xl font-bold text-slate-600">
-                            {summaryStats.loading ? "..." : `${summaryStats.count} Transaksi`}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">Jumlah transaksi sukses</p>
-                    </CardContent>
-                </Card>
+                <InfoCard
+                    title="Total Pendapatan"
+                    value={summaryStats.loading ? "..." : `Rp ${summaryStats.revenue.toLocaleString()}`}
+                    icon={Wallet}
+                    variant="success"
+                    description="Total pendapatan bersih"
+                />
+                <InfoCard
+                    title="Tunai (Cash)"
+                    value={summaryStats.loading ? "..." : `Rp ${summaryStats.cash.toLocaleString()}`}
+                    icon={Wallet}
+                    variant="warning"
+                    description="Pembayaran tunai"
+                />
+                <InfoCard
+                    title="QRIS / E-Wallet"
+                    value={summaryStats.loading ? "..." : `Rp ${summaryStats.qris.toLocaleString()}`}
+                    icon={TrendingUp}
+                    variant="purple"
+                    description="Dompet digital"
+                />
+                <InfoCard
+                    title="Transfer Bank"
+                    value={summaryStats.loading ? "..." : `Rp ${summaryStats.transfer.toLocaleString()}`}
+                    icon={TrendingUp}
+                    variant="info"
+                    description="Transfer langsung"
+                />
+                <InfoCard
+                    title="Total Transaksi"
+                    value={summaryStats.loading ? "..." : `${summaryStats.count} Transaksi`}
+                    icon={TrendingUp}
+                    variant="primary"
+                    description="Jumlah transaksi sukses"
+                />
             </div>
 
             <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
@@ -648,14 +621,14 @@ const Transactions = () => {
                                 /* Let's keep the UI but maybe disable functionality or make it sort the current page? */
                                 /* Ideally server sort. But that requires index for every field. Let's simplfy to just visual headers for now or simplistic local sort */
                             }
-                            <TableHead className="w-[100px]">ID</TableHead>
-                            <TableHead className="w-[140px]">Waktu</TableHead>
-                            <TableHead className="w-[200px]">Kasir</TableHead>
-                            <TableHead className="w-[200px]">Pelanggan</TableHead>
-                            <TableHead className="w-[140px]">Total</TableHead>
-                            <TableHead className="w-[120px]">Status</TableHead>
-                            <TableHead className="w-[120px]">Tipe Bayar</TableHead>
-                            <TableHead className="w-[100px] text-right">Aksi</TableHead>
+                            <TableHead className="w-[100px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">ID</TableHead>
+                            <TableHead className="w-[140px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Waktu</TableHead>
+                            <TableHead className="w-[200px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Kasir</TableHead>
+                            <TableHead className="w-[200px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pelanggan</TableHead>
+                            <TableHead className="w-[140px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total</TableHead>
+                            <TableHead className="w-[120px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status</TableHead>
+                            <TableHead className="w-[120px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tipe Bayar</TableHead>
+                            <TableHead className="w-[100px] text-right p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Aksi</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -692,14 +665,14 @@ const Transactions = () => {
                                         </TableCell>
                                         <TableCell>
                                             <Badge
-                                                variant={tx.status === 'void' ? 'destructive' : (tx.status === 'refunded' ? 'secondary' : 'default')}
-                                                className={tx.status === 'completed' ? 'bg-green-500 hover:bg-green-600' : (tx.status === 'refunded' ? 'bg-orange-500 hover:bg-orange-600 text-white' : '')}
+                                                variant={tx.status === 'void' ? 'error-subtle' : (tx.status === 'refunded' ? 'warning-subtle' : 'success-subtle')}
+                                                className="font-bold border-none uppercase text-[10px]"
                                             >
-                                                {tx.status === 'void' ? 'Dibatalkan' : (tx.status === 'refunded' ? 'Refunded' : 'Berhasil')}
+                                                {tx.status === 'void' ? 'Batal' : (tx.status === 'refunded' ? 'Refund' : 'Berhasil')}
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant="outline" className="capitalize">
+                                            <Badge variant="neutral-subtle" className="capitalize font-bold border-none text-[10px]">
                                                 {formatPaymentMethod(tx.paymentMethod)}
                                             </Badge>
                                         </TableCell>
@@ -761,17 +734,14 @@ const Transactions = () => {
                 ) : (
                     transactionsList.map((tx) => (
                         <div key={tx.id} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3 relative overflow-hidden">
-                            <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${tx.status === 'completed' ? 'bg-green-500' : (tx.status === 'refunded' ? 'bg-orange-500' : 'bg-red-500')}`} />
+                            <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${tx.status === 'completed' ? 'bg-emerald-500' : (tx.status === 'refunded' ? 'bg-orange-500' : 'bg-red-500')}`} />
                             <div className="flex justify-between items-start pl-2">
                                 <div className="space-y-1 min-w-0">
                                     <div className="flex items-center gap-2">
                                         <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest truncate">#{tx.id}</span>
                                         <Badge
-                                            variant={tx.status === 'void' ? 'destructive' : (tx.status === 'refunded' ? 'secondary' : 'default')}
-                                            className={`text-[9px] font-bold px-1.5 py-0 border-none h-4 uppercase ${tx.status === 'completed' ? 'bg-green-50 text-green-700' :
-                                                tx.status === 'refunded' ? 'bg-orange-50 text-orange-700' :
-                                                    'bg-red-50 text-red-700'
-                                                }`}
+                                            variant={tx.status === 'void' ? 'error-subtle' : (tx.status === 'refunded' ? 'warning-subtle' : 'success-subtle')}
+                                            className="text-[9px] font-bold px-1.5 py-0 border-none h-4 uppercase"
                                         >
                                             {tx.status === 'void' ? 'Batal' : (tx.status === 'refunded' ? 'Refund' : 'Sukses')}
                                         </Badge>

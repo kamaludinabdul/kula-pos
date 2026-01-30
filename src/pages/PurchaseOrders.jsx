@@ -119,13 +119,13 @@ const PurchaseOrders = () => {
         setIsReceiveOpen(true);
     };
 
-    const getStatusColor = (status) => {
+    const getStatusVariant = (status) => {
         switch (status) {
-            case 'draft': return 'bg-gray-100 text-gray-800';
-            case 'ordered': return 'bg-blue-100 text-blue-800';
-            case 'received': return 'bg-green-100 text-green-800';
-            case 'cancelled': return 'bg-red-100 text-red-800';
-            default: return 'bg-gray-100 text-gray-800';
+            case 'draft': return 'neutral-subtle';
+            case 'ordered': return 'info-subtle';
+            case 'received': return 'success-subtle';
+            case 'cancelled': return 'error-subtle';
+            default: return 'neutral-subtle';
         }
     };
 
@@ -218,7 +218,7 @@ const PurchaseOrders = () => {
                                             Rp {parseInt(po.total_amount || 0).toLocaleString('id-ID')}
                                         </td>
                                         <td className="p-4 text-center">
-                                            <Badge variant="secondary" className={`border-none font-bold text-[10px] uppercase px-2 py-0.5 ${getStatusColor(po.status)}`}>
+                                            <Badge variant={getStatusVariant(po.status)} className="border-none font-bold text-[10px] uppercase px-2 py-0.5">
                                                 {getStatusLabel(po.status)}
                                             </Badge>
                                         </td>
@@ -258,7 +258,7 @@ const PurchaseOrders = () => {
                             className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3 relative overflow-hidden active:scale-[0.98] transition-transform cursor-pointer"
                             onClick={() => navigate(`/purchase-orders/${po.id}`)}
                         >
-                            <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${po.status === 'received' ? 'bg-green-500' : (po.status === 'ordered' ? 'bg-blue-500' : (po.status === 'cancelled' ? 'bg-red-500' : 'bg-slate-300'))}`} />
+                            <div className={`absolute top-0 left-0 bottom-0 w-1.5 ${po.status === 'received' ? 'bg-emerald-500' : (po.status === 'ordered' ? 'bg-blue-500' : (po.status === 'cancelled' ? 'bg-red-500' : 'bg-slate-300'))}`} />
                             <div className="flex justify-between items-start pl-2">
                                 <div className="space-y-1 min-w-0">
                                     <p className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -271,7 +271,7 @@ const PurchaseOrders = () => {
                                         {format(new Date(po.date || po.created_at), 'dd MMM yyyy', { locale: idLocale })}
                                     </p>
                                 </div>
-                                <Badge variant="secondary" className={`border-none font-bold text-[9px] uppercase px-2 py-0.5 tracking-tighter ${getStatusColor(po.status)}`}>
+                                <Badge variant={getStatusVariant(po.status)} className="border-none font-bold text-[9px] uppercase px-2 py-0.5 tracking-tighter">
                                     {getStatusLabel(po.status)}
                                 </Badge>
                             </div>

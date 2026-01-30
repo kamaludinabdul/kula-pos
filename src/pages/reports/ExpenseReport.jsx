@@ -8,6 +8,7 @@ import { useData } from '../../context/DataContext';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { InfoCard } from '../../components/ui/info-card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 
@@ -145,22 +146,19 @@ const ExpenseReport = () => {
 
             {/* Summary Card */}
             <div className="grid gap-4 md:grid-cols-3">
-                <Card className="rounded-xl border-none shadow-sm bg-red-50">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-bold text-red-800 uppercase tracking-wider">Total Pengeluaran</CardTitle>
-                        <TrendingDown className="h-4 w-4 text-red-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-3xl font-extrabold text-red-600">Rp {totalExpense.toLocaleString()}</div>
-                        <p className="text-xs text-red-700/60 font-medium mt-1">
-                            {datePickerDate?.from ? (
-                                `${datePickerDate.from.toLocaleDateString('id-ID')} - ${datePickerDate.to?.toLocaleDateString('id-ID')}`
-                            ) : (
-                                'Semua Waktu'
-                            )}
-                        </p>
-                    </CardContent>
-                </Card>
+                <InfoCard
+                    title="Total Pengeluaran"
+                    value={`Rp ${totalExpense.toLocaleString()}`}
+                    icon={TrendingDown}
+                    variant="danger"
+                    description={
+                        datePickerDate?.from ? (
+                            `${datePickerDate.from.toLocaleDateString('id-ID')} - ${datePickerDate.to?.toLocaleDateString('id-ID')}`
+                        ) : (
+                            'Semua Waktu'
+                        )
+                    }
+                />
             </div>
 
             {/* Desktop Table View */}

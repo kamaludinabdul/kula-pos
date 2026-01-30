@@ -176,7 +176,7 @@ const Categories = () => {
                     <TableHeader>
                         <TableRow>
                             <TableHead
-                                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:bg-muted/50 transition-colors"
                                 onClick={() => handleSort('name')}
                             >
                                 <div className="flex items-center">
@@ -185,7 +185,7 @@ const Categories = () => {
                                 </div>
                             </TableHead>
                             <TableHead
-                                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                                className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest cursor-pointer hover:bg-muted/50 transition-colors"
                                 onClick={() => handleSort('count')}
                             >
                                 <div className="flex items-center">
@@ -193,7 +193,7 @@ const Categories = () => {
                                     {getSortIcon('count')}
                                 </div>
                             </TableHead>
-                            <TableHead className="text-right">Aksi</TableHead>
+                            <TableHead className="text-right p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Aksi</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>

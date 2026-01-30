@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.0] - 2026-01-30
+### Improved
+- **UI Design System**: Standardized "Stats Cards" across the entire application using a unified `InfoCard` component (Transactions, Login History, Category Sales, etc.).
+- **Visual Consistency**: updated all Table and Status components to use new `Badge` variants (`success-subtle`, `warning-subtle`, etc.) for a modern, clean look.
+- **Transactions Page**: Refactored transaction summary stats to match the new design system.
+- **Login History**: Enhanced readability with role-based coloring (Owner, Admin, Staff) and improved mobile view.
+- **Category Sales**: Optimized layout by positioning stats cards below the header for better hierarchy.
+
 ## [0.12.0] - 2026-01-30
 ### Added
 - **Multi-Store**: Implemented Per-Owner Subscription model and global Store Branching logic.

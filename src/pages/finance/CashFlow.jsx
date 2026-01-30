@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../supabase';
 import { safeSupabaseQuery } from '../../utils/supabaseHelper';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { InfoCard } from '../../components/ui/info-card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -482,77 +483,39 @@ const CashFlow = () => {
 
             {/* Summary Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-                <Card className="border-none shadow-sm bg-white">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-4 pb-1 sm:pb-2">
-                        <CardTitle className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Income</CardTitle>
-                        <div className="p-1.5 bg-green-50 rounded-lg">
-                            <TrendingUp className="h-3.5 w-3.5 text-green-600" />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-3 sm:p-4 pt-0">
-                        <div className="text-base sm:text-xl font-bold text-green-600">
-                            Rp {stats.income.toLocaleString()}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="border-none shadow-sm bg-white">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-4 pb-1 sm:pb-2">
-                        <CardTitle className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Expense</CardTitle>
-                        <div className="p-1.5 bg-red-50 rounded-lg">
-                            <TrendingDown className="h-3.5 w-3.5 text-red-600" />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-3 sm:p-4 pt-0">
-                        <div className="text-base sm:text-xl font-bold text-red-600">
-                            Rp {stats.expense.toLocaleString()}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="border-none shadow-sm bg-white">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-4 pb-1 sm:pb-2">
-                        <CardTitle className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">Net Flow</CardTitle>
-                        <div className="p-1.5 bg-blue-50 rounded-lg">
-                            <DollarSign className="h-3.5 w-3.5 text-blue-600" />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-3 sm:p-4 pt-0">
-                        <div className={`text-base sm:text-xl font-bold ${stats.income - stats.expense >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
-                            Rp {(stats.income - stats.expense).toLocaleString()}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="border-none shadow-sm bg-white">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-4 pb-1 sm:pb-2">
-                        <CardTitle className="text-[10px] sm:text-xs font-bold text-red-800 uppercase tracking-wider">OPEX</CardTitle>
-                        <div className="p-1.5 bg-red-50 rounded-lg">
-                            <TrendingDown className="h-3.5 w-3.5 text-red-600" />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-3 sm:p-4 pt-0">
-                        <div className="text-sm sm:text-lg font-bold text-red-700">
-                            Rp {stats.opex.toLocaleString()}
-                        </div>
-                        <p className="text-[9px] text-red-600/70 font-medium mt-1">Operasional</p>
-                    </CardContent>
-                </Card>
-
-                <Card className="border-none shadow-sm bg-white">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-4 pb-1 sm:pb-2">
-                        <CardTitle className="text-[10px] sm:text-xs font-bold text-orange-800 uppercase tracking-wider">CAPEX</CardTitle>
-                        <div className="p-1.5 bg-orange-50 rounded-lg">
-                            <TrendingDown className="h-3.5 w-3.5 text-orange-600" />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-3 sm:p-4 pt-0">
-                        <div className="text-sm sm:text-lg font-bold text-orange-700">
-                            Rp {stats.capex.toLocaleString()}
-                        </div>
-                        <p className="text-[9px] text-orange-600/70 font-medium mt-1">Aset & Inventaris</p>
-                    </CardContent>
-                </Card>
+                <InfoCard
+                    title="Income"
+                    value={`Rp ${stats.income.toLocaleString()}`}
+                    icon={TrendingUp}
+                    variant="success"
+                />
+                <InfoCard
+                    title="Expense"
+                    value={`Rp ${stats.expense.toLocaleString()}`}
+                    icon={TrendingDown}
+                    variant="danger"
+                />
+                <InfoCard
+                    title="Net Flow"
+                    value={`Rp ${(stats.income - stats.expense).toLocaleString()}`}
+                    icon={DollarSign}
+                    variant={stats.income - stats.expense >= 0 ? "info" : "warning"}
+                    className={stats.income - stats.expense < 0 ? "text-orange-600" : "text-blue-600"}
+                />
+                <InfoCard
+                    title="OPEX"
+                    value={`Rp ${stats.opex.toLocaleString()}`}
+                    icon={TrendingDown}
+                    variant="danger"
+                    description="Operasional"
+                />
+                <InfoCard
+                    title="CAPEX"
+                    value={`Rp ${stats.capex.toLocaleString()}`}
+                    icon={TrendingDown}
+                    variant="warning"
+                    description="Aset & Inventaris"
+                />
             </div>
 
             {/* Filter Bar */}

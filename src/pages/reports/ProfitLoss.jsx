@@ -7,6 +7,7 @@ import { exportToCSV, getDateRange, formatPaymentMethod } from '../../lib/utils'
 import { SmartDatePicker } from '../../components/SmartDatePicker';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { InfoCard } from '../../components/ui/info-card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../components/ui/dialog';
@@ -394,63 +395,50 @@ const ProfitLoss = () => {
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="rounded-xl border-none shadow-sm bg-green-50 col-span-2 lg:col-span-1">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-[10px] font-bold text-green-800 uppercase tracking-widest">Laba Bersih</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-2xl font-extrabold text-green-600">Rp {stats.netProfit.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
-                <Card className="rounded-xl border-none shadow-sm bg-slate-50">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total Pemasukan</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl font-extrabold text-slate-900">Rp {stats.totalSales.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
-                <Card className="rounded-xl border-none shadow-sm bg-blue-50">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-[10px] font-bold text-blue-800 uppercase tracking-widest">Pendapatan Lain</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl font-extrabold text-blue-600">Rp {stats.otherIncome.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
-                <Card className="rounded-xl border-none shadow-sm bg-orange-50">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-[10px] font-bold text-orange-800 uppercase tracking-widest">Total Diskon</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl font-extrabold text-orange-600">Rp {stats.totalDiscount.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
-                <Card className="rounded-xl border-none shadow-sm bg-red-50">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-[10px] font-bold text-red-800 uppercase tracking-widest">Biaya Operasional</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl font-extrabold text-red-600">Rp {stats.totalExpenses.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
-                <Card className="rounded-xl border-none shadow-sm bg-slate-50">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">HPP</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl font-extrabold text-slate-900">Rp {stats.totalCOGS.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
-                <Card className="rounded-xl border-none shadow-sm bg-indigo-50">
-                    <CardHeader className="p-4 pb-2">
-                        <CardTitle className="text-[10px] font-bold text-indigo-800 uppercase tracking-widest">Belanja Aset</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl font-extrabold text-indigo-600">Rp {stats.totalAssets.toLocaleString()}</div>
-                        <p className="text-[9px] text-indigo-400 font-bold mt-1 uppercase">Tidak mengurangi laba</p>
-                    </CardContent>
-                </Card>
+                <InfoCard
+                    title="Laba Bersih"
+                    value={`Rp ${stats.netProfit.toLocaleString()}`}
+                    icon={TrendingUp}
+                    variant="success"
+                    className="col-span-2 lg:col-span-1"
+                />
+                <InfoCard
+                    title="Total Pemasukan"
+                    value={`Rp ${stats.totalSales.toLocaleString()}`}
+                    icon={DollarSign}
+                    variant="default"
+                />
+                <InfoCard
+                    title="Pendapatan Lain"
+                    value={`Rp ${stats.otherIncome.toLocaleString()}`}
+                    icon={DollarSign}
+                    variant="info"
+                />
+                <InfoCard
+                    title="Total Diskon"
+                    value={`Rp ${stats.totalDiscount.toLocaleString()}`}
+                    icon={TrendingDown}
+                    variant="warning"
+                />
+                <InfoCard
+                    title="Biaya Operasional"
+                    value={`Rp ${stats.totalExpenses.toLocaleString()}`}
+                    icon={ArrowDown}
+                    variant="danger"
+                />
+                <InfoCard
+                    title="HPP"
+                    value={`Rp ${stats.totalCOGS.toLocaleString()}`}
+                    icon={ShoppingBag}
+                    variant="default"
+                />
+                <InfoCard
+                    title="Belanja Aset"
+                    value={`Rp ${stats.totalAssets.toLocaleString()}`}
+                    icon={ShoppingBag}
+                    variant="primary"
+                    description="Tidak mengurangi laba"
+                />
             </div>
 
             <Card className="rounded-xl border-none shadow-sm overflow-hidden">
