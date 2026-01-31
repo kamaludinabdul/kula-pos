@@ -252,16 +252,27 @@ const ProductForm = () => {
             return;
         }
 
-        // Check for duplicate SKU
-        if (formData.code) {
-            const duplicateProduct = products.find(p =>
-                p.code &&
-                p.code.toLowerCase() === formData.code.toLowerCase() &&
-                (!isEditMode || p.id !== id)
-            );
+        // Check for duplicate SKU/Barcode - Query database directly (not local array which may be paginated)
+        if (formData.code && activeStoreId) {
+            const inputCode = formData.code.trim();
 
-            if (duplicateProduct) {
-                showAlert('Validasi Gagal', `Kode Produk (SKU) "${formData.code}" sudah digunakan oleh produk "${duplicateProduct.name}".`);
+            // Build query to check for existing barcode
+            let query = supabase
+                .from('products')
+                .select('id, name, barcode')
+                .eq('store_id', activeStoreId)
+                .eq('barcode', inputCode)
+                .eq('is_deleted', false);
+
+            // If editing, exclude current product
+            if (isEditMode && id) {
+                query = query.neq('id', id);
+            }
+
+            const { data: existingProducts } = await query.limit(1).maybeSingle();
+
+            if (existingProducts) {
+                showAlert('Validasi Gagal', `Kode Produk (SKU) "${formData.code}" sudah digunakan oleh produk "${existingProducts.name}".`);
                 return;
             }
         }
