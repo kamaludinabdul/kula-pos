@@ -10,14 +10,14 @@ import ProductGrid from '../components/pos/ProductGrid';
 import { MobileBottomNav, MobileCartSheet } from '../components/pos/MobileComponents';
 import CheckoutDialog from '../components/pos/CheckoutDialog';
 import BarcodeScannerDialog from '../components/pos/BarcodeScannerDialog';
-import { Search, ScanBarcode } from 'lucide-react';
+import { Search, ScanBarcode, RefreshCw } from 'lucide-react';
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 
 const MobilePOS = () => {
     // Hooks
     const { user } = useAuth();
-    const { products, categories, currentStore, processSale, refreshTransactions } = useData();
+    const { products, categories, currentStore, processSale, refreshTransactions, fetchAllProducts } = useData();
     const { currentShift, updateShiftStats } = useShift();
 
     // Logic from usePOS
@@ -137,7 +137,7 @@ const MobilePOS = () => {
         <div className="flex flex-col h-screen bg-slate-50">
             {/* Header */}
             <div className="bg-white px-4 py-3 sticky top-0 z-40 shadow-sm border-b">
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
@@ -147,6 +147,14 @@ const MobilePOS = () => {
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-10 w-10 shrink-0 text-slate-500 bg-slate-100 hover:bg-slate-200"
+                        onClick={() => fetchAllProducts && currentStore?.id && fetchAllProducts(currentStore.id)}
+                    >
+                        <RefreshCw size={18} />
+                    </Button>
                 </div>
                 {/* Categories */}
                 <div className="flex gap-2 overflow-x-auto mt-3 pb-2 scrollbar-hide -mx-4 px-4 items-center">

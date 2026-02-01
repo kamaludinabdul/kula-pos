@@ -521,6 +521,16 @@ const POS = () => {
                 onNavigate={(path) => navigate(path)}
                 onLogout={() => logout && logout()}
                 hasPermission={hasPermission}
+                onRefresh={async () => {
+                    if (fetchAllProducts && currentStore?.id) {
+                        try {
+                            await fetchAllProducts(currentStore.id);
+                            // showAlert('Sukses', 'Data produk berhasil diperbarui.'); // Silent refresh is often better for POS, or use toast
+                        } catch (e) {
+                            console.error("Manual refresh failed", e);
+                        }
+                    }
+                }}
             />
 
             <div className="flex flex-1 overflow-hidden">

@@ -9,7 +9,8 @@ import {
     Menu,
     Wifi,
     WifiOff,
-    ChevronLeft
+    ChevronLeft,
+    RefreshCw
 } from 'lucide-react';
 import { Button } from "../ui/button";
 import { cn } from "../../lib/utils";
@@ -27,7 +28,8 @@ const POSHeader = ({
     hasPermission,
     onNavigate,
     onLogout,
-    isOnline = true
+    isOnline = true,
+    onRefresh
 }) => {
     return (
         <header className="px-2 sm:px-4 py-2 sm:py-3 bg-white border-b border-border flex items-center justify-between shrink-0 sticky top-0 z-30">
@@ -74,6 +76,16 @@ const POSHeader = ({
             </div>
 
             <div className="flex items-center gap-0.5 sm:gap-2 shrink-0">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 px-0 text-muted-foreground hover:bg-slate-100"
+                    onClick={onRefresh}
+                    title="Refresh Data"
+                >
+                    <RefreshCw size={18} />
+                </Button>
+
                 <Button
                     variant={printerStatus.connected ? "outline" : "ghost"}
                     size="sm"
