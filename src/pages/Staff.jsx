@@ -300,65 +300,32 @@ const Staff = () => {
      * Registers a new user in Supabase Auth using a temporary client.
      * This avoids logging out the current admin.
      */
-    // Dummy storage to prevent "Multiple GoTrueClient" warnings
-    const dummyStorage = {
-        getItem: () => null,
-        setItem: () => { },
-        removeItem: () => { },
-    };
-
     const registerUserToSupabase = async (email, password, name, role, storeId) => {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-        // Create a temporary client with NO persistence to isolate session
-        const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
-            auth: {
-                persistSession: false,
-                autoRefreshToken: false,
-                detectSessionInUrl: false,
-                storage: dummyStorage // Isolate storage completely
-            }
-        });
-
         try {
-
-            const { data, error } = await tempClient.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: {
-                        name: name || 'Staff Member',
-                        role: role || 'staff',
-                        // store_name removed to prevent trigger from creating a new Store
-                        store_id: storeId, // CRITICAL: Required for profiles trigger
-                        // Mark as staff registration to potentially handle differently in triggers if needed
-                        is_staff_registration: true,
-                        permissions: permissions // Initialize granular permissions
-                    }
+            console.log("Calling create-user edge function...");
+            const { data, error } = await supabase.functions.invoke('create-user', {
+                body: {
+                    email,
+                    password,
+                    name: name || 'Staff Member',
+                    role: role || 'staff',
+                    store_id: storeId,
+                    permissions: permissions // Sending current permissions state
                 }
             });
 
             if (error) throw error;
-            return { success: true, user: data.user, session: data.session };
+            if (data.error) throw new Error(data.error);
+
+            return { success: true, user: data.user };
         } catch (error) {
-            // If user already exists, try to LOGIN to get the ID (Recover Orphaned Account)
-            if (error.message && error.message.includes('already registered')) {
-                try {
-                    const { data: loginData, error: loginError } = await tempClient.auth.signInWithPassword({
-                        email,
-                        password
-                    });
-                    if (loginError) throw loginError;
-                    // Success! We recovered the existing user's ID
-                    return { success: true, user: loginData.user, session: loginData.session, recovered: true };
-                } catch (loginErr) { // eslint-disable-line no-unused-vars
-                    // Simplify error message as requested by user
-                    return { success: false, error: "Email/Username sudah terdaftar. Gunakan email/username lain atau hubungi Admin." };
-                }
+            console.error("Auto-registration failed:", error);
+
+            // Nice error message for duplicates
+            if (error.message && (error.message.includes('already registered') || error.message.includes('unique'))) {
+                return { success: false, error: "Email/Username sudah terdaftar. Gunakan yang lain." };
             }
 
-            console.error("Auto-registration failed:", error);
             return { success: false, error: error.message };
         }
     };
