@@ -594,10 +594,11 @@ const ProfitLoss = () => {
                                         let tCOGS = 0;
                                         if (t.items) {
                                             t.items.forEach(i => {
-                                                let buyPrice = i.buyPrice;
+                                                // Check both camelCase AND snake_case (database uses snake_case)
+                                                let buyPrice = i.buyPrice ?? i.buy_price;
                                                 if (buyPrice === undefined || buyPrice === null) {
                                                     const product = productMap.get(i.id) || productMap.get(i.name);
-                                                    buyPrice = product ? product.buyPrice : 0;
+                                                    buyPrice = product ? (product.buyPrice ?? product.buy_price ?? 0) : 0;
                                                 }
                                                 tCOGS += Number(buyPrice || 0) * i.qty;
                                             });

@@ -119,11 +119,12 @@ async function runDirectImport() {
         const total = price * qty;
         const transactionId = generateTransactionId();
 
-        // Prepare items JSON
+        // Prepare items JSON - MUST include buy_price for profit calculation!
         const items = [{
             id: product.id,
             qty: qty,
             price: price,
+            buy_price: product.buy_price || 0, // CRITICAL for Laba calculation!
             name: product.name
         }];
 
