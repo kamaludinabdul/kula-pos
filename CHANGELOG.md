@@ -3,6 +3,7 @@
 ## [0.13.2] - 2026-02-02
 ### Added
 - **Staff Onboarding**: Implemented secure Supabase Edge Function (`create-user`) to allow adding new staff without requiring email confirmation. Staff can now login immediately with Email or Username.
+- **POS**: Added manual **Refresh Button** to POS Header (Desktop & Mobile) to reload product data without refreshing the page.
 
 ### Fixed
 - **Profit Report**: Fixed "Laba" column calculation in Profit/Loss report. It was incorrectly showing Total Sales due to a case-sensitivity issue (`buy_price` vs `buyPrice`).

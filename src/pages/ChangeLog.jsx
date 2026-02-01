@@ -14,6 +14,7 @@ const CHANGELOG_DATA = [
         title: "Staff Onboarding & Critical Fixes",
         changes: [
             "Staff Onboarding: Added secure Edge Function to bypass email confirmation, allowing immediate staff login.",
+            "POS: Added manual Refresh Button to reload product data instantly.",
             "Profit Report: Fixed 'Laba' column calculation (snake_case mismatch resolution).",
             "Stability: Enhanced duplicate barcode validation with direct database checks."
         ]
