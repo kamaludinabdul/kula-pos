@@ -2,11 +2,22 @@ import React from 'react';
 import { Badge } from "../components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { GitCommit, Tag, Calendar } from 'lucide-react';
-const APP_VERSION = '0.13.1';
+const APP_VERSION = '0.13.2';
 
 // This data would ideally come from a database or a markdown file
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
+    {
+        version: "0.13.2",
+        date: "2026-02-02",
+        type: "patch",
+        title: "Staff Onboarding & Critical Fixes",
+        changes: [
+            "Staff Onboarding: Added secure Edge Function to bypass email confirmation, allowing immediate staff login.",
+            "Profit Report: Fixed 'Laba' column calculation (snake_case mismatch resolution).",
+            "Stability: Enhanced duplicate barcode validation with direct database checks."
+        ]
+    },
     {
         version: "0.13.1",
         date: "2026-01-31",

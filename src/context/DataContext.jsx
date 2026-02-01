@@ -53,7 +53,7 @@ const safeFetchSupabase = async (options) => {
 export const DataProvider = ({ children }) => {
     // Debug log to verify if the latest code is running
     useEffect(() => {
-        console.log("DataContext: v0.13.1 (" + new Date().toLocaleTimeString() + ")");
+        console.log("DataContext: v0.13.2 (" + new Date().toLocaleTimeString() + ")");
     }, []);
 
     const { user, checkPermission } = useAuth();

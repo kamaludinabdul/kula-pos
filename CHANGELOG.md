@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.2] - 2026-02-02
+### Added
+- **Staff Onboarding**: Implemented secure Supabase Edge Function (`create-user`) to allow adding new staff without requiring email confirmation. Staff can now login immediately with Email or Username.
+
+### Fixed
+- **Profit Report**: Fixed "Laba" column calculation in Profit/Loss report. It was incorrectly showing Total Sales due to a case-sensitivity issue (`buy_price` vs `buyPrice`).
+- **Barcode Validation**: Strengthened duplicate barcode check in Product Form to directly query the database, preventing duplicates even if the local product list wasn't fully loaded.
+
 ## [0.13.1] - 2026-01-31
 ### Added
 - **UI Enhancements**: Added manual "Refresh" buttons to Transactions, Rental Dashboard, Products, Login History, Cash Flow, and all Report/Insight pages to allow data reloading without refreshing the browser.
