@@ -12,7 +12,7 @@ import AlertDialog from '../../components/AlertDialog';
 import { supabase } from '../../supabase';
 
 const GeneralSettings = () => {
-    const { recalculateProductStats, currentStore, updateStore } = useData();
+    const { recalculateProductStats, currentStore, updateStore, updateStoreSettings } = useData();
     const { toast } = useToast();
     const [isRecalculating, setIsRecalculating] = useState(false);
     const [isReseting, setIsReseting] = useState(false);
@@ -44,22 +44,19 @@ const GeneralSettings = () => {
     }, [currentStore]);
 
     // Save backdate setting
+    // Save backdate setting
     const handleBackdateToggle = async (checked) => {
         if (!currentStore?.id) return;
         setIsSavingBackdate(true);
         try {
-            const { error } = await supabase
-                .from('stores')
-                .update({
-                    settings: {
-                        ...currentStore.settings,
-                        allowBackdateTransaction: checked,
-                        updatedAt: new Date().toISOString()
-                    }
-                })
-                .eq('id', currentStore.id);
+            // Use updateStoreSettings from DataContext which handles both Supabase update 
+            // and local optimistic state update
+            const result = await updateStoreSettings({
+                allowBackdateTransaction: checked
+            });
 
-            if (error) throw error;
+            if (!result.success) throw new Error(result.error);
+
             setAllowBackdate(checked);
             toast({
                 title: checked ? "Fitur Diaktifkan" : "Fitur Dinonaktifkan",
@@ -74,6 +71,8 @@ const GeneralSettings = () => {
                 title: "Gagal",
                 description: "Gagal menyimpan pengaturan.",
             });
+            // Revert local state on error if needed, but updateStoreSettings usually handles fetchStores
+            setAllowBackdate(!checked);
         } finally {
             setIsSavingBackdate(false);
         }
