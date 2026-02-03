@@ -84,12 +84,38 @@ export const printReceiptBrowser = (transaction, store) => {
                 
                 <div class="divider"></div>
                 <div class="items">
-                    ${transaction.items ? transaction.items.map(item => `
-                        <div class="item">
-                            <span style="flex: 1;">${item.name} x${item.qty}${item.unit ? ' ' + item.unit : ''}</span>
-                            <span>${((item.price - (item.discount || 0)) * item.qty).toLocaleString('id-ID')}</span>
-                        </div>
-                    `).join('') : '<div>No items</div>'}
+                    ${transaction.items ? transaction.items.map(item => {
+            const originalTotal = item.price * item.qty;
+            const itemDiscount = (item.discount || 0) * item.qty;
+            const finalItemTotal = originalTotal - itemDiscount;
+
+            // Check if discount exists
+            if (itemDiscount > 0) {
+                return `
+                             <div style="margin-bottom: 4px;">
+                                <div class="item">
+                                    <span style="flex: 1;">${item.name} x${item.qty}${item.unit ? ' ' + item.unit : ''}</span>
+                                    <span style="text-decoration: line-through; color: #888;">${originalTotal.toLocaleString('id-ID')}</span>
+                                </div>
+                                <div class="item" style="color: #d11;">
+                                    <span style="flex: 1; margin-left: 10px; font-size: 0.9em;">Diskon</span>
+                                    <span style="font-size: 0.9em;">-${itemDiscount.toLocaleString('id-ID')}</span>
+                                </div>
+                                <div class="item" style="font-weight: bold;">
+                                    <span style="flex: 1;"></span>
+                                    <span>${finalItemTotal.toLocaleString('id-ID')}</span>
+                                </div>
+                             </div>
+                             `;
+            } else {
+                return `
+                            <div class="item">
+                                <span style="flex: 1;">${item.name} x${item.qty}${item.unit ? ' ' + item.unit : ''}</span>
+                                <span>${finalItemTotal.toLocaleString('id-ID')}</span>
+                            </div>
+                            `;
+            }
+        }).join('') : '<div>No items</div>'}
                 </div>
                 <div style="border-top: 1px dashed #ccc; padding-top: 2px; margin-bottom: 2px; font-size: 0.9em; text-align: right;">
                     Total Qty: ${transaction.items ? transaction.items.reduce((acc, item) => acc + Number(item.qty), 0) : 0}
