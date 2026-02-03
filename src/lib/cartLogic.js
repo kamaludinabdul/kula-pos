@@ -1,7 +1,10 @@
 export const calculateCartTotals = (cart, discountType, discountValue, taxRate = 0, serviceRate = 0, taxType = 'exclusive') => {
     // 1. Subtotal = Sum of (Price * Qty)
+    // 1. Subtotal = Sum of ((Price - ItemDiscount) * Qty)
     const subtotal = cart.reduce((sum, item) => {
-        return sum + (item.price * item.qty);
+        const itemPrice = item.price || 0;
+        const itemDiscount = item.discount || 0;
+        return sum + ((itemPrice - itemDiscount) * item.qty);
     }, 0);
 
     // 2. Discount Amount

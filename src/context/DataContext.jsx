@@ -1830,6 +1830,7 @@ export const DataProvider = ({ children }) => {
                 name: item.name,
                 price: item.price,
                 buy_price: item.buyPrice || item.buy_price || 0, // Map to snake_case for RPC
+                discount: item.discount || 0 // Pass item-level discount
             }));
 
             // Call Supabase RPC
