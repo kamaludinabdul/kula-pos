@@ -33,6 +33,14 @@ async function introspect() {
         console.log("Profile Columns:", Object.keys(profilesData[0] || {}));
     }
 
+    // Check transactions columns
+    const { data: txData, error: txError } = await supabase.from('transactions').select('*').limit(1);
+    if (txError) {
+        console.error("Error fetching transactions:", txError.message);
+    } else {
+        console.log("Transactions Columns:", Object.keys(txData[0] || {}));
+    }
+
     // Test specific join with owner_id hint again, but with DIFFERENT syntax
     console.log("\n--- Testing owner:profiles!stores_owner_id_fkey ---");
     const { data: test1, error: err1 } = await supabase.from('stores').select('name, owner:profiles!stores_owner_id_fkey(name, email, plan)').limit(1);

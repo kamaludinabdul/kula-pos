@@ -95,4 +95,22 @@ describe('Transaction Logic', () => {
         expect(result.discount).toBe(1500); // 1000 (Item) + 500 (Global)
         expect(result.total).toBe(8500);
     });
+    it('should return camelCase keys for DataContext compatibility', () => {
+        const result = constructTransactionData({
+            cart: [],
+            totals: { subtotal: 0, tax: 0, serviceCharge: 0, discountAmount: 0, finalTotal: 0 },
+            user: mockUser,
+            activeStoreId: 'store1',
+            paymentMethod: 'cash',
+            amountPaid: 0,
+            change: 0
+        });
+
+        expect(result).toHaveProperty('paymentMethod');
+        expect(result).toHaveProperty('amountPaid');
+        expect(result).toHaveProperty('cashierId');
+        expect(result).toHaveProperty('cashier'); // Not cashier_name
+        expect(result).not.toHaveProperty('payment_method');
+        expect(result).not.toHaveProperty('amount_paid');
+    });
 });

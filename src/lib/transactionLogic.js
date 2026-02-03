@@ -40,24 +40,24 @@ export const constructTransactionData = ({
     }));
 
     return {
-        store_id: activeStoreId,
-        cashier_id: user?.id,
-        cashier_name: user?.name,
-        customer_id: customer?.id || null,
-        customer_name: customer?.name || 'Umum',
+        storeId: activeStoreId,
+        cashierId: user?.id,
+        cashier: user?.name,
+        customerId: customer?.id || null,
+        customerName: customer?.name || 'Umum',
         date: new Date().toISOString(),
         items: items,
-        subtotal: grossTotal, // Fix: Use Gross Total
-        discount: totalDiscountValue, // Fix: Include Item Discounts
+        subtotal: grossTotal,
+        discount: totalDiscountValue,
         tax: totals.tax || 0,
-        service_charge: totals.serviceCharge || 0,
+        serviceCharge: totals.serviceCharge || 0,
         total: totals.finalTotal,
-        payment_method: paymentMethod,
-        amount_paid: amountPaid,
+        paymentMethod: paymentMethod,
+        amountPaid: amountPaid,
         change: change,
         status: 'completed',
         notes: notes || '',
-        points_redeemed: pointsToRedeem,
-        points_redemption_value: pointsRedemptionValue
+        pointsRedeemed: pointsToRedeem,
+        pointsRedemptionValue: pointsRedemptionValue
     };
 };
