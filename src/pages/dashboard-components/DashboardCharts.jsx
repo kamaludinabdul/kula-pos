@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { safeSupabaseQuery } from '../../utils/supabaseHelper';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 
@@ -17,109 +16,60 @@ const DashboardCharts = ({ currentStore }) => {
 
             setLoading(true);
             try {
-                // Initialize selected year (Jan - Dec)
-                const monthMap = new Map();
+                // Use RPC with SECURITY DEFINER to bypass RLS issues
+                const { safeSupabaseRpc } = await import('../../utils/supabaseHelper');
 
+                const rpcData = await safeSupabaseRpc({
+                    rpcName: 'get_dashboard_monthly_summary',
+                    params: {
+                        p_store_id: currentStore.id,
+                        p_year: selectedYear
+                    }
+                });
+
+                if (rpcData && Array.isArray(rpcData)) {
+                    // RPC returns pre-formatted data with Indonesian month names
+                    const data = rpcData.map(m => ({
+                        ...m,
+                        // Convert month name to Indonesian short format
+                        name: new Date(selectedYear, m.monthIndex, 1).toLocaleString('id-ID', { month: 'short' }),
+                        daysWithValue: { size: m.daysWithSales || 0 } // For backwards compatibility
+                    }));
+                    setChartData(data);
+                } else {
+                    // Fallback to empty months if RPC fails
+                    const emptyData = [];
+                    for (let i = 0; i < 12; i++) {
+                        emptyData.push({
+                            name: new Date(selectedYear, i, 1).toLocaleString('id-ID', { month: 'short' }),
+                            monthIndex: i,
+                            totalRevenue: 0,
+                            totalProfit: 0,
+                            totalOpEx: 0,
+                            avgDailyRevenue: 0,
+                            avgDailyProfit: 0,
+                            transactionsCount: 0
+                        });
+                    }
+                    setChartData(emptyData);
+                }
+            } catch (error) {
+                console.error("Error fetching chart data:", error);
+                // Initialize empty chart data on error
+                const emptyData = [];
                 for (let i = 0; i < 12; i++) {
-                    const d = new Date(selectedYear, i, 1);
-                    const monthKey = d.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
-                    monthMap.set(monthKey, {
-                        name: d.toLocaleString('id-ID', { month: 'short' }), // Use short name for better fit (Jan, Feb...)
-                        fullName: monthKey,
+                    emptyData.push({
+                        name: new Date(selectedYear, i, 1).toLocaleString('id-ID', { month: 'short' }),
                         monthIndex: i,
-                        year: selectedYear,
                         totalRevenue: 0,
                         totalProfit: 0,
                         totalOpEx: 0,
-                        daysWithValue: new Set(),
+                        avgDailyRevenue: 0,
+                        avgDailyProfit: 0,
                         transactionsCount: 0
                     });
                 }
-
-                // Calculate Start and End Date for the selected year
-                const startOfYear = new Date(selectedYear, 0, 1);
-                startOfYear.setHours(0, 0, 0, 0);
-
-                const endOfYear = new Date(selectedYear, 11, 31);
-                endOfYear.setHours(23, 59, 59, 999);
-
-                // 1. Fetch Transactions
-                const transactions = await safeSupabaseQuery({
-                    tableName: 'transactions',
-                    queryBuilder: (q) => q.select('date, total, items, status')
-                        .eq('store_id', currentStore.id)
-                        .gte('date', startOfYear.toISOString())
-                        .lte('date', endOfYear.toISOString()),
-                    fallbackParams: `?store_id=eq.${currentStore.id}&date=gte.${startOfYear.toISOString()}&date=lte.${endOfYear.toISOString()}&select=date,total,items,status`
-                });
-
-                // 2. Fetch Cash Flow (Expenses)
-                const expenses = await safeSupabaseQuery({
-                    tableName: 'cash_flow',
-                    queryBuilder: (q) => q.select('date, amount, expense_group')
-                        .eq('store_id', currentStore.id)
-                        .eq('type', 'out')
-                        .gte('date', startOfYear.toISOString())
-                        .lte('date', endOfYear.toISOString()),
-                    fallbackParams: `?store_id=eq.${currentStore.id}&type=eq.out&date=gte.${startOfYear.toISOString()}&date=lte.${endOfYear.toISOString()}&select=date,amount,expense_group`
-                });
-
-                // Process Transactions
-                transactions.forEach(t => {
-                    if (t.status === 'void' || t.status === 'cancelled') return;
-
-                    const tDate = new Date(t.date);
-                    if (tDate < startOfYear || tDate > endOfYear) return; // Filter by selected year
-
-                    // Fallback using index construction if locale string varies
-                    // Better to just construct key same way loop did:
-                    const d = new Date(tDate.getFullYear(), tDate.getMonth(), 1);
-                    const key = d.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
-
-                    const record = monthMap.get(key);
-
-                    if (record) {
-                        record.totalRevenue += (t.total || 0);
-
-                        // Calculate Profit
-                        let cogs = 0;
-                        if (t.items) {
-                            t.items.forEach(i => {
-                                cogs += (Number(i.buyPrice) || 0) * i.qty;
-                            });
-                        }
-                        record.totalProfit += ((t.total || 0) - cogs);
-                        record.daysWithValue.add(tDate.getDate());
-                        record.transactionsCount += 1;
-                    }
-                });
-
-                // Process Expenses
-                expenses.forEach(e => {
-                    const eDate = new Date(e.date);
-                    if (eDate < startOfYear || eDate > endOfYear) return; // Filter by selected year
-
-                    const d = new Date(eDate.getFullYear(), eDate.getMonth(), 1);
-                    const key = d.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
-                    const record = monthMap.get(key);
-
-                    if (record) {
-                        record.totalOpEx += (Number(e.amount) || 0);
-                    }
-                });
-
-                const data = Array.from(monthMap.values()).map(m => ({
-                    ...m,
-                    avgDailyRevenue: m.daysWithValue.size > 0 ? m.totalRevenue / m.daysWithValue.size : 0,
-                    avgDailyProfit: m.daysWithValue.size > 0 ? m.totalProfit / m.daysWithValue.size : 0
-                }));
-
-                setChartData(data);
-
-            } catch (error) {
-                console.error("Error fetching chart data:", error);
-                // Even on error, try to show empty charts if data partly failed?
-                // For now, let it fall through.
+                setChartData(emptyData);
             } finally {
                 setLoading(false);
             }

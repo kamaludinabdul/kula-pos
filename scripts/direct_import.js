@@ -74,7 +74,8 @@ async function runDirectImport() {
     const { data: products, error: prodError } = await supabase
         .from('products')
         .select('*')
-        .eq('store_id', STORE_ID);
+        .eq('store_id', STORE_ID)
+        .or('is_deleted.is.null,is_deleted.eq.false'); // Exclude soft-deleted products
 
     if (prodError) throw prodError;
 
@@ -100,11 +101,11 @@ async function runDirectImport() {
         const qty = parseFloat(row[3]) || 1;
         let price = parseFloat(row[4]);
         const method = (row[5] || 'cash').toString().toLowerCase();
-        const discount = parseFloat(row[6]) || 0;
+        let discount = parseFloat(row[6]) || 0;
 
-        // Find product
+        // Find product: prioritize barcode first, then normalized name, then original name
         const normalizedInput = normalizeProductName(productName);
-        const product = productLookup[normalizedInput] || productLookup[productName];
+        const product = productLookup[productName] || productLookup[normalizedInput];
 
         if (!product) {
             console.warn(`⚠️ Baris ${idx + 2}: Produk tidak ditemukan: "${productName}" - SKIP`);
@@ -116,7 +117,10 @@ async function runDirectImport() {
             price = product.sell_price || 0; // Correct column name!
         }
 
-        const total = price * qty;
+        // Discount comes from Excel row[6] only
+
+        const grossTotal = price * qty;
+        const netTotal = grossTotal - discount;
         const transactionId = generateTransactionId();
 
         // Prepare items JSON - MUST include buy_price for profit calculation!
@@ -125,7 +129,8 @@ async function runDirectImport() {
             qty: qty,
             price: price,
             buy_price: product.buy_price || 0, // CRITICAL for Laba calculation!
-            name: product.name
+            name: product.name,
+            discount: discount // Added discount info
         }];
 
         // 1. INSERT into transactions table DIRECTLY
@@ -135,11 +140,11 @@ async function runDirectImport() {
                 id: transactionId,
                 store_id: STORE_ID,
                 customer_id: null,
-                total: total,
+                total: netTotal,
                 discount: discount,
-                subtotal: total + discount,
+                subtotal: grossTotal,
                 payment_method: method,
-                amount_paid: total - discount,
+                amount_paid: netTotal,
                 change: 0,
                 type: 'sale',
                 items: items,
@@ -160,7 +165,7 @@ async function runDirectImport() {
             .update({
                 stock: product.stock - qty,
                 sold: (product.sold || 0) + qty,
-                revenue: (product.revenue || 0) + total
+                revenue: (product.revenue || 0) + netTotal
             })
             .eq('id', product.id);
 
