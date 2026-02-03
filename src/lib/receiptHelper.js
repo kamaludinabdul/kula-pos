@@ -1,24 +1,15 @@
 import { formatDate } from './utils';
 
-export const printReceiptBrowser = (transaction, store) => {
-    try {
-        const receiptWindow = window.open('', '_blank', 'width=400,height=600');
+export const generateReceiptHtml = (transaction, store) => {
+    const isStandardPaper = store?.printerPaperSize === '80mm';
 
-        if (!receiptWindow) {
-            console.error("Popup blocked! Cannot print receipt.");
-            alert("Pop-up diblokir. Izinkan pop-up untuk mencetak struk.");
-            return;
-        }
+    // Calculate totals
+    const subtotal = transaction.subtotal || transaction.total;
+    const tax = transaction.tax || 0;
+    const serviceCharge = transaction.serviceCharge || 0;
+    const finalTotal = transaction.total;
 
-        const isStandardPaper = store?.printerPaperSize === '80mm';
-
-        // Calculate totals
-        const subtotal = transaction.subtotal || transaction.total;
-        const tax = transaction.tax || 0;
-        const serviceCharge = transaction.serviceCharge || 0;
-        const finalTotal = transaction.total;
-
-        const html = `
+    return `
         <html>
             <head>
                 <title>Receipt #${transaction.id}</title>
@@ -85,13 +76,13 @@ export const printReceiptBrowser = (transaction, store) => {
                 <div class="divider"></div>
                 <div class="items">
                     ${transaction.items ? transaction.items.map(item => {
-            const originalTotal = item.price * item.qty;
-            const itemDiscount = (item.discount || 0) * item.qty;
-            const finalItemTotal = originalTotal - itemDiscount;
+        const originalTotal = item.price * item.qty;
+        const itemDiscount = (item.discount || 0) * item.qty;
+        const finalItemTotal = originalTotal - itemDiscount;
 
-            // Check if discount exists
-            if (itemDiscount > 0) {
-                return `
+        // Check if discount exists
+        if (itemDiscount > 0) {
+            return `
                              <div style="margin-bottom: 4px;">
                                 <div class="item">
                                     <span style="flex: 1;">${item.name} x${item.qty}${item.unit ? ' ' + item.unit : ''}</span>
@@ -107,15 +98,15 @@ export const printReceiptBrowser = (transaction, store) => {
                                 </div>
                              </div>
                              `;
-            } else {
-                return `
+        } else {
+            return `
                             <div class="item">
                                 <span style="flex: 1;">${item.name} x${item.qty}${item.unit ? ' ' + item.unit : ''}</span>
                                 <span>${finalItemTotal.toLocaleString('id-ID')}</span>
                             </div>
                             `;
-            }
-        }).join('') : '<div>No items</div>'}
+        }
+    }).join('') : '<div>No items</div>'}
                 </div>
                 <div style="border-top: 1px dashed #ccc; padding-top: 2px; margin-bottom: 2px; font-size: 0.9em; text-align: right;">
                     Total Qty: ${transaction.items ? transaction.items.reduce((acc, item) => acc + Number(item.qty), 0) : 0}
@@ -185,6 +176,19 @@ export const printReceiptBrowser = (transaction, store) => {
             </body>
         </html>
     `;
+};
+
+export const printReceiptBrowser = (transaction, store) => {
+    try {
+        const receiptWindow = window.open('', '_blank', 'width=400,height=600');
+
+        if (!receiptWindow) {
+            console.error("Popup blocked! Cannot print receipt.");
+            alert("Pop-up diblokir. Izinkan pop-up untuk mencetak struk.");
+            return;
+        }
+
+        const html = generateReceiptHtml(transaction, store);
         receiptWindow.document.write(html);
         receiptWindow.document.close();
     } catch (e) {

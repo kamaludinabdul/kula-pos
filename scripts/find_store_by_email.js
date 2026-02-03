@@ -36,7 +36,7 @@ async function findStore() {
     // Actually with Service Role we can list users (admin auth).
 
     // Option A: Search public.profiles or public.users table if it exists
-    const { data: profiles, error: profileError } = await supabase
+    const { data: profiles, error: _profileError } = await supabase
         .from('users') // or profiles? Let's try 'users' table which is usually a mirror
         .select('id, email, name, store_id')
         .ilike('email', email)
@@ -52,7 +52,7 @@ async function findStore() {
 
     // Option B: Search stores where email might be stored (unlikely) or just iterate
     // Let's try to search auth users via admin api
-    const { data: { users }, error: authError } = await supabase.auth.admin.listUsers();
+    const { data: { users }, error: _authError } = await supabase.auth.admin.listUsers();
 
     const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
 
@@ -60,7 +60,7 @@ async function findStore() {
         console.log(`✅ Found Auth User: ${user.id}`);
 
         // Now find their store
-        const { data: storeLink, error: linkError } = await supabase
+        const { data: storeLink, error: _linkError } = await supabase
             .from('users')
             .select('store_id')
             .eq('id', user.id)

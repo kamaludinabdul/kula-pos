@@ -7,6 +7,8 @@ import { useData } from '../context/DataContext';
 import { useShift } from '../context/ShiftContext';
 import { sendTransactionToTelegram } from '../services/telegram';
 import { printerService } from '../services/printer';
+import { constructTransactionData } from '../lib/transactionLogic';
+
 import { usePOS } from '../hooks/usePOS';
 import { printReceiptBrowser } from '../lib/receiptHelper';
 import { cn } from '../lib/utils';
@@ -355,42 +357,32 @@ const POS = () => {
             txDateToUse: txDate.toISOString()
         });
 
-        const transactionData = {
-            items: cart.map(item => ({
-                id: item.id,
-                name: item.name,
-                qty: item.qty,
-                price: item.price,
-                discount: item.discount || 0,
-                total: (item.price - (item.discount || 0)) * item.qty,
-                category: item.category || [],
-                type: item.type || 'goods',
-                buyPrice: item.buyPrice || 0
-            })),
-            subtotal: totals.subtotal,
-            tax: totals.tax,
-            serviceCharge: totals.serviceCharge,
-            discount: totals.discountAmount,
-            discountType,
-            discountValue,
-            promoId: appliedPromoId,
-            total: totals.finalTotal,
+        // Calculate Gross Subtotal and Total Item Discounts for accurate receipt display
+        // 1. Construct Transaction Data using shared logic
+        const transactionData = constructTransactionData({
+            cart,
+            totals,
+            user,
+            customer: selectedCustomer,
+            activeStoreId: currentStore?.id,
             paymentMethod,
-            cashAmount,
+            amountPaid: cashAmount,
             change,
-            cashier: user?.name,
-            cashierId: user?.id, // Add cashier ID for database reference
-            status: 'completed',
-            shiftId: currentShift?.id,
-            customerId: selectedCustomer?.id || null,
-            customerName: selectedCustomer?.name || null,
-            salesPersonId: salesPerson?.id || null, // Added sales person
-            salesPersonName: salesPerson?.name || null,
-            storeName: currentStore?.name,
-            date: txDate.toISOString(), // Use custom date for backdate
-            createdAt: new Date().toISOString(), // Actual creation time
-            pointsEarned: 0
-        };
+            notes: '',
+            store: currentStore
+        });
+
+        // Add extra fields not covered by shared logic or specific to POS.jsx if any
+        transactionData.discountType = discountType;
+        transactionData.discountValue = discountValue;
+        transactionData.promoId = appliedPromoId;
+        transactionData.salesPersonId = salesPerson?.id || null;
+        transactionData.salesPersonName = salesPerson?.name || null;
+        transactionData.storeName = currentStore?.name;
+        // Use custom transaction date if provided
+        if (txDate) {
+            transactionData.date = txDate.toISOString();
+        }
 
         // Loyalty Logic
         console.log("DEBUG: Loyalty Logic Check", {

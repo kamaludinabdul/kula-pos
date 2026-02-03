@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.13.3] - 2026-02-03
+### Fixed
+- **Receipt Discount**: Corrected logic in POS and Receipt to accurately display item-level discounts, fixing discrepancies between screen and print.
+- **Lint**: Resolved various unused variable and import linting errors.
+
+### Improved
+- **Codebase**: Refactored POS transaction logic into `src/lib/transactionLogic.js` and receipt generation into `src/lib/receiptHelper.js` for better maintainability.
+- **Testing**: Added comprehensive unit tests for transaction calculation and receipt HTML generation (100+ tests passing).
+
 ## [0.13.2] - 2026-02-02
 ### Added
 - **Staff Onboarding**: Implemented secure Supabase Edge Function (`create-user`) to allow adding new staff without requiring email confirmation. Staff can now login immediately with Email or Username.

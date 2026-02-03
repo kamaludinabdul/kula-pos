@@ -58,7 +58,7 @@ async function runDirectImport() {
     const wb = xlsx.readFile(FILE_PATH);
     const sheetName = wb.SheetNames[0];
     const rawData = xlsx.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1 });
-    const [headers, ...rows] = rawData;
+    const [_headers, ...rows] = rawData;
 
     console.log(`📊 File memiliki ${rows.length} baris data.`);
 

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { Users, Plus, Edit2, Trash2, Shield, User, Circle, History, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useData } from '../context/DataContext';

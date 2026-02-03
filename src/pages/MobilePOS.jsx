@@ -4,6 +4,7 @@ import { useData } from '../context/DataContext';
 import { useShift } from '../context/ShiftContext';
 import { sendTransactionToTelegram } from '../services/telegram';
 import { usePOS } from '../hooks/usePOS';
+import { constructTransactionData } from '../lib/transactionLogic';
 
 // Components
 import ProductGrid from '../components/pos/ProductGrid';
@@ -88,35 +89,25 @@ const MobilePOS = () => {
     const processPayment = async (paymentDetails) => {
         const { paymentMethod, cashAmount, change } = paymentDetails;
 
-        const transactionData = {
-            items: cart.map(item => ({
-                id: item.id,
-                name: item.name,
-                qty: item.qty,
-                price: item.price,
-                discount: item.discount || 0,
-                total: (item.price - (item.discount || 0)) * item.qty,
-                category: item.category || [],
-                type: item.type || 'goods'
-            })),
-            subtotal: totals.subtotal,
-            tax: totals.tax,
-            serviceCharge: totals.serviceCharge,
-            discount: totals.discountAmount,
-            discountType: 'percentage', // Default for mobile
-            discountValue: 0,
-            total: totals.finalTotal,
+        // 1. Construct Transaction Data using shared logic
+        const transactionData = constructTransactionData({
+            cart,
+            totals,
+            user,
+            customer: null,
+            activeStoreId: currentStore?.id,
             paymentMethod,
-            cashAmount,
+            amountPaid: cashAmount,
             change,
-            cashier: user?.name || 'Mobile Staff',
-            cashierId: user?.id,
-            status: 'completed',
-            shiftId: currentShift?.id,
-            storeName: currentStore?.name,
-            date: new Date().toISOString(),
-            pointsEarned: 0
-        };
+            notes: '',
+            store: currentStore
+        });
+
+        // Add extras
+        transactionData.discountType = 'percentage';
+        transactionData.discountValue = 0;
+        transactionData.storeName = currentStore?.name;
+        transactionData.shiftId = currentShift?.id;
 
         const result = await processSale(transactionData);
 

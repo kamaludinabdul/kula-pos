@@ -144,12 +144,37 @@ const ReceiptModal = ({ isOpen, onClose, transaction, store }) => {
                         </div>
 
                         <div className="space-y-1 mb-4 border-t border-dashed border-gray-300 py-2">
-                            {transaction.items && transaction.items.map((item, idx) => (
-                                <div key={idx} className="flex justify-between text-xs">
-                                    <span className="flex-1 text-left">{item.name} x{item.qty}{item.unit ? ` ${item.unit}` : ''}</span>
-                                    <span className="text-right">Rp {((item.price - (item.discount || 0)) * item.qty).toLocaleString('id-ID')}</span>
-                                </div>
-                            ))}
+                            {transaction.items && transaction.items.map((item, idx) => {
+                                const originalTotal = item.price * item.qty;
+                                const itemDiscount = (item.discount || 0) * item.qty;
+                                const finalItemTotal = originalTotal - itemDiscount;
+
+                                if (itemDiscount > 0) {
+                                    return (
+                                        <div key={idx} className="mb-1">
+                                            <div className="flex justify-between text-xs">
+                                                <span className="flex-1 text-left">{item.name} x{item.qty}{item.unit ? ` ${item.unit}` : ''}</span>
+                                                <span className="text-right line-through text-gray-400">{originalTotal.toLocaleString('id-ID')}</span>
+                                            </div>
+                                            <div className="flex justify-between text-xs text-red-500">
+                                                <span className="flex-1 text-left ml-2 text-[10px]">Diskon</span>
+                                                <span className="text-right text-[10px]">-{itemDiscount.toLocaleString('id-ID')}</span>
+                                            </div>
+                                            <div className="flex justify-between text-xs font-bold">
+                                                <span className="flex-1"></span>
+                                                <span className="text-right">{finalItemTotal.toLocaleString('id-ID')}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                } else {
+                                    return (
+                                        <div key={idx} className="flex justify-between text-xs">
+                                            <span className="flex-1 text-left">{item.name} x{item.qty}{item.unit ? ` ${item.unit}` : ''}</span>
+                                            <span className="text-right">Rp {finalItemTotal.toLocaleString('id-ID')}</span>
+                                        </div>
+                                    );
+                                }
+                            })}
                         </div>
 
                         <div className="text-right text-xs mb-2 border-b border-dashed border-gray-300 pb-2">

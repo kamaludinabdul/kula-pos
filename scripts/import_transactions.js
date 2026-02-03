@@ -52,7 +52,7 @@ async function runImport() {
     const rawData = xlsx.utils.sheet_to_json(wb.Sheets[sheetName], { header: 1 });
 
     // Remove headers
-    const [headers, ...rows] = rawData;
+    const [_headers, ...rows] = rawData;
 
     // Map Columns safely
     // Index: 0=Date, 1=Customer, 2=Product, 3=Qty, 4=Price, 5=Method, 6=Discount
@@ -166,7 +166,7 @@ async function runImport() {
             // Create new customer? Or map to null?
             // Let's Auto-Create for better experience
             if (tr.customer_name.toLowerCase() !== 'umum') {
-                const { data: newCust, error: createError } = await adminClient
+                const { data: newCust, error: _createError } = await adminClient
                     .from('customers')
                     .insert({ store_id: STORE_ID, name: tr.customer_name, phone: '-' })
                     .select()
@@ -197,7 +197,7 @@ async function runImport() {
         };
 
         try {
-            const { data, error } = await adminClient.rpc('process_sale', payload);
+            const { data: _data, error } = await adminClient.rpc('process_sale', payload);
             if (error) {
                 console.error(`❌ Gagal Transaksi ${tr.date} ${tr.customer_name}:`, error.message);
             } else {
