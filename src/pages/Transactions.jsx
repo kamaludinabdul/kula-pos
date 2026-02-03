@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { safeSupabaseRpc } from '../utils/supabaseHelper';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -176,52 +177,27 @@ const Transactions = () => {
             const start = startOfDay(new Date(dateFromStr));
             const end = endOfDay(dateToStr ? new Date(dateToStr) : new Date(dateFromStr));
 
-            // Use a broader select to ensure we get all needed fields
-            let query = supabase
-                .from('transactions')
-                .select('id, total, status, payment_method')
-                .eq('store_id', storeId)
-                .gte('date', start.toISOString())
-                .lte('date', end.toISOString());
-
-            const { data, error } = await query;
-            if (error) throw error;
-
-            // Filter valid transactions in JS for maximum reliability
-            const validTxs = (data || []).filter(tx =>
-                tx.status !== 'void' &&
-                tx.status !== 'refunded' &&
-                tx.status !== 'cancelled'
-            );
-
-            const revenue = validTxs.reduce((sum, tx) => sum + (parseFloat(tx.total) || 0), 0);
-            const count = validTxs.length;
-
-            // Calculate per-method totals with case-insensitivity and fallback for Indonesian labels
-            const cash = validTxs
-                .filter(tx => {
-                    const m = tx.payment_method?.toLowerCase();
-                    return m === 'cash' || m === 'tunai';
-                })
-                .reduce((sum, tx) => sum + (parseFloat(tx.total) || 0), 0);
-
-            const qris = validTxs
-                .filter(tx => tx.payment_method?.toLowerCase() === 'qris')
-                .reduce((sum, tx) => sum + (parseFloat(tx.total) || 0), 0);
-
-            const transfer = validTxs
-                .filter(tx => tx.payment_method?.toLowerCase() === 'transfer')
-                .reduce((sum, tx) => sum + (parseFloat(tx.total) || 0), 0);
-
-            setSummaryStats({
-                revenue,
-                count,
-                cash,
-                qris,
-                transfer,
-                loading: false
+            const reportStats = await safeSupabaseRpc({
+                rpcName: 'get_profit_loss_report',
+                params: {
+                    p_store_id: storeId,
+                    p_start_date: start.toISOString(),
+                    p_end_date: end.toISOString()
+                }
             });
 
+            if (reportStats) {
+                setSummaryStats({
+                    revenue: reportStats.total_sales || 0,
+                    count: reportStats.total_transactions || 0,
+                    cash: reportStats.total_cash || 0,
+                    qris: reportStats.total_qris || 0,
+                    transfer: reportStats.total_transfer || 0,
+                    loading: false
+                });
+            } else {
+                setSummaryStats(prev => ({ ...prev, loading: false }));
+            }
         } catch (error) {
             console.error("Error fetching summary stats:", error);
             setSummaryStats(prev => ({ ...prev, loading: false }));
