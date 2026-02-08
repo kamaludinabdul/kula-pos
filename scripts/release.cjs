@@ -9,7 +9,7 @@ const rl = readline.createInterface({
 });
 
 const PACKAGE_JSON_PATH = path.join(__dirname, '../package.json');
-const APP_JSX_PATH = path.join(__dirname, '../src/App.jsx');
+const VERSION_JS_PATH = path.join(__dirname, '../src/version.js');
 const CHANGELOG_PATH = path.join(__dirname, '../CHANGELOG.md');
 
 function incrementVersion(currentVersion, type) {
@@ -70,9 +70,9 @@ rl.question('Enter release type (major, minor, patch) or specific version: ', (a
     updateFile(PACKAGE_JSON_PATH, `"version": "${currentVersion}"`, `"version": "${newVersion}"`);
     console.log('Updated package.json');
 
-    // Update App.jsx
-    updateFile(APP_JSX_PATH, /const APP_VERSION = '.*';/, `const APP_VERSION = '${newVersion}';`);
-    console.log('Updated src/App.jsx');
+    // Update src/version.js
+    updateFile(VERSION_JS_PATH, /export const APP_VERSION = '.*';/, `export const APP_VERSION = '${newVersion}';`);
+    console.log('Updated src/version.js');
 
     // Update CHANGELOG.md
     prependChangelog(newVersion);
