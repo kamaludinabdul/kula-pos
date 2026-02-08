@@ -189,51 +189,71 @@ const POS = () => {
                 clearTimeout(barcodeTimeoutRef.current);
             }
 
+
             // If Enter is pressed and we have a buffer, process as barcode
-            if (e.key === 'Enter' && barcodeBufferRef.current.length >= 3) {
-                e.preventDefault();
-                const barcode = barcodeBufferRef.current;
-                barcodeBufferRef.current = '';
+            if (e.key === 'Enter') {
+                // If the buffer is long enough, treat as barcode
+                if (barcodeBufferRef.current.length >= 2) { // 2 chars min
+                    e.preventDefault(); // Prevent default Enter behavior (like submitting forms)
+                    const barcode = barcodeBufferRef.current;
+                    barcodeBufferRef.current = '';
 
-                // Find and add product to cart
-                const product = products.find(p =>
-                    (p.code && p.code.toLowerCase() === barcode.toLowerCase()) ||
-                    (p.barcode && p.barcode.toLowerCase() === barcode.toLowerCase())
-                );
+                    // Find and add product to cart
+                    const product = products.find(p =>
+                        (p.code && p.code.toLowerCase() === barcode.toLowerCase()) ||
+                        (p.barcode && p.barcode.toLowerCase() === barcode.toLowerCase())
+                    );
 
-                if (product) {
-                    // Handle rental products
-                    if (product.pricingType === 'hourly') {
-                        setSelectedRentalProduct(product);
-                        setIsRentalDialogOpen(true);
+                    if (product) {
+                        // Handle rental products
+                        if (product.pricingType === 'hourly') {
+                            setSelectedRentalProduct(product);
+                            setIsRentalDialogOpen(true);
+                        } else {
+                            addToCart(product);
+                        }
+                        // Play beep sound
+                        const audio = new Audio('/beep.mp3');
+                        audio.play().catch(() => { });
+
+                        // Clear search if user was in search field
+                        if (isSearchInput) {
+                            setSearchQuery('');
+                            // Optional: Blur search to prevent further typing interfering?
+                            // document.activeElement.blur(); 
+                        }
+                        return;
                     } else {
-                        addToCart(product);
+                        // If not found as product, but scanned -> show error
+                        // Only show error if buffer was "scanner-like" (fast)
+                        showAlert('Tidak Ditemukan', `Barcode tidak dikenali: ${barcode}`);
+                        if (isSearchInput) setSearchQuery('');
+                        return;
                     }
-                    // Play beep sound
-                    const audio = new Audio('/beep.mp3');
-                    audio.play().catch(() => { });
-                    // Clear search if user was in search field
-                    if (isSearchInput) {
-                        setSearchQuery('');
-                    }
-                } else if (barcode.length >= 3) {
-                    showAlert('Tidak Ditemukan', `Barcode tidak dikenali: ${barcode}`);
                 }
+
+                // If buffer empty/short, let normal Enter behavior happen (e.g. searching)
+                // But if we are in search input, we handled "Manual Enter" via onEnter prop in ProductFilter
                 return;
             }
 
-            // Add character to buffer (only printable characters)
+            // Add character to buffer
+            // We want to capture scanner input EVEN IF inside an input field (like search), 
+            // BUT we must be careful not to break normal typing.
+            // Scanners send keys very fast. Regular typing is slower.
+
             if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
-                // If not in input field, prevent default to avoid triggering other inputs
-                if (!isInputField || isSearchInput) {
-                    barcodeBufferRef.current += e.key;
-                }
+                barcodeBufferRef.current += e.key;
             }
 
-            // Reset buffer after 100ms
+            // Reset buffer after 50ms (Scanner is FAST, human is SLOW)
+            // 50ms is aggressive but good for scanners. 
+            // If human types 'a', waits 100ms, types 'b', buffer is just 'b'.
+            // If scanner types 'abc', it happens in ~10-20ms.
+            if (barcodeTimeoutRef.current) clearTimeout(barcodeTimeoutRef.current);
             barcodeTimeoutRef.current = setTimeout(() => {
                 barcodeBufferRef.current = '';
-            }, 100);
+            }, 60); // Increased slightly to 60ms for reliability
         };
 
         window.addEventListener('keydown', handleGlobalKeyDown, true);
@@ -539,6 +559,19 @@ const POS = () => {
                             searchQuery={searchQuery}
                             setSearchQuery={setSearchQuery}
                             onOpenScanner={() => setIsScannerOpen(true)}
+                            onEnter={(query) => {
+                                if (!query) return;
+                                const product = products.find(p =>
+                                    (p.code && p.code.toLowerCase() === query.trim().toLowerCase()) ||
+                                    (p.barcode && p.barcode.toLowerCase() === query.trim().toLowerCase())
+                                );
+                                if (product) {
+                                    handleProductClick(product);
+                                    setSearchQuery('');
+                                    const audio = new Audio('/beep.mp3');
+                                    audio.play().catch(() => { });
+                                }
+                            }}
                         />
                     </div>
                     <div className="flex-1 p-4 overflow-hidden min-h-0">

@@ -11,7 +11,8 @@ const ProductFilter = ({
     setActiveCategory,
     categories,
     searchInputRef,
-    onOpenScanner
+    onOpenScanner,
+    onEnter
 }) => {
     return (
         <div className="space-y-3 p-4 bg-slate-50/50">
@@ -24,6 +25,12 @@ const ProductFilter = ({
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-9 bg-white shadow-sm"
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                // Trigger search/add action
+                                if (onEnter) onEnter(searchQuery);
+                            }
+                        }}
                     />
                 </div>
                 <Button variant="outline" size="icon" onClick={onOpenScanner} title="Scan Barcode (Enter)">

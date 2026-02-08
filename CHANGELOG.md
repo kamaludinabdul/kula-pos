@@ -1,6 +1,11 @@
 # Changelog
 
-## [0.13.3] - 2026-02-03
+## [0.13.3] - 2026-02-08
+### Improved
+- **Scanner**: Enhanced Barcode Scanner integration. Fast input ending with "Enter" (typical scanner behavior) now automatically triggers "Add to Cart" and clears the search field, even if the search bar is not focused.
+- **PWA**: Fixed PWA Orientation lock. The application now supports auto-rotation (Portrait/Landscape) on mobile devices.
+
+## [0.13.2] - 2026-02-03
 ### Fixed
 - **Receipt Discount**: Corrected logic in POS and Receipt to accurately display item-level discounts, fixing discrepancies between screen and print.
 - **Lint**: Resolved various unused variable and import linting errors.
