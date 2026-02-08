@@ -231,6 +231,11 @@ const GeneralSettings = () => {
             const updates = [];
 
             (cashFlows || []).forEach(data => {
+                // [FIX] Skip 'Penjualan (Rekap)' entries as they are backdated by design
+                if (data.category === 'Penjualan (Rekap)' || data.category === 'Penjualan') {
+                    return;
+                }
+
                 if (data.created_at) {
                     const createdDate = new Date(data.created_at);
                     // Format to YYYY-MM-DD in Local Time
