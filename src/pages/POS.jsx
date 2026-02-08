@@ -25,6 +25,7 @@ import CashManagementDialog from '../components/pos/CashManagementDialog';
 import AlertDialog from '../components/AlertDialog';
 import DiscountPinDialog from '../components/DiscountPinDialog';
 import RentalDurationDialog from '../components/pos/RentalDurationDialog';
+import CustomerFormDialog from '../components/CustomerFormDialog';
 
 const POS = () => {
     // --- Contexts ---
@@ -33,7 +34,7 @@ const POS = () => {
 
     const {
         products, categories, processSale, currentStore, customers, updateCustomer,
-        refreshTransactions: _, isOnline, fetchUsersByStore, fetchAllProducts
+        refreshTransactions: _, isOnline, fetchUsersByStore, fetchAllProducts, addCustomer
     } = useData();
 
     // Ensure we have products for the POS (since DataContext no longer fetches them globally by default)
@@ -78,6 +79,7 @@ const POS = () => {
     const [paymentSuccess, setPaymentSuccess] = useState(false);
     const [lastTransaction, setLastTransaction] = useState(null);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
+    const [isCustomerFormOpen, setIsCustomerFormOpen] = useState(false);
 
     // Rental Specific
     const [isRentalDialogOpen, setIsRentalDialogOpen] = useState(false);
@@ -182,7 +184,6 @@ const POS = () => {
             // Ignore if typing in an input field (except search)
             const activeElement = document.activeElement;
             const isSearchInput = activeElement?.id === 'product-search';
-            const isInputField = activeElement?.tagName === 'INPUT' || activeElement?.tagName === 'TEXTAREA';
 
             // Clear buffer after 100ms of no input (human typing is slower)
             if (barcodeTimeoutRef.current) {
@@ -636,6 +637,7 @@ const POS = () => {
                         recommendations={recommendedItems}
                         onAddRecommendation={addToCart}
 
+                        onAddCustomer={() => setIsCustomerFormOpen(true)}
                         onCollapse={() => setIsCartCollapsed(true)}
                     />
                 </div>
@@ -726,6 +728,34 @@ const POS = () => {
                 onClose={() => setIsRentalDialogOpen(false)}
                 product={selectedRentalProduct}
                 onConfirm={handleRentalConfirm}
+            />
+
+            <CustomerFormDialog
+                isOpen={isCustomerFormOpen}
+                onClose={() => setIsCustomerFormOpen(false)}
+                onSave={async (data) => {
+                    const result = await addCustomer(data);
+                    if (result.success) {
+                        // Optimistically select the new customer
+                        // The addCustomer usually triggers a refresh of users, but we might need to find the new one.
+                        // Since we deal with local state 'customers' in DataContext, it should update.
+                        // However, to be safe and fast, we can set the selected customer manually if we had the ID.
+                        // But addCustomer (in DataContext) usually re-fetches.
+                        // Let's assume result.data contains the new customer or we wait for effect.
+                        // Better: DataContext's addCustomer returns {success:true, data: newCustomer} ?
+                        // Let's check DataContext if possible, but standard practice:
+                        if (result.data) {
+                            setSelectedCustomer(result.data);
+                            showAlert('Sukses', 'Pelanggan berhasil ditambahkan');
+                        } else {
+                            // Fallback if data not returned immediately (though it should be)
+                            showAlert('Sukses', 'Pelanggan ditambahkan. Silakan cari di daftar.');
+                        }
+                    } else {
+                        showAlert('Gagal', result.error || 'Gagal menambah pelanggan');
+                        throw new Error(result.error);
+                    }
+                }}
             />
         </div>
     );

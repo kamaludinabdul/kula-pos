@@ -1,7 +1,7 @@
 {
   "name": "kula-pos",
   "private": true,
-  "version": "0.13.3",
+  "version": "0.13.5",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,6 +12,7 @@
     "deploy:production": "npm run build:production && firebase deploy --only hosting --project kula-pos",
     "lint": "eslint .",
     "preview": "vite preview",
+    "release": "node scripts/release.cjs",
     "test": "vitest"
   },
   "dependencies": {

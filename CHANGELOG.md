@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.5] - 2026-02-08
+### Changed
+- Bumped version to 0.13.5
+
+## [0.13.4] - 2026-02-08
+### Added
+- **POS**: Added "Quick Add Customer" button (+) in the cart panel. Allows creating new customers directly without leaving the transaction screen.
+
 ## [0.13.3] - 2026-02-08
 ### Improved
 - **Scanner**: Enhanced Barcode Scanner integration. Fast input ending with "Enter" (typical scanner behavior) now automatically triggers "Add to Cart" and clears the search field, even if the search bar is not focused.

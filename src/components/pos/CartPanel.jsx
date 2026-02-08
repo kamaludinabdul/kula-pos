@@ -48,7 +48,8 @@ const CartPanel = ({
     availablePromos,
     onApplyPromo,
     onCollapse,
-    loyaltySettings
+    loyaltySettings,
+    onAddCustomer
 }) => {
     // --- Restored Local State ---
     const [isCustomerOpen, setIsCustomerOpen] = useState(false);
@@ -143,7 +144,7 @@ const CartPanel = ({
                     <div className="relative" ref={customerRef}>
                         <Button
                             variant="outline"
-                            className="w-full justify-between h-auto py-2 px-3 text-left font-normal bg-white"
+                            className="w-full justify-between h-auto py-2 px-3 pr-9 text-left font-normal bg-white"
                             onClick={() => setIsCustomerOpen(!isCustomerOpen)}
                         >
                             <div className="flex items-center gap-2 overflow-hidden">
@@ -157,6 +158,21 @@ const CartPanel = ({
                             </div>
                             <ChevronDown size={14} className="opacity-50" />
                         </Button>
+
+                        {!selectedCustomer && (
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                className="absolute right-0 top-0 bottom-0 w-8 h-full z-10 hover:bg-slate-100 rounded-r-md text-indigo-600"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onAddCustomer();
+                                }}
+                                title="Tambah Pelanggan Baru"
+                            >
+                                <Plus size={16} />
+                            </Button>
+                        )}
 
                         {isCustomerOpen && (
                             <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-xl shadow-lg z-50 p-2 animate-in zoom-in-95 duration-200">

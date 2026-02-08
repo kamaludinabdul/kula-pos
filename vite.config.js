@@ -13,7 +13,7 @@ export default defineConfig({
       },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'KULA Modern POS',
+        name: 'KULA POS',
         short_name: 'KULA POS',
         description: 'Aplikasi Kasir Modern dengan Sistem FIFO',
         theme_color: '#4f46e5',

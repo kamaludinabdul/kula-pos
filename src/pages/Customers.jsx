@@ -12,6 +12,7 @@ import Pagination from '../components/Pagination';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AlertDialog from '../components/AlertDialog';
 import CustomerTransactionHistory from '../components/CustomerTransactionHistory';
+import CustomerFormDialog from '../components/CustomerFormDialog';
 
 const Customers = () => {
     const { checkPermission } = useAuth();
@@ -20,7 +21,7 @@ const Customers = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [customerToDelete, setCustomerToDelete] = useState(null);
     const [editingCustomer, setEditingCustomer] = useState(null);
-    const [formData, setFormData] = useState({ name: '', phone: '', email: '', address: '' });
+    // const [formData, setFormData] = useState({ name: '', phone: '', email: '', address: '' }); // Moved to CustomerFormDialog
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(10);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -112,37 +113,11 @@ const Customers = () => {
     };
 
     const handleOpenModal = (customer = null) => {
-        if (customer) {
-            setEditingCustomer(customer);
-            setFormData({
-                name: customer.name,
-                phone: customer.phone || '',
-                email: customer.email || '',
-                address: customer.address || ''
-            });
-        } else {
-            setEditingCustomer(null);
-            setFormData({ name: '', phone: '', email: '', address: '' });
-        }
+        setEditingCustomer(customer);
         setIsModalOpen(true);
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        let result;
-        if (editingCustomer) {
-            result = await updateCustomer(editingCustomer.id, formData);
-        } else {
-            result = await addCustomer(formData);
-        }
-
-        if (result.success) {
-            setIsModalOpen(false);
-        } else {
-            setAlertData({ title: 'Gagal', message: result.error || 'Terjadi kesalahan' });
-            setIsAlertOpen(true);
-        }
-    };
+    // handleSubmit moved to inline onSave prop of CustomerFormDialog
 
     const handleDelete = (customer) => {
         setCustomerToDelete(customer);
@@ -387,57 +362,25 @@ const Customers = () => {
                 onPageChange={setCurrentPage}
             />
 
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{editingCustomer ? 'Edit Pelanggan' : 'Tambah Pelanggan'}</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Nama</Label>
-                            <Input
-                                id="name"
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="phone">No. HP <span className="text-red-500">*</span></Label>
-                            <Input
-                                id="phone"
-                                value={formData.phone}
-                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                required
-                                placeholder="08xxxxxxxxxx"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="address">Alamat</Label>
-                            <Input
-                                id="address"
-                                value={formData.address}
-                                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                            />
-                        </div>
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
-                                Batal
-                            </Button>
-                            <Button type="submit">Simpan</Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+            <CustomerFormDialog
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSave={async (data) => {
+                    let result;
+                    if (editingCustomer) {
+                        result = await updateCustomer(editingCustomer.id, data);
+                    } else {
+                        result = await addCustomer(data);
+                    }
+
+                    if (!result.success) {
+                        setAlertData({ title: 'Gagal', message: result.error || 'Terjadi kesalahan' });
+                        setIsAlertOpen(true);
+                        throw new Error(result.error); // Stop dialog from closing
+                    }
+                }}
+                initialData={editingCustomer}
+            />
 
             <ConfirmDialog
                 isOpen={isDeleteOpen}
