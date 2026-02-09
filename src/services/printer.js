@@ -13,6 +13,10 @@ let connectedDevice = null;
 let characteristic = null;
 let isPrinting = false; // Mutex lock
 
+// Configuration for stability
+const CHUNK_SIZE = 50; // Reduced from 512 to 50 to prevent buffer overflow
+const CHUNK_DELAY = 100; // Increased from 50ms to 100ms
+
 export const printerService = {
     isConnected: () => !!connectedDevice && !!characteristic,
 
@@ -245,11 +249,10 @@ export const printerService = {
                     const logoCommands = await printerService.processImage(storeConfig.logo, 128);
                     console.log("Logo processed into commands:", logoCommands.length, "bytes");
 
-                    const chunkSize = 512;
-                    for (let i = 0; i < logoCommands.length; i += chunkSize) {
-                        const chunk = logoCommands.slice(i, Math.min(i + chunkSize, logoCommands.length));
+                    for (let i = 0; i < logoCommands.length; i += CHUNK_SIZE) {
+                        const chunk = logoCommands.slice(i, Math.min(i + CHUNK_SIZE, logoCommands.length));
                         await characteristic.writeValue(chunk);
-                        await new Promise(resolve => setTimeout(resolve, 150)); // Increased delay for safety
+                        await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY));
                     }
                     // Add a small feed after image
                     await characteristic.writeValue(encoder.encode(ESC + 'd' + '\x01')); // Feed 2 lines
@@ -356,14 +359,13 @@ export const printerService = {
 
             // Send in chunks to avoid Bluetooth buffer overflow
             const data = encoder.encode(commands);
-            const chunkSize = 512; // Send 512 bytes at a time
 
-            for (let i = 0; i < data.length; i += chunkSize) {
-                const chunk = data.slice(i, Math.min(i + chunkSize, data.length));
+            for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+                const chunk = data.slice(i, Math.min(i + CHUNK_SIZE, data.length));
                 await characteristic.writeValue(chunk);
                 // Small delay between chunks to avoid overwhelming the printer
-                if (i + chunkSize < data.length) {
-                    await new Promise(resolve => setTimeout(resolve, 50));
+                if (i + CHUNK_SIZE < data.length) {
+                    await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY));
                 }
             }
 
@@ -427,11 +429,11 @@ export const printerService = {
 
                     // Resize to 33% width (128 dots)
                     const logoCommands = await printerService.processImage(storeConfig.logo, 128);
-                    const chunkSize = 512;
-                    for (let i = 0; i < logoCommands.length; i += chunkSize) {
-                        const chunk = logoCommands.slice(i, Math.min(i + chunkSize, logoCommands.length));
+
+                    for (let i = 0; i < logoCommands.length; i += CHUNK_SIZE) {
+                        const chunk = logoCommands.slice(i, Math.min(i + CHUNK_SIZE, logoCommands.length));
                         await characteristic.writeValue(chunk);
-                        await new Promise(resolve => setTimeout(resolve, 50));
+                        await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY));
                     }
                     // Minimal feed after logo
                     await characteristic.writeValue(encoder.encode(ESC + 'J' + '\x10'));
@@ -498,13 +500,12 @@ export const printerService = {
             commands += '\n\n';
 
             const data = encoder.encode(commands);
-            const chunkSize = 100;
 
-            for (let i = 0; i < data.length; i += chunkSize) {
-                const chunk = data.slice(i, Math.min(i + chunkSize, data.length));
+            for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+                const chunk = data.slice(i, Math.min(i + CHUNK_SIZE, data.length));
                 await characteristic.writeValue(chunk);
-                if (i + chunkSize < data.length) {
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                if (i + CHUNK_SIZE < data.length) {
+                    await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY));
                 }
             }
 

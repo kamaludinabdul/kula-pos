@@ -317,13 +317,13 @@ const CheckoutDialog = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !isProcessing && onClose(open)}>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>Pembayaran</DialogTitle>
                     <DialogDescription>Total tagihan Rp {total.toLocaleString('id-ID')}</DialogDescription>
                 </DialogHeader>
 
-                <div className="py-4 space-y-6">
+                <div className="py-4 space-y-6 flex-1 overflow-y-auto px-1">
                     {/* Big Total */}
                     <div className="bg-slate-900 text-white p-6 rounded-xl text-center shadow-lg">
                         <p className="text-slate-400 text-xs uppercase tracking-wider font-medium mb-1">Total Bayar</p>
