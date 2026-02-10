@@ -5,11 +5,9 @@ import { useData } from '../context/DataContext';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { InfoCard } from '../components/ui/info-card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Input } from '../components/ui/input';
 import DashboardCharts from './dashboard-components/DashboardCharts';
 import { safeSupabaseRpc } from '../utils/supabaseHelper';
+import { SmartDatePicker } from '../components/SmartDatePicker';
 
 
 
@@ -59,9 +57,14 @@ const Dashboard = () => {
         setIsReceiptModalOpen(true);
     };
 
-    const [dateRange, setDateRange] = useState('today');
-    const [customStartDate, setCustomStartDate] = useState('');
-    const [customEndDate, setCustomEndDate] = useState('');
+    // SmartDatePicker date state: { from: Date, to: Date }
+    const [dateRange, setDateRange] = useState(() => {
+        const now = new Date();
+        return {
+            from: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0),
+            to: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+        };
+    });
 
     // Local State for Dashboard Data from RPC
     const [dashboardStats, setDashboardStats] = useState({
@@ -75,14 +78,22 @@ const Dashboard = () => {
     });
     const [isLoading, setIsLoading] = useState(false);
 
+    // Determine if single-day view (for hourly chart)
+    const isSingleDay = useMemo(() => {
+        if (!dateRange?.from || !dateRange?.to) return false;
+        const from = new Date(dateRange.from);
+        const to = new Date(dateRange.to);
+        return from.getFullYear() === to.getFullYear() &&
+            from.getMonth() === to.getMonth() &&
+            from.getDate() === to.getDate();
+    }, [dateRange]);
+
     // Fetch Data Effect (RPC)
     useEffect(() => {
         const fetchDashboardData = async () => {
             if (!currentStore?.id) return;
+            if (!dateRange?.from || !dateRange?.to) return;
 
-            // Validate store ID format (simple check to avoid obvious bad requests)
-            // Even though we fixed the RPC to accept TEXT, it's good practice.
-            // NanoID/UUID are usually > 10 chars.
             if (String(currentStore.id).length < 5) {
                 console.warn("Dashboard: Invalid store ID skipped:", currentStore.id);
                 return;
@@ -90,30 +101,8 @@ const Dashboard = () => {
 
             setIsLoading(true);
             try {
-                const now = new Date();
-                let start, end;
-
-                if (dateRange === 'today') {
-                    start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                    end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-                } else if (dateRange === 'week') {
-                    start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                    end = now;
-                } else if (dateRange === 'month') {
-                    start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                    end = now;
-                } else if (dateRange === 'custom') {
-                    if (!customStartDate || !customEndDate) {
-                        setIsLoading(false);
-                        return;
-                    }
-                    start = new Date(customStartDate);
-                    end = new Date(customEndDate);
-                    end.setHours(23, 59, 59, 999);
-                } else if (dateRange === 'all') {
-                    start = new Date('2023-01-01');
-                    end = now;
-                }
+                const start = new Date(dateRange.from);
+                const end = new Date(dateRange.to);
 
                 // Call the RPC via Safe Helper
                 const data = await safeSupabaseRpc({
@@ -122,7 +111,7 @@ const Dashboard = () => {
                         p_store_id: currentStore.id,
                         p_start_date: start.toISOString(),
                         p_end_date: end.toISOString(),
-                        p_period: dateRange === 'today' ? 'hour' : 'day'
+                        p_period: isSingleDay ? 'hour' : 'day'
                     }
                 });
 
@@ -146,15 +135,15 @@ const Dashboard = () => {
         };
 
         fetchDashboardData();
-    }, [dateRange, customStartDate, customEndDate, currentStore]);
+    }, [dateRange, currentStore, isSingleDay]);
 
     const chartData = useMemo(() => {
         if (!canViewFinancials) return [];
 
         let data = dashboardStats.chartData || [];
 
-        // If 'today', fill in missing hours for a nice 0-23 graph
-        if (dateRange === 'today') {
+        // If single day, fill in missing hours for a nice 0-23 graph
+        if (isSingleDay) {
             const fullHours = Array.from({ length: 24 }, (_, i) => {
                 const hourLabel = `${i.toString().padStart(2, '0')}:00`;
                 const found = data.find(d => d.name === hourLabel);
@@ -167,26 +156,16 @@ const Dashboard = () => {
         }
 
         return data;
-    }, [dashboardStats.chartData, dateRange, canViewFinancials]);
+    }, [dashboardStats.chartData, isSingleDay, canViewFinancials]);
 
     const stats = useMemo(() => {
         const { totalSales, totalTransactions, avgOrder } = dashboardStats;
 
         let newCustomersCount = 0;
-        if (customers.length > 0) {
-            const now = new Date();
-            let start, end;
-            if (dateRange === 'today') {
-                start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-            } else {
-                // Simplified, just approximation for "current period" logic or fallback
-                start = new Date(0);
-                end = now;
-            }
+        if (customers.length > 0 && dateRange?.from && dateRange?.to) {
             newCustomersCount = customers.filter(c => {
                 const joined = new Date(c.createdAt || 0);
-                return joined >= start && joined <= end;
+                return joined >= dateRange.from && joined <= dateRange.to;
             }).length;
         }
 
@@ -224,37 +203,10 @@ const Dashboard = () => {
                         {canViewFinancials ? ' Berikut ringkasan bisnis Anda.' : ' Siap melayani pelanggan hari ini?'}
                     </p>
                 </div>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                    <Select value={dateRange} onValueChange={setDateRange}>
-                        <SelectTrigger className="w-full sm:w-[180px] h-10 rounded-lg border-slate-200">
-                            <SelectValue placeholder="Pilih periode" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="today">Hari Ini</SelectItem>
-                            <SelectItem value="week">7 Hari Terakhir</SelectItem>
-                            <SelectItem value="month">30 Hari Terakhir</SelectItem>
-                            <SelectItem value="custom">Rentang Khusus</SelectItem>
-                            <SelectItem value="all">Semua Waktu</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    {dateRange === 'custom' && (
-                        <div className="flex items-center gap-2">
-                            <Input
-                                type="date"
-                                className="h-10 rounded-lg border-slate-200"
-                                value={customStartDate}
-                                onChange={(e) => setCustomStartDate(e.target.value)}
-                            />
-                            <span className="text-slate-400 font-bold">-</span>
-                            <Input
-                                type="date"
-                                className="h-10 rounded-lg border-slate-200"
-                                value={customEndDate}
-                                onChange={(e) => setCustomEndDate(e.target.value)}
-                            />
-                        </div>
-                    )}
-                </div>
+                <SmartDatePicker
+                    date={dateRange}
+                    onDateChange={setDateRange}
+                />
             </header>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -341,7 +293,7 @@ const Dashboard = () => {
                                 <CardTitle className="flex items-center gap-2 text-lg font-bold">
                                     Grafik Penjualan
                                     <span className="text-xs font-normal text-muted-foreground">
-                                        ({dateRange === 'today' ? 'Per Jam' : 'Per Hari'})
+                                        ({isSingleDay ? 'Per Jam' : 'Per Hari'})
                                     </span>
                                 </CardTitle>
                             </CardHeader>

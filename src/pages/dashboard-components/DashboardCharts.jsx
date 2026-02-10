@@ -11,8 +11,16 @@ const DashboardCharts = ({ currentStore }) => {
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
     useEffect(() => {
+        let isMounted = true;
         const fetchData = async () => {
-            if (!currentStore?.id) return;
+            if (!currentStore?.id) {
+                console.warn("DashboardCharts: No store ID available.");
+                if (isMounted) {
+                    setLoading(false);
+                    setChartData([]);
+                }
+                return;
+            }
 
             setLoading(true);
             try {
@@ -54,7 +62,7 @@ const DashboardCharts = ({ currentStore }) => {
                     setChartData(emptyData);
                 }
             } catch (error) {
-                console.error("Error fetching chart data:", error);
+                console.error("DashboardCharts: Error fetching chart data:", error);
                 // Initialize empty chart data on error
                 const emptyData = [];
                 for (let i = 0; i < 12; i++) {
@@ -71,11 +79,13 @@ const DashboardCharts = ({ currentStore }) => {
                 }
                 setChartData(emptyData);
             } finally {
-                setLoading(false);
+                if (isMounted) setLoading(false);
             }
         };
 
         fetchData();
+
+        return () => { isMounted = false; };
     }, [currentStore, selectedYear]);
 
     // Generate year options (current year back 5 years)
