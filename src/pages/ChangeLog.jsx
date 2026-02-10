@@ -8,6 +8,57 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        version: "0.15.0",
+        date: "2026-02-10",
+        type: "minor",
+        title: "Dashboard Data Fix & Smart Date Picker",
+        changes: [
+            "Dashboard: Replaced dropdown date filter with SmartDatePicker — pilih tanggal bebas dengan shortcuts (Hari Ini, Kemarin, 7/30 Hari, Bulan Ini).",
+            "Dashboard: Fixed all empty stats cards — Total Penjualan, Rata-rata Order, Produk Terlaris, Transaksi Terakhir kini tampil dengan benar.",
+            "Dashboard: Added Penjualan per Kategori chart — query baru kalkulasi sales per kategori dari item transaksi.",
+            "Database: Fixed duplicate RPC function signatures yang menyebabkan HTTP 300 'Multiple Choices' error.",
+            "Database: Fixed NanoID product ID compatibility — menggunakan TEXT comparison alih-alih UUID cast di query kategori.",
+            "Database: Relaxed transaction status filter — kini include NULL, 'completed', 'success', dan 'paid'.",
+            "Security: Rebuilt semua RLS policies dan RPC functions dengan SECURITY DEFINER yang benar.",
+            "Stability: Fixed get_my_store_id() dan get_store_initial_snapshot() untuk memastikan data selalu accessible."
+        ]
+    },
+    {
+        version: "0.14.0",
+        date: "2026-02-08",
+        type: "minor",
+        title: "Version Management & Dashboard Charts Fix",
+        changes: [
+            "Version: Centralized version management ke src/version.js — semua komponen baca dari satu sumber.",
+            "Dashboard Charts: Fixed monthly charts kosong — menggunakan RPC get_dashboard_monthly_summary dengan SECURITY DEFINER untuk bypass RLS.",
+            "Cash Flow: Fixed tanggal Rekap Penjualan yang rusak akibat fitur 'Perbaiki Tanggal' — script repair untuk restore tanggal dari deskripsi.",
+            "POS: Fixed process_sale RPC error — standardisasi camelCase parameter antara frontend dan database."
+        ]
+    },
+    {
+        version: "0.13.5",
+        date: "2026-02-06",
+        type: "patch",
+        title: "POS Quick Add Customer & Release Tooling",
+        changes: [
+            "POS: Quick Add Customer — tambah pelanggan baru langsung dari halaman kasir tanpa berpindah menu.",
+            "Tooling: Standardized release script (scripts/release.cjs) untuk otomasi version bump.",
+            "Discount: Fixed item-level discount persistence — diskon kini tersimpan dan tampil di receipt, laporan, dan cash flow."
+        ]
+    },
+    {
+        version: "0.13.3",
+        date: "2026-02-03",
+        type: "patch",
+        title: "Scanner Auto-Add & PWA Orientation",
+        changes: [
+            "Scanner: Auto-add product ke cart setelah scan barcode — tidak perlu klik manual lagi.",
+            "PWA: Fixed orientation issue — landscape mode kini bekerja dengan benar di tablet.",
+            "Receipt: Breakdown item discounts secara eksplisit di struk thermal.",
+            "Unit Tests: Added integration tests untuk proses transaksi (processSale)."
+        ]
+    },
+    {
         version: "0.13.2",
         date: "2026-02-02",
         type: "patch",
