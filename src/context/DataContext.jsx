@@ -343,7 +343,22 @@ export const DataProvider = ({ children }) => {
             // Handle nested JSON settings (like loyalty)
             // Note: This is a shallow merge for 'settings' column. 
             // In a real app, you might want deeper merging or dedicated JSONB patching.
-            if (updates.loyaltySettings || updates.shiftOpenTime || updates.shiftCloseTime || updates.lastShiftOpenReminderDate || updates.lastShiftCloseReminderDate) {
+            // Handle nested JSON settings (like loyalty)
+            // Note: This is a shallow merge for 'settings' column. 
+            // In a real app, you might want deeper merging or dedicated JSONB patching.
+            if (
+                updates.loyaltySettings ||
+                updates.shiftOpenTime ||
+                updates.shiftCloseTime ||
+                updates.lastShiftOpenReminderDate ||
+                updates.lastShiftCloseReminderDate ||
+                // Printer Settings
+                updates.printerType ||
+                updates.printerWidth ||
+                updates.receiptHeader ||
+                updates.receiptFooter ||
+                typeof updates.autoPrintReceipt !== 'undefined'
+            ) {
                 // Fetch current settings first to merge
                 const { data: currentMeta } = await supabase.from('stores').select('settings').eq('id', id).single();
                 const currentSettings = currentMeta?.settings || {};
@@ -351,6 +366,11 @@ export const DataProvider = ({ children }) => {
                 dbUpdates.settings = {
                     ...currentSettings,
                     ...(updates.loyaltySettings ? { loyaltySettings: updates.loyaltySettings } : {}),
+                    ...(updates.printerType ? { printerType: updates.printerType } : {}),
+                    ...(updates.printerWidth ? { printerWidth: updates.printerWidth } : {}),
+                    ...(updates.receiptHeader ? { receiptHeader: updates.receiptHeader } : {}),
+                    ...(updates.receiptFooter ? { receiptFooter: updates.receiptFooter } : {}),
+                    ...(typeof updates.autoPrintReceipt !== 'undefined' ? { autoPrintReceipt: updates.autoPrintReceipt } : {}),
                     // Flatten other settings if stored in JSON
                 };
 

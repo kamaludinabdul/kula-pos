@@ -237,12 +237,11 @@ const PrinterSettings = () => {
                             <SelectContent>
                                 <SelectItem value="58mm">58mm (Thermal Kecil)</SelectItem>
                                 <SelectItem value="80mm">80mm (Thermal Besar)</SelectItem>
-                                {formData.printerType === 'standard' && (
-                                    <>
-                                        <SelectItem value="A4">A4 (Standar Dokumen)</SelectItem>
-                                        <SelectItem value="Letter">Letter</SelectItem>
-                                    </>
-                                )}
+                                <>
+                                    <SelectItem value="A4">A4 (Standar Dokumen)</SelectItem>
+                                    <SelectItem value="Letter">Letter</SelectItem>
+                                    <SelectItem value="continuous">Continuous Form (Dot Matrix)</SelectItem>
+                                </>
                             </SelectContent>
                         </Select>
                     </div>
