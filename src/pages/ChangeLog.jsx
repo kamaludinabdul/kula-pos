@@ -8,7 +8,7 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
-        version: "0.16.1",
+        version: "0.16.6",
         date: "2026-02-16",
         type: "patch",
         title: "Stock Filtering & Bug Fixes",
@@ -17,6 +17,17 @@ const CHANGELOG_DATA = [
             "Login History: Fixed empty history — menampilkan log login meskipun data store belum ter-load (null store_id).",
             "Cash Flow: Fixed deletion bug — transaksi dari POS kini bisa dihapus dengan benar dari database.",
             "Stability: Removed debug logs and fixed linting issues."
+        ]
+    },
+    {
+        version: "0.16.5",
+        date: "2026-02-14",
+        type: "patch",
+        title: "Printer Optimization & Shift Triggers",
+        changes: [
+            "Printer: Optimized Bluetooth printing — image chunking & logo centering support.",
+            "Shift: Added database triggers to auto-calculate shift totals (sales, cash, diff).",
+            "Code Quality: Fixed linter errors and removed unused references."
         ]
     },
     {
