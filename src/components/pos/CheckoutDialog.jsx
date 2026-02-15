@@ -39,7 +39,9 @@ const CheckoutDialog = ({
     onCloseSuccess,
     store,
     lastTransaction,
-    user // NEW: For role-based date picker
+    user, // NEW: For role-based date picker
+    selectedCustomer,
+    pointsEarned
 }) => {
     const cashInputRef = useRef(null);
     const receiptRef = useRef(null);
@@ -324,10 +326,23 @@ const CheckoutDialog = ({
                 </DialogHeader>
 
                 <div className="py-4 space-y-6 flex-1 overflow-y-auto px-1">
-                    {/* Big Total */}
-                    <div className="bg-slate-900 text-white p-6 rounded-xl text-center shadow-lg">
+                    {/* Big Total & Loyalty Info */}
+                    <div className="bg-slate-900 text-white p-6 rounded-xl text-center shadow-lg relative overflow-hidden">
                         <p className="text-slate-400 text-xs uppercase tracking-wider font-medium mb-1">Total Bayar</p>
                         <h2 className="text-4xl font-bold">Rp {total.toLocaleString('id-ID')}</h2>
+
+                        {selectedCustomer && (
+                            <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center text-xs">
+                                <div className="text-left">
+                                    <p className="text-slate-400">Sisa Poin</p>
+                                    <p className="font-bold text-amber-400">{selectedCustomer.loyaltyPoints || 0}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-slate-400">Potensi Poin</p>
+                                    <p className="font-bold text-green-400">+{pointsEarned || 0}</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Transaction Date Picker - Admin Only */}

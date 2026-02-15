@@ -53,7 +53,7 @@ export const generateReceiptHtml = (transaction, store) => {
             <body>
                 ${(transaction.status === 'cancelled' || transaction.status === 'void') && store?.printerWidth !== 'continuous' ? '<div class="watermark">VOID</div>' : ''}
                 <div class="header">
-                    ${store?.logo && store?.printerWidth !== 'continuous' ? `<img src="${store.logo}" style="max-height: 40px; margin-bottom: 5px; filter: grayscale(100%);" />` : ''}
+                    ${store?.logo && store?.printLogo !== false && store?.printerWidth !== 'continuous' ? `<img src="${store.logo}" style="max-height: 40px; margin-bottom: 5px; filter: grayscale(100%);" />` : ''}
                     <div class="store-name">${store?.name || 'Store'}</div>
                     <div style="font-size: 0.8em;">${store?.address || ''}</div>
                     <div style="font-size: 0.8em;">${store?.phone || ''}</div>
@@ -186,12 +186,12 @@ export const generateReceiptHtml = (transaction, store) => {
                     ` : ''}
                 </div>
 
-                ${(transaction.pointsEarned > 0 || transaction.customerTotalPoints > 0) ? `
+                ${(transaction.customerName && (transaction.pointsEarned > 0 || transaction.customerTotalPoints >= 0)) ? `
                 <div class="divider"></div>
-                <div style="font-size: 0.8em; text-align: center;">
-                    <div style="font-weight: bold; margin-bottom: 2px;">POIN LOYALITAS</div>
-                    ${transaction.pointsEarned > 0 ? `<div>Poin Transaksi: +${transaction.pointsEarned}</div>` : ''}
-                    ${transaction.customerTotalPoints ? `<div>Total Poin: ${transaction.customerTotalPoints}</div>` : ''}
+                <div style="font-size: 0.8em; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                    <div style="font-weight: bold; font-size: 0.9em; letter-spacing: 1px; text-transform: uppercase;">POIN LOYALITAS</div>
+                    ${transaction.pointsEarned > 0 ? `<div style="color: #16a34a;">Poin Transaksi: +${transaction.pointsEarned}</div>` : ''}
+                    ${transaction.customerTotalPoints !== undefined ? `<div style="font-weight: bold; color: #2563eb; border-top: 1px solid #eee; width: 100%; padding-top: 2px; margin-top: 2px;">Sisa Poin: ${transaction.customerTotalPoints}</div>` : ''}
                 </div>
                 ` : ''}
 

@@ -134,9 +134,10 @@ const Transactions = () => {
                 customerName: t.customer_name,
                 cashier: t.profiles?.name || t.cashier || '-', // From joined profiles table or direct cashier column
                 // Extract details from payment_details JSONB if available
-                amountPaid: t.payment_details?.amount_paid || t.total,
-                change: t.payment_details?.change || 0,
-                pointsEarned: t.payment_details?.points_earned || 0,
+                amountPaid: t.payment_details?.amount_paid || t.amount_paid || t.total,
+                change: t.payment_details?.change || t.change || 0,
+                // Prioritize top-level column for points earned, fallback to snapshot
+                pointsEarned: t.points_earned !== undefined ? t.points_earned : (t.payment_details?.points_earned || 0),
                 customerTotalPoints: t.payment_details?.customer_remaining_points || 0,
                 // Ensure items is array
                 items: Array.isArray(t.items) ? t.items : (JSON.parse(t.items || '[]'))

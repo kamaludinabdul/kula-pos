@@ -121,21 +121,37 @@ const POS = () => {
     // Printer
     const [printerStatus, setPrinterStatus] = useState({ connected: false, name: null });
 
-    // Auto-connect printer
+    // Printer Connection Management
     useEffect(() => {
+        const checkConnection = () => {
+            const isConnected = printerService.isConnected();
+            const deviceName = printerService.getDeviceName();
+            setPrinterStatus(prev => {
+                if (prev.connected !== isConnected || prev.name !== deviceName) {
+                    return { connected: isConnected, name: deviceName };
+                }
+                return prev;
+            });
+        };
+
+        // Initial check and auto-connect
         const initPrinter = async () => {
             if (printerService.isConnected()) {
-                setPrinterStatus({ connected: true, name: printerService.getDeviceName() });
+                checkConnection();
             } else {
                 const res = await printerService.autoConnect();
                 if (res.success) {
-                    setPrinterStatus({ connected: true, name: res.name });
-                    // Optional: notify user or just let the icon update
                     console.log('Printer auto-connected:', res.name);
+                    checkConnection();
                 }
             }
         };
+
         initPrinter();
+
+        // Start polling
+        const interval = setInterval(checkConnection, 3000);
+        return () => clearInterval(interval);
     }, []);
 
     // Store Settings
@@ -428,18 +444,13 @@ const POS = () => {
                 } else {
                     console.log("DEBUG: Step (ratioAmount) is 0 or invalid for multiple rule", step);
                 }
-            } else {
-                console.log("DEBUG: Points condition failed or unknown type", {
-                    ruleType: rule.ruleType,
-                    total: totals.finalTotal,
-                    min: rule.minTransactionAmount,
-                    ratioAmount: rule.ratioAmount
-                });
+                console.log("DEBUG: Points condition failed or unknown type", rule.ruleType);
             }
-            // Add total points for receipt display
-            transactionData.customerTotalPoints = (parseInt(selectedCustomer.loyaltyPoints) || 0) + (transactionData.pointsEarned || 0);
-            console.log("DEBUG: Total Customer Points", transactionData.customerTotalPoints);
         }
+        // Add total points for receipt display (Always snapshot if customer is selected)
+        transactionData.customerTotalPoints = (parseInt(selectedCustomer.loyaltyPoints || selectedCustomer.points) || 0) + (transactionData.pointsEarned || 0);
+        console.log("DEBUG: Total Customer Points", transactionData.customerTotalPoints);
+
 
         const result = await processSale(transactionData);
 
@@ -669,6 +680,20 @@ const POS = () => {
                 onCloseSuccess={() => { setIsCheckoutOpen(false); clearCart(); setPaymentSuccess(false); }}
                 store={{ ...currentStore, ...storeSettings }}
                 user={user}
+                selectedCustomer={selectedCustomer}
+                pointsEarned={(() => {
+                    if (!currentStore?.loyaltySettings?.isActive || !selectedCustomer) return 0;
+                    const rule = currentStore.loyaltySettings;
+                    if (rule.ruleType === 'minimum' && totals.finalTotal >= rule.minTransactionAmount) {
+                        return parseInt(rule.pointsReward) || 0;
+                    } else if (rule.ruleType === 'multiple') {
+                        const step = parseFloat(rule.ratioAmount) || 0;
+                        if (step > 0) {
+                            return Math.floor(totals.finalTotal / step) * (parseInt(rule.ratioPoints) || 0);
+                        }
+                    }
+                    return 0;
+                })()}
             />
 
             <BarcodeScannerDialog

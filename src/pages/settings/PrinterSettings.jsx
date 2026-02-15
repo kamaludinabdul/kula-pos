@@ -7,8 +7,9 @@ import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import { Checkbox } from '../../components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
-import { Save, Printer, Bluetooth, CheckCircle, XCircle } from 'lucide-react';
+import { Save, Printer, Bluetooth, CheckCircle, XCircle, Settings2, Zap, ShieldCheck, Gauge } from 'lucide-react';
 
 const PrinterSettings = () => {
     const { activeStoreId, currentStore, updateStore } = useData();
@@ -17,7 +18,8 @@ const PrinterSettings = () => {
         printerWidth: '58mm',
         receiptHeader: '',
         receiptFooter: '',
-        autoPrintReceipt: false
+        autoPrintReceipt: false,
+        printLogo: true
     });
     const [isSaving, setIsSaving] = useState(false);
     const [isPrinting, setIsPrinting] = useState(false);
@@ -27,37 +29,34 @@ const PrinterSettings = () => {
     });
 
     useEffect(() => {
-        if (currentStore) {
-            setFormData(prev => {
-                const newData = {
-                    printerType: currentStore.printerType || 'bluetooth',
-                    printerWidth: currentStore.printerWidth || '58mm',
-                    receiptHeader: currentStore.receiptHeader || '',
-                    receiptFooter: currentStore.receiptFooter || 'Terima Kasih',
-                    autoPrintReceipt: currentStore.autoPrintReceipt || false
-                };
+        // Polling to keep connection status in sync with hardware
+        const interval = setInterval(() => {
+            const isConnected = printerService.isConnected();
+            const deviceName = printerService.getDeviceName();
 
-                if (
-                    prev.printerType === newData.printerType &&
-                    prev.printerWidth === newData.printerWidth &&
-                    prev.receiptHeader === newData.receiptHeader &&
-                    prev.receiptFooter === newData.receiptFooter &&
-                    prev.autoPrintReceipt === newData.autoPrintReceipt
-                ) {
-                    return prev;
+            setPrinterStatus(prev => {
+                if (prev.connected !== isConnected || prev.name !== deviceName) {
+                    return { connected: isConnected, name: deviceName };
                 }
+                return prev;
+            });
+        }, 2000);
 
-                return newData;
+        return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        if (currentStore) {
+            setFormData({
+                printerType: currentStore.printerType || 'bluetooth',
+                printerWidth: currentStore.printerWidth || '58mm',
+                receiptHeader: currentStore.receiptHeader || '',
+                receiptFooter: currentStore.receiptFooter || 'Terima Kasih',
+                autoPrintReceipt: currentStore.autoPrintReceipt,
+                printLogo: currentStore.printLogo !== undefined ? currentStore.printLogo : true
             });
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [
-        currentStore?.printerType,
-        currentStore?.printerWidth,
-        currentStore?.receiptHeader,
-        currentStore?.receiptFooter,
-        currentStore?.autoPrintReceipt
-    ]);
+    }, [currentStore]); // Only sync when the store actually changes or loads
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -97,8 +96,14 @@ const PrinterSettings = () => {
     const handleTestPrint = async () => {
         setIsPrinting(true);
         try {
+            // Use current form data combined with store data (like logo) for test print
+            const testConfig = {
+                ...currentStore,
+                ...formData
+            };
+
             if (formData.printerType === 'bluetooth') {
-                const result = await printerService.printTestReceipt(currentStore);
+                const result = await printerService.printTestReceipt(testConfig);
                 if (result.success) {
                     alert('Test print berhasil! Silakan cek printer Anda.');
                 } else {
@@ -124,7 +129,7 @@ const PrinterSettings = () => {
                     customerTotalPoints: 150
                 };
 
-                printReceiptBrowser(dummyTransaction, currentStore);
+                printReceiptBrowser(dummyTransaction, testConfig);
             }
         } catch (error) {
             alert(`Test print gagal: ${error.message}`);
@@ -154,7 +159,7 @@ const PrinterSettings = () => {
                             onValueChange={(value) => setFormData(prev => ({ ...prev, printerType: value }))}
                         >
                             <SelectTrigger id="printerType">
-                                <SelectValue />
+                                <SelectValue placeholder="Pilih Tipe Printer" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="bluetooth">Bluetooth Thermal (Mobile/Portable)</SelectItem>
@@ -210,6 +215,22 @@ const PrinterSettings = () => {
                                 <p className="text-xs text-muted-foreground">
                                     Catatan: Hanya mendukung Printer Thermal Bluetooth (ESC/POS).
                                 </p>
+
+                                <div className="flex items-center space-x-2 border-t pt-4">
+                                    <Checkbox
+                                        id="printLogo"
+                                        checked={formData.printLogo}
+                                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, printLogo: checked }))}
+                                    />
+                                    <div className="grid gap-1.5 leading-none">
+                                        <Label htmlFor="printLogo" className="text-sm font-medium leading-none">
+                                            Cetak Logo di Struk
+                                        </Label>
+                                        <p className="text-xs text-muted-foreground">
+                                            Tampilkan logo toko di bagian atas struk belanja.
+                                        </p>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
                     )}

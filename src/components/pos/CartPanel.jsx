@@ -51,7 +51,6 @@ const CartPanel = ({
     loyaltySettings,
     onAddCustomer
 }) => {
-    // --- Restored Local State ---
     const [isCustomerOpen, setIsCustomerOpen] = useState(false);
     const [customerSearch, setCustomerSearch] = useState('');
     const [editingItem, setEditingItem] = useState(null);
@@ -150,10 +149,15 @@ const CartPanel = ({
                             <div className="flex items-center gap-2 overflow-hidden">
                                 <User size={16} className="text-muted-foreground shrink-0" />
                                 <div className="flex flex-col truncate">
-                                    <span className="text-[10px] uppercase text-muted-foreground font-bold">Pelanggan</span>
+                                    <span className="text-[10px] uppercase text-muted-foreground font-bold leading-none">Pelanggan</span>
                                     <span className="text-xs font-semibold truncate">
                                         {selectedCustomer ? selectedCustomer.name : "Umum (Non-Member)"}
                                     </span>
+                                    {selectedCustomer && (
+                                        <span className="text-[9px] font-bold text-amber-600 leading-none mt-0.5">
+                                            {selectedCustomer.loyaltyPoints || 0} Poin
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                             <ChevronDown size={14} className="opacity-50" />

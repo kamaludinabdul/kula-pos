@@ -1,4 +1,5 @@
--- Create loyalty_history table and update process_sale/process_refund to use it
+-- Add redeemable products support
+
 
 BEGIN;
 

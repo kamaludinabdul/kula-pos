@@ -38,7 +38,7 @@ async function forceDelete() {
         return;
     }
 
-    const { error, count, data } = await supabase
+    const { error, data } = await supabase
         .from('transactions')
         .delete()
         .eq('store_id', STORE_ID)

@@ -220,15 +220,37 @@ const CashFlow = () => {
         }
     };
 
-    const handleDelete = async (id) => {
+    const handleDelete = async (transaction) => {
         if (!window.confirm("Yakin ingin menghapus data ini?")) return;
+
         try {
-            const { error } = await supabase.from('cash_flow').delete().eq('id', id);
+            let error;
+
+            // Determine source based on property presence or specific flags
+            // Based on fetchTransactions map:
+            // Back Office: source = 'Back Office' (default from item)
+            // POS: source = 'Kasir (POS)'
+
+            if (transaction.source === 'Kasir (POS)') {
+                const { error: deleteError } = await supabase
+                    .from('shift_movements')
+                    .delete()
+                    .eq('id', transaction.id);
+                error = deleteError;
+            } else {
+                // Default to cash_flow table
+                const { error: deleteError } = await supabase
+                    .from('cash_flow')
+                    .delete()
+                    .eq('id', transaction.id);
+                error = deleteError;
+            }
+
             if (error) throw error;
             fetchTransactions();
         } catch (error) {
             console.error("Error deleting transaction:", error);
-            alert("Gagal menghapus data");
+            alert("Gagal menghapus data: " + (error.message || "Unknown error"));
         }
     };
 
@@ -647,7 +669,7 @@ const CashFlow = () => {
                                             {t.type === 'out' ? `Rp ${t.amount.toLocaleString()}` : '-'}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(t.id)}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(t)}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </TableCell>
@@ -698,7 +720,7 @@ const CashFlow = () => {
                                     <span className={`text-base font-extrabold ${t.type === 'in' ? 'text-green-600' : 'text-red-600'}`}>
                                         {t.type === 'in' ? '+' : '-'} Rp {t.amount?.toLocaleString()}
                                     </span>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-red-500" onClick={() => handleDelete(t.id)}>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-red-500" onClick={() => handleDelete(t)}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </div>

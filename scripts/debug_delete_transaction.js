@@ -12,7 +12,7 @@ async function debugDelete() {
     console.log(`🗑️ Attempting to DELETE Transaction ID: ${id}`);
 
     // 1. Try Delete
-    const { error, count, data } = await supabase
+    const { error, data } = await supabase
         .from('transactions')
         .delete()
         .eq('id', id)

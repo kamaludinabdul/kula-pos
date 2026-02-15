@@ -26,9 +26,10 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 const StockManagement = () => {
-    const { products, addStockBatch, reduceStockFIFO, bulkUpdateStock, deleteProduct, fetchAllProducts, activeStoreId } = useData();
+    const { products, categories, addStockBatch, reduceStockFIFO, bulkUpdateStock, deleteProduct, fetchAllProducts, activeStoreId } = useData();
 
     // Fetch all products for stock management
     React.useEffect(() => {
@@ -37,6 +38,7 @@ const StockManagement = () => {
         }
     }, [activeStoreId, products.length, fetchAllProducts]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterCategory, setFilterCategory] = useState('all');
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -74,11 +76,15 @@ const StockManagement = () => {
     };
 
     // Filter products
-    const filteredProducts = products.filter(product =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (product.barcode && product.barcode.includes(searchTerm)) ||
-        (product.code && product.code.includes(searchTerm))
-    );
+    const filteredProducts = products.filter(product => {
+        const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (product.barcode && product.barcode.includes(searchTerm)) ||
+            (product.code && product.code.includes(searchTerm));
+
+        const matchesCategory = filterCategory === 'all' || product.category === filterCategory;
+
+        return matchesSearch && matchesCategory;
+    });
 
     // Sort products
     const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -429,8 +435,8 @@ const StockManagement = () => {
                 </div>
             </div>
 
-            <div className="flex items-center">
-                <div className="relative w-full sm:w-96">
+            <div className="flex items-center gap-2">
+                <div className="relative w-full sm:w-80">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Cari produk..."
@@ -439,6 +445,19 @@ const StockManagement = () => {
                         className="pl-8"
                     />
                 </div>
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Pilih Kategori" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Semua Kategori</SelectItem>
+                        {categories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.name}>
+                                {cat.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
             <div className="rounded-md border bg-card overflow-hidden">

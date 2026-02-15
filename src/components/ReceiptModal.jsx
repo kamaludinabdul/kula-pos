@@ -114,7 +114,7 @@ const ReceiptModal = ({ isOpen, onClose, transaction, store }) => {
                             </div>
                         )}
                         <div className="text-center mb-4">
-                            {store?.logo && (
+                            {store?.logo && store?.printLogo !== false && (
                                 <div className="flex justify-center mb-2">
                                     <img src={getOptimizedImage(store.logo, { width: 100, quality: 70 })} alt="Store Logo" className="h-12 object-contain filter grayscale" />
                                 </div>
@@ -220,19 +220,19 @@ const ReceiptModal = ({ isOpen, onClose, transaction, store }) => {
                             )}
                         </div>
 
-                        {(transaction.pointsEarned > 0 || transaction.customerTotalPoints > 0) && (
-                            <div className="border-t border-dashed border-gray-300 mt-3 pt-3 space-y-1 text-xs text-center">
-                                <div className="font-bold text-gray-700 mb-1">POIN LOYALITAS</div>
+                        {(transaction.customerName && (transaction.pointsEarned > 0 || transaction.customerTotalPoints >= 0)) && (
+                            <div className="border-t border-dashed border-gray-300 mt-2 pt-2 space-y-0.5 text-xs text-center">
+                                <div className="font-bold text-gray-700 text-[10px] tracking-widest uppercase">POIN LOYALITAS</div>
                                 {transaction.pointsEarned > 0 && (
-                                    <div className="flex justify-between">
-                                        <span>Poin Transaksi:</span>
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-[10px] text-gray-500">Poin Transaksi</span>
                                         <span className="font-bold text-green-600">+{transaction.pointsEarned}</span>
                                     </div>
                                 )}
-                                {transaction.customerTotalPoints && (
-                                    <div className="flex justify-between font-bold border-t border-gray-100 pt-1">
-                                        <span>Total Poin:</span>
-                                        <span className="text-blue-600">{transaction.customerTotalPoints}</span>
+                                {transaction.customerTotalPoints !== undefined && (
+                                    <div className="flex flex-col items-center border-t border-gray-100 pt-1">
+                                        <span className="text-[10px] text-gray-500">Sisa Poin</span>
+                                        <span className="font-extrabold text-blue-600">{transaction.customerTotalPoints}</span>
                                     </div>
                                 )}
                             </div>

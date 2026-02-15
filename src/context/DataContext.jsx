@@ -235,7 +235,10 @@ export const DataProvider = ({ children }) => {
                         receiptFooter: s.settings?.receiptFooter,
                         permissions: normalizePermissions(s.settings?.permissions),
                         logo: s.logo || s.settings?.logo,
-                        printerPaperSize: s.settings?.printerPaperSize
+                        printerPaperSize: s.settings?.printerPaperSize,
+                        printerChunkSize: s.settings?.printerChunkSize,
+                        printerChunkDelay: s.settings?.printerChunkDelay,
+                        printLogo: s.settings?.printLogo !== undefined ? s.settings.printLogo : true // Default to true
                     };
                 }));
 
@@ -343,9 +346,6 @@ export const DataProvider = ({ children }) => {
             // Handle nested JSON settings (like loyalty)
             // Note: This is a shallow merge for 'settings' column. 
             // In a real app, you might want deeper merging or dedicated JSONB patching.
-            // Handle nested JSON settings (like loyalty)
-            // Note: This is a shallow merge for 'settings' column. 
-            // In a real app, you might want deeper merging or dedicated JSONB patching.
             if (
                 updates.loyaltySettings ||
                 updates.shiftOpenTime ||
@@ -357,7 +357,9 @@ export const DataProvider = ({ children }) => {
                 updates.printerWidth ||
                 updates.receiptHeader ||
                 updates.receiptFooter ||
-                typeof updates.autoPrintReceipt !== 'undefined'
+                typeof updates.autoPrintReceipt !== 'undefined' ||
+                typeof updates.printerChunkSize !== 'undefined' ||
+                typeof updates.printerChunkDelay !== 'undefined'
             ) {
                 // Fetch current settings first to merge
                 const { data: currentMeta } = await supabase.from('stores').select('settings').eq('id', id).single();
@@ -371,12 +373,10 @@ export const DataProvider = ({ children }) => {
                     ...(updates.receiptHeader ? { receiptHeader: updates.receiptHeader } : {}),
                     ...(updates.receiptFooter ? { receiptFooter: updates.receiptFooter } : {}),
                     ...(typeof updates.autoPrintReceipt !== 'undefined' ? { autoPrintReceipt: updates.autoPrintReceipt } : {}),
-                    // Flatten other settings if stored in JSON
+                    ...(typeof updates.printerChunkSize !== 'undefined' ? { printerChunkSize: updates.printerChunkSize } : {}),
+                    ...(typeof updates.printerChunkDelay !== 'undefined' ? { printerChunkDelay: updates.printerChunkDelay } : {}),
+                    ...(typeof updates.printLogo !== 'undefined' ? { printLogo: updates.printLogo } : {}),
                 };
-
-                // For legacy compatibility, some fields might be top level or in settings.
-                // Here we assume new fields go into settings column if not schema-defined.
-                // But for now, we just update what we can.
             }
 
             // Direct column updates take precedence
@@ -1853,6 +1853,15 @@ export const DataProvider = ({ children }) => {
                 discount: item.discount || 0 // Pass item-level discount
             }));
 
+            // Prepare payment_details for snapshotting points and other meta
+            const paymentDetailsSnapshot = {
+                ...(transactionData.payment_details || {}),
+                amount_paid: transactionData.cashAmount || transactionData.amount_paid || 0,
+                change: transactionData.change || 0,
+                points_earned: transactionData.pointsEarned || 0,
+                customer_remaining_points: transactionData.customerTotalPoints || 0
+            };
+
             // Call Supabase RPC
             const { data, error } = await supabase.rpc('process_sale', {
                 p_store_id: activeStoreId,
@@ -1862,10 +1871,11 @@ export const DataProvider = ({ children }) => {
                 p_subtotal: transactionData.subtotal || null,
                 p_payment_method: transactionData.paymentMethod,
                 p_items: rpcItems,
-                p_amount_paid: transactionData.cashAmount || transactionData.amount_paid || 0,
-                p_change: transactionData.change || 0,
+                p_amount_paid: paymentDetailsSnapshot.amount_paid,
+                p_change: paymentDetailsSnapshot.change,
                 p_type: transactionData.type || 'sale',
                 p_rental_session_id: transactionData.rental_session_id || null,
+                p_payment_details: paymentDetailsSnapshot, // Snapshot meta
                 p_points_earned: transactionData.pointsEarned || 0,
                 p_date: transactionData.date || new Date().toISOString(),
                 p_shift_id: transactionData.shiftId || null,

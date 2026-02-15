@@ -8,6 +8,18 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        version: "0.16.1",
+        date: "2026-02-16",
+        type: "patch",
+        title: "Stock Filtering & Bug Fixes",
+        changes: [
+            "Stock Management: Added Category Filter — kini bisa filter produk berdasarkan kategori di halaman stok.",
+            "Login History: Fixed empty history — menampilkan log login meskipun data store belum ter-load (null store_id).",
+            "Cash Flow: Fixed deletion bug — transaksi dari POS kini bisa dihapus dengan benar dari database.",
+            "Stability: Removed debug logs and fixed linting issues."
+        ]
+    },
+    {
         version: "0.15.0",
         date: "2026-02-10",
         type: "minor",

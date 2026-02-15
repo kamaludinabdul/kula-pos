@@ -29,11 +29,12 @@ const LoginHistory = () => {
 
             if (user?.role !== 'super_admin') {
                 if (currentStore?.id) {
-                    query = query.eq('store_id', currentStore.id);
+                    // Fetch logs for this store OR where store_id is null (e.g. system events or pre-store selection)
+                    query = query.or(`store_id.eq.${currentStore.id},store_id.is.null`);
                 } else {
-                    setHistory([]);
-                    setLoading(false);
-                    return;
+                    // If no active store, maybe just show user's own logs? 
+                    // For now, let's allow seeing logs with no store_id
+                    query = query.is('store_id', null);
                 }
             }
 

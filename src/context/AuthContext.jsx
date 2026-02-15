@@ -590,7 +590,7 @@ export const AuthProvider = ({ children }) => {
                     .eq('id', data.user.id)
                     .single();
 
-                await supabase.from('audit_logs').insert({
+                const { error: insertError } = await supabase.from('audit_logs').insert({
                     user_id: data.user.id,
                     action: 'login_success',
                     status: 'success',
@@ -601,6 +601,10 @@ export const AuthProvider = ({ children }) => {
                     user_agent: navigator.userAgent,
                     metadata: { email: data.user.email }
                 });
+
+                if (insertError) {
+                    console.error("Audit log failed:", insertError);
+                }
 
                 // Set status to Online
                 await supabase.from('profiles').update({ status: 'online' }).eq('id', data.user.id);

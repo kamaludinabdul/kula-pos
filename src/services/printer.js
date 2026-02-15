@@ -8,17 +8,18 @@ const BOLD_OFF = ESC + 'E' + '\x00';
 const ALIGN_LEFT = ESC + 'a' + '\x00';
 const ALIGN_CENTER = ESC + 'a' + '\x01';
 const ALIGN_RIGHT = ESC + 'a' + '\x02';
+const DRAWER_KICK = ESC + 'p' + '\x00' + '\x19' + '\xFA'; // standard ESC/POS drawer kick
 
 let connectedDevice = null;
 let characteristic = null;
 let isPrinting = false; // Mutex lock
 
-// Configuration for stability
-const CHUNK_SIZE = 50; // Reduced from 512 to 50 to prevent buffer overflow
-const CHUNK_DELAY = 100; // Increased from 50ms to 100ms
+// Configuration for stability - Hardcoded safe but fast defaults
+const CHUNK_SIZE = 256;
+const CHUNK_DELAY = 30;
 
 export const printerService = {
-    isConnected: () => !!connectedDevice && !!characteristic,
+    isConnected: () => !!connectedDevice && !!characteristic && connectedDevice.gatt.connected,
 
     getDeviceName: () => connectedDevice ? connectedDevice.name : null,
 
@@ -92,9 +93,7 @@ export const printerService = {
             // Try to connect to the first available device
             const device = devices[0];
 
-            // Re-use connection logic (simplified)
             console.log('Auto-connecting to:', device.name);
-            await device.gatt.connect(); // Initial connect to wake it up if needed? 
 
             // Full discovery is needed to get characteristic
             const server = await device.gatt.connect();
@@ -224,7 +223,11 @@ export const printerService = {
     },
 
     printReceipt: async (transaction, storeConfig) => {
-        if (!characteristic) {
+        if (!printerService.isConnected()) {
+            // Cleanup stale state if any
+            if (connectedDevice && !connectedDevice.gatt.connected) {
+                printerService.disconnect();
+            }
             throw new Error('Printer not connected');
         }
 
@@ -237,9 +240,12 @@ export const printerService = {
         try {
             const encoder = new TextEncoder();
 
-            // 1. Send Logo first if exists
-            // 1. Send Logo first if exists
-            if (storeConfig.logo) {
+            // 0. Open drawer immediately (if supported)
+            await characteristic.writeValue(encoder.encode(DRAWER_KICK));
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            // 1. Send Logo first if exists and enabled
+            if (storeConfig.logo && storeConfig.printLogo !== false) {
                 try {
                     console.log("Processing logo for print...", { length: storeConfig.logo.length });
                     // Center the logo explicitly
@@ -249,10 +255,13 @@ export const printerService = {
                     const logoCommands = await printerService.processImage(storeConfig.logo, 128);
                     console.log("Logo processed into commands:", logoCommands.length, "bytes");
 
-                    for (let i = 0; i < logoCommands.length; i += CHUNK_SIZE) {
-                        const chunk = logoCommands.slice(i, Math.min(i + CHUNK_SIZE, logoCommands.length));
+                    const chunkSize = storeConfig.printerChunkSize || CHUNK_SIZE;
+                    const chunkDelay = storeConfig.printerChunkDelay !== undefined ? storeConfig.printerChunkDelay : CHUNK_DELAY;
+
+                    for (let i = 0; i < logoCommands.length; i += chunkSize) {
+                        const chunk = logoCommands.slice(i, Math.min(i + chunkSize, logoCommands.length));
                         await characteristic.writeValue(chunk);
-                        await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY));
+                        await new Promise(resolve => setTimeout(resolve, chunkDelay));
                     }
                     // Add a small feed after image
                     await characteristic.writeValue(encoder.encode(ESC + 'd' + '\x01')); // Feed 2 lines
@@ -340,14 +349,16 @@ export const printerService = {
             }
 
             // Points / Loyalty (Integrated)
-            if (transaction.pointsEarned > 0 || transaction.customerTotalPoints > 0) {
+            if (transaction.customerName && (transaction.pointsEarned > 0 || transaction.customerTotalPoints >= 0)) {
                 addLine('-'.repeat(32)); // Separator
+                commands += ALIGN_CENTER;
                 if (transaction.pointsEarned > 0) {
                     addLine(`Poin Didapat: +${transaction.pointsEarned}`);
                 }
-                if (transaction.customerTotalPoints > 0) {
+                if (transaction.customerTotalPoints !== undefined) {
                     addLine(`Sisa Poin: ${transaction.customerTotalPoints}`);
                 }
+                commands += ALIGN_LEFT; // Reset to left
             }
 
             // Footer
@@ -360,12 +371,15 @@ export const printerService = {
             // Send in chunks to avoid Bluetooth buffer overflow
             const data = encoder.encode(commands);
 
-            for (let i = 0; i < data.length; i += CHUNK_SIZE) {
-                const chunk = data.slice(i, Math.min(i + CHUNK_SIZE, data.length));
+            const chunkSize = Math.min(storeConfig.printerChunkSize || CHUNK_SIZE, 512);
+            const chunkDelay = storeConfig.printerChunkDelay !== undefined ? storeConfig.printerChunkDelay : CHUNK_DELAY;
+
+            for (let i = 0; i < data.length; i += chunkSize) {
+                const chunk = data.slice(i, Math.min(i + chunkSize, data.length));
                 await characteristic.writeValue(chunk);
                 // Small delay between chunks to avoid overwhelming the printer
-                if (i + CHUNK_SIZE < data.length) {
-                    await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY));
+                if (i + chunkSize < data.length) {
+                    await new Promise(resolve => setTimeout(resolve, chunkDelay));
                 }
             }
 
@@ -378,6 +392,10 @@ export const printerService = {
             return { success: true };
         } catch (error) {
             console.error('Print failed', error);
+            // If it's a GATT error, the connection is likely dead
+            if (error.message.includes('GATT') || error.message.includes('disconnected')) {
+                printerService.disconnect();
+            }
             return { success: false, error: error.message };
         } finally {
             isPrinting = false;
@@ -412,7 +430,11 @@ export const printerService = {
 
     printTestReceipt: async (storeConfig) => {
         // Check connection first
-        if (!characteristic) {
+        if (!printerService.isConnected()) {
+            // Cleanup stale state if any
+            if (connectedDevice && !connectedDevice.gatt.connected) {
+                printerService.disconnect();
+            }
             console.warn('Printer not connected. Using Virtual Printer.');
             return printerService.printVirtual("Virtual Test Print...");
         }
@@ -420,8 +442,12 @@ export const printerService = {
         try {
             const encoder = new TextEncoder();
 
-            // 1. Send Logo first if exists
-            if (storeConfig.logo) {
+            // 0. Open drawer immediately
+            await characteristic.writeValue(encoder.encode(DRAWER_KICK));
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            // 1. Send Logo first if exists and enabled
+            if (storeConfig.logo && storeConfig.printLogo !== false) {
                 try {
                     console.log("Processing logo for test...");
                     // Center the logo explicitly
@@ -501,11 +527,14 @@ export const printerService = {
 
             const data = encoder.encode(commands);
 
-            for (let i = 0; i < data.length; i += CHUNK_SIZE) {
-                const chunk = data.slice(i, Math.min(i + CHUNK_SIZE, data.length));
+            const chunkSize = storeConfig.printerChunkSize || CHUNK_SIZE;
+            const chunkDelay = storeConfig.printerChunkDelay !== undefined ? storeConfig.printerChunkDelay : CHUNK_DELAY;
+
+            for (let i = 0; i < data.length; i += chunkSize) {
+                const chunk = data.slice(i, Math.min(i + chunkSize, data.length));
                 await characteristic.writeValue(chunk);
-                if (i + CHUNK_SIZE < data.length) {
-                    await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY));
+                if (i + chunkSize < data.length) {
+                    await new Promise(resolve => setTimeout(resolve, chunkDelay));
                 }
             }
 
@@ -518,6 +547,9 @@ export const printerService = {
             return { success: true };
         } catch (error) {
             console.error('Test print failed', error);
+            if (error.message.includes('GATT') || error.message.includes('disconnected')) {
+                printerService.disconnect();
+            }
             return { success: false, error: error.message };
         } finally {
             isPrinting = false;
