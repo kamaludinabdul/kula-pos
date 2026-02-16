@@ -14,9 +14,34 @@ let connectedDevice = null;
 let characteristic = null;
 let isPrinting = false; // Mutex lock
 
-// Configuration for stability - Hardcoded safe but fast defaults
-const CHUNK_SIZE = 256;
-const CHUNK_DELAY = 30;
+// Detect mobile browser (Android/iOS)
+const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+// Platform-aware BLE settings
+// Mobile BLE MTU is typically 20 bytes; desktop can handle more.
+const getChunkSize = () => isMobile() ? 50 : 100;
+const getChunkDelay = () => isMobile() ? 60 : 40;
+const getLogoWidth = () => 128; // Same size for both — the chunk fix handles stability
+
+// Safe chunked write with retry
+const writeChunked = async (char, data, chunkSize, chunkDelay) => {
+    for (let i = 0; i < data.length; i += chunkSize) {
+        const chunk = data.slice(i, Math.min(i + chunkSize, data.length));
+        let retries = 3;
+        while (retries > 0) {
+            try {
+                await char.writeValue(chunk);
+                break; // success
+            } catch (e) {
+                retries--;
+                console.warn(`BLE write failed (${retries} retries left):`, e.message);
+                if (retries === 0) throw e;
+                await new Promise(r => setTimeout(r, 200)); // wait before retry
+            }
+        }
+        await new Promise(r => setTimeout(r, chunkDelay));
+    }
+};
 
 export const printerService = {
     isConnected: () => !!connectedDevice && !!characteristic && connectedDevice.gatt.connected,
@@ -307,31 +332,27 @@ export const printerService = {
             // 1. Send Logo first if exists and enabled
             if (storeConfig.logo && storeConfig.printLogo !== false) {
                 try {
-                    console.log("Processing logo for print...", { length: storeConfig.logo.length });
-                    // Center the logo explicitly
+                    const mobile = isMobile();
+                    const logoWidth = getLogoWidth();
+                    const chunkSize = getChunkSize();
+                    const chunkDelay = getChunkDelay();
+                    console.log(`Logo print: mobile=${mobile}, width=${logoWidth}, chunk=${chunkSize}`);
                     await characteristic.writeValue(encoder.encode(ALIGN_CENTER));
+                    await new Promise(r => setTimeout(r, 50));
 
-                    // Resize to 33% width (128 dots)
-                    const logoCommands = await printerService.processImage(storeConfig.logo, 128);
-                    console.log("Logo processed into commands:", logoCommands.length, "bytes");
-
-                    const chunkSize = storeConfig.printerChunkSize || CHUNK_SIZE;
-                    const chunkDelay = storeConfig.printerChunkDelay !== undefined ? storeConfig.printerChunkDelay : CHUNK_DELAY;
-
-                    for (let i = 0; i < logoCommands.length; i += chunkSize) {
-                        const chunk = logoCommands.slice(i, Math.min(i + chunkSize, logoCommands.length));
-                        await characteristic.writeValue(chunk);
-                        // Increase delay slightly for image data chunks to prevent buffer overflow
-                        await new Promise(resolve => setTimeout(resolve, chunkDelay + 10));
-                    }
-                    // Add a small feed after image
-                    await characteristic.writeValue(encoder.encode(ESC + 'd' + '\x01')); // Feed 1 line
-
-                    // CRITICAL: Reset printer state after image to prevent "scrambled" text
+                    const logoCommands = await printerService.processImage(storeConfig.logo, logoWidth);
+                    console.log("Logo processed:", logoCommands.length, "bytes");
+                    await writeChunked(characteristic, logoCommands, chunkSize, chunkDelay);
+                    // Feed + delay after image
+                    await new Promise(r => setTimeout(r, 200));
+                    await characteristic.writeValue(encoder.encode(ESC + 'd' + '\x01'));
+                    await new Promise(r => setTimeout(r, mobile ? 1000 : 500));
+                    // Reset printer state
                     await characteristic.writeValue(encoder.encode(INIT));
+                    await new Promise(r => setTimeout(r, 100));
                     await characteristic.writeValue(encoder.encode(ALIGN_LEFT));
-
-                    console.log("Logo sent to printer successfully");
+                    await new Promise(r => setTimeout(r, 100));
+                    console.log("Logo sent successfully");
                 } catch (e) {
                     console.error("Failed to print logo:", e);
                     // Reset anyway just in case
@@ -461,17 +482,7 @@ export const printerService = {
             // Send in chunks to avoid Bluetooth buffer overflow
             const data = encoder.encode(commands);
 
-            const chunkSize = Math.min(storeConfig.printerChunkSize || CHUNK_SIZE, 512);
-            const chunkDelay = storeConfig.printerChunkDelay !== undefined ? storeConfig.printerChunkDelay : CHUNK_DELAY;
-
-            for (let i = 0; i < data.length; i += chunkSize) {
-                const chunk = data.slice(i, Math.min(i + chunkSize, data.length));
-                await characteristic.writeValue(chunk);
-                // Small delay between chunks to avoid overwhelming the printer
-                if (i + chunkSize < data.length) {
-                    await new Promise(resolve => setTimeout(resolve, chunkDelay));
-                }
-            }
+            await writeChunked(characteristic, data, getChunkSize(), getChunkDelay());
 
             // Wait a bit before sending cut command to ensure all data is printed
             await new Promise(resolve => setTimeout(resolve, 200));
@@ -539,24 +550,22 @@ export const printerService = {
             // 1. Send Logo first if exists and enabled
             if (storeConfig.logo && storeConfig.printLogo !== false) {
                 try {
-                    console.log("Processing logo for test...");
-                    // Center the logo explicitly
+                    const mobile = isMobile();
+                    const logoWidth = getLogoWidth();
+                    const chunkSize = getChunkSize();
+                    const chunkDelay = getChunkDelay();
+                    console.log(`Test logo: mobile=${mobile}, width=${logoWidth}, chunk=${chunkSize}`);
                     await characteristic.writeValue(encoder.encode(ALIGN_CENTER));
-
-                    // Resize to 33% width (128 dots)
-                    const logoCommands = await printerService.processImage(storeConfig.logo, 128);
-
-                    for (let i = 0; i < logoCommands.length; i += CHUNK_SIZE) {
-                        const chunk = logoCommands.slice(i, Math.min(i + CHUNK_SIZE, logoCommands.length));
-                        await characteristic.writeValue(chunk);
-                        await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY + 10));
-                    }
-                    // Minimal feed after logo
+                    await new Promise(r => setTimeout(r, 50));
+                    const logoCommands = await printerService.processImage(storeConfig.logo, logoWidth);
+                    await writeChunked(characteristic, logoCommands, chunkSize, chunkDelay);
+                    await new Promise(r => setTimeout(r, 200));
                     await characteristic.writeValue(encoder.encode(ESC + 'J' + '\x10'));
-
-                    // CRITICAL: Reset printer state
+                    await new Promise(r => setTimeout(r, mobile ? 1000 : 500));
                     await characteristic.writeValue(encoder.encode(INIT));
+                    await new Promise(r => setTimeout(r, 100));
                     await characteristic.writeValue(encoder.encode(ALIGN_LEFT));
+                    await new Promise(r => setTimeout(r, 100));
                 } catch (e) {
                     console.error("Failed to print logo in test:", e);
                     await characteristic.writeValue(encoder.encode(INIT));
@@ -623,16 +632,7 @@ export const printerService = {
 
             const data = encoder.encode(commands);
 
-            const chunkSize = storeConfig.printerChunkSize || CHUNK_SIZE;
-            const chunkDelay = storeConfig.printerChunkDelay !== undefined ? storeConfig.printerChunkDelay : CHUNK_DELAY;
-
-            for (let i = 0; i < data.length; i += chunkSize) {
-                const chunk = data.slice(i, Math.min(i + chunkSize, data.length));
-                await characteristic.writeValue(chunk);
-                if (i + chunkSize < data.length) {
-                    await new Promise(resolve => setTimeout(resolve, chunkDelay));
-                }
-            }
+            await writeChunked(characteristic, data, getChunkSize(), getChunkDelay());
 
             // Wait a bit before sending cut command to ensure all data is printed
             await new Promise(resolve => setTimeout(resolve, 200));
