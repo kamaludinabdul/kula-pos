@@ -228,17 +228,19 @@ export const DataProvider = ({ children }) => {
 
                         // Extract settings for easier access
                         loyaltySettings: s.settings?.loyaltySettings,
-                        autoPrintReceipt: s.settings?.autoPrintReceipt,
-                        printerType: s.settings?.printerType,
-                        printerWidth: s.settings?.printerWidth,
-                        receiptHeader: s.settings?.receiptHeader,
-                        receiptFooter: s.settings?.receiptFooter,
-                        permissions: normalizePermissions(s.settings?.permissions),
-                        logo: s.logo || s.settings?.logo,
                         printerPaperSize: s.settings?.printerPaperSize,
                         printerChunkSize: s.settings?.printerChunkSize,
                         printerChunkDelay: s.settings?.printerChunkDelay,
-                        printLogo: s.settings?.printLogo !== undefined ? s.settings.printLogo : true // Default to true
+                        printLogo: s.settings?.printLogo !== undefined ? s.settings.printLogo : true, // Default to true
+
+                        // --- Device Specific Settings (LocalStorage Override) ---
+                        // These should be device-specific, not store-wide.
+                        // Check local first, fallback to DB setting.
+                        printerType: localStorage.getItem(`printerType_${s.id}`) || s.settings?.printerType || 'bluetooth',
+                        printerWidth: localStorage.getItem(`printerWidth_${s.id}`) || s.settings?.printerWidth || '58mm',
+                        autoPrintReceipt: localStorage.getItem(`autoPrint_${s.id}`) !== null
+                            ? localStorage.getItem(`autoPrint_${s.id}`) === 'true'
+                            : (s.settings?.autoPrintReceipt || false)
                     };
                 }));
 
@@ -400,9 +402,11 @@ export const DataProvider = ({ children }) => {
             // setRefreshKey(prev => prev + 1); // Force deep refresh in background
             return { success: true };
         } catch (error) {
-            console.error("Error updating store:", error);
+            console.error("Error updating store (DataContext):", error);
+            // Log full error object for PWA debugging
+            console.log("Full Update Error Details:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
             setStoresLoading(false);
-            return { success: false, error: error.message };
+            return { success: false, error: error.message || 'Database update failed' };
         } finally {
             setStoresLoading(false);
             setStoresLoading(false);

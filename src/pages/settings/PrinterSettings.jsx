@@ -65,16 +65,50 @@ const PrinterSettings = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!activeStoreId) return;
+
+        console.log("PrinterSettings: handleSubmit triggered");
+
+        if (!activeStoreId) {
+            alert("Error: ID Toko tidak ditemukan. Silakan refresh.");
+            return;
+        }
+
+        // --- 1. SAVE LOCAL SETTINGS (Device Specific) ---
+        // These settings apply to THIS device only, regardless of user role.
+        try {
+            localStorage.setItem(`printerType_${activeStoreId}`, formData.printerType);
+            localStorage.setItem(`printerWidth_${activeStoreId}`, formData.printerWidth);
+            if (formData.autoPrintReceipt !== undefined) {
+                localStorage.setItem(`autoPrint_${activeStoreId}`, String(formData.autoPrintReceipt));
+            }
+            console.log("Local printer settings saved.");
+        } catch (localErr) {
+            console.error("Failed to save local settings:", localErr);
+        }
+
+        // --- 2. SAVE CLOUD SETTINGS (Store Wide) ---
+        // Only if user has permission. If not, we just notify about local save.
 
         setIsSaving(true);
-        const result = await updateStore(activeStoreId, formData);
-        setIsSaving(false);
+        try {
+            const result = await updateStore(activeStoreId, formData);
+            console.log("PrinterSettings: updateStore result", result);
 
-        if (result.success) {
-            alert('Pengaturan printer berhasil disimpan!');
-        } else {
-            alert('Gagal menyimpan pengaturan.');
+            if (result.success) {
+                alert('Pengaturan printer berhasil disimpan (Lokal & Cloud)!');
+            } else {
+                // Check for permission error
+                if (result.error && (result.error.includes('Insufficient permissions') || result.error.includes('violates row-level security'))) {
+                    alert('Pengaturan LOKAL berhasil disimpan.\n(Pengaturan CLOUD diabaikan karena akun Kasir tidak memiliki akses ubah data toko. Ini normal).');
+                } else {
+                    alert(`Pengaturan LOKAL tersimpan. Gagal simpan Cloud: ${result.error}`);
+                }
+            }
+        } catch (error) {
+            console.error("PrinterSettings: Exception", error);
+            alert(`Pengaturan LOKAL tersimpan. Error Cloud: ${error.message}`);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -84,7 +118,13 @@ const PrinterSettings = () => {
             setPrinterStatus({ connected: true, name: result.name });
             alert(`Terhubung ke ${result.name}`);
         } else {
-            alert(`Koneksi gagal: ${result.error}`);
+            console.error("Connect Failed:", result.error);
+            // Check for specific "not supported" error to provide more help
+            if (result.error.includes('not supported') || result.error.includes('Bluetooth')) {
+                alert(`Koneksi Gagal: ${result.error}\n\nDebug Info:\nSecure: ${window.isSecureContext}\nProtocol: ${window.location.protocol}\nBT Avail: ${!!navigator.bluetooth}\nUA: ${navigator.userAgent}`);
+            } else {
+                alert(`Koneksi gagal: ${result.error}`);
+            }
         }
     };
 

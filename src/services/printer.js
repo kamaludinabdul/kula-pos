@@ -138,14 +138,50 @@ export const printerService = {
         return encoder.encode(text);
     },
 
+    // Helper to fetch image with CORS handling
+    fetchImage: async (url) => {
+        // If it's already a data URI, return it
+        if (url.startsWith('data:')) return url;
+
+        try {
+            console.log("Fetching image for printer:", url);
+            // Add timestamp to avoid cache issues
+            const fetchUrl = url.includes('?') ? `${url}&t=${Date.now()}` : `${url}?t=${Date.now()}`;
+
+            const response = await fetch(fetchUrl, {
+                method: 'GET',
+                mode: 'cors',
+                cache: 'no-cache'
+            });
+
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+            const blob = await response.blob();
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch (error) {
+            console.warn("Fetch failed, falling back to direct URL load:", error);
+            return url; // Fallback
+        }
+    },
+
     // Helper to process image for ESC/POS (GS v 0)
-    processImage: async (url, maxWidth = 384) => {
+    processImage: async (url, maxWidth = 360) => { // Reduced to 360 for safety
+        // 1. Get functional image source (Data URI preferred)
+        let imageSrc = url;
+        try {
+            imageSrc = await printerService.fetchImage(url);
+        } catch (e) {
+            console.warn("Pre-fetch failed, using original URL", e);
+        }
+
         return new Promise((resolve, reject) => {
             const img = new Image();
-            // Only use anonymous crossOrigin if it's NOT a data URI
-            if (!url.startsWith('data:')) {
-                img.crossOrigin = "Anonymous";
-            }
+            img.crossOrigin = "Anonymous";
 
             img.onload = () => {
                 try {
@@ -159,16 +195,27 @@ export const printerService = {
                         width = maxWidth;
                     }
 
-                    // Width must be divisible by 8 for ESC/POS
+                    // CRITICAL: Width must be divisible by 8 for ESC/POS GS v 0
+                    // If not, the image will look scrambled ("berantakan")
                     if (width % 8 !== 0) {
+                        const originalWidth = width;
                         width -= (width % 8);
+                        console.log(`Adjusting image width for alignment: ${originalWidth} -> ${width}`);
                     }
 
-                    console.log(`Processing Printer Image: Original ${img.width}x${img.height} -> Resized ${width}x${height}`);
+                    // Safety check: ensure width is positive
+                    if (width <= 0) width = 8;
+
+                    console.log(`Processing Printer Image: ${width}x${height}`);
 
                     canvas.width = width;
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
+
+                    // Fill white background first (transparency becomes black otherwise)
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, width, height);
+
                     ctx.drawImage(img, 0, 0, width, height);
 
                     const imgData = ctx.getImageData(0, 0, width, height);
@@ -182,6 +229,8 @@ export const printerService = {
                     const yL = height % 256;
                     const yH = Math.floor(height / 256);
 
+
+
                     const header = [0x1D, 0x76, 0x30, 0x00, xL, xH, yL, yH];
                     const rasterData = [];
 
@@ -191,19 +240,24 @@ export const printerService = {
                             for (let b = 0; b < 8; b++) {
                                 if (x + b < width) {
                                     const offset = ((y * width) + (x + b)) * 4;
+                                    // RGBA
+                                    const r = data[offset];
+                                    const g = data[offset + 1];
+                                    const b_val = data[offset + 2];
+                                    // Alpha threshold (if transparency exists)
                                     const a = data[offset + 3];
 
-                                    // Simple threshold for black/white
-                                    // If transparent or bright, it's white (0 for print), else black (1)
-                                    if (a > 128) {
-                                        // Luminance
-                                        const r = data[offset];
-                                        const g = data[offset + 1];
-                                        const b_val = data[offset + 2];
-                                        const brightness = (r * 0.299) + (g * 0.587) + (b_val * 0.114);
-                                        if (brightness < 128) {
-                                            byte |= (1 << (7 - b));
-                                        }
+                                    // Logic: 0 = Print (Black/Dot), 1 = No Print (White/Space)
+                                    // We treat "Dark" as 1 in bits initially, but ESC/POS usually:
+                                    // 0 = White/Paper, 1 = Black/Dot
+
+                                    // Standard luminance
+                                    const brightness = (r * 0.299) + (g * 0.587) + (b_val * 0.114);
+
+                                    // If pixel is dark (< 128) AND not transparent (> 128 alpha)
+                                    // Set the bit to 1 (Print Dot)
+                                    if (brightness < 128 && a > 128) {
+                                        byte |= (1 << (7 - b));
                                     }
                                 }
                             }
@@ -214,11 +268,17 @@ export const printerService = {
                     const commands = new Uint8Array([...header, ...rasterData]);
                     resolve(commands);
                 } catch (e) {
+                    console.error("Image Processing Error (Canvas/Bitpacking):", e);
                     reject(e);
                 }
             };
-            img.onerror = () => reject(new Error("Image load failed"));
-            img.src = url;
+
+            img.onerror = (e) => {
+                console.error("Image OnError:", e);
+                reject(new Error("Image load failed"));
+            };
+
+            img.src = imageSrc;
         });
     },
 
@@ -261,16 +321,21 @@ export const printerService = {
                     for (let i = 0; i < logoCommands.length; i += chunkSize) {
                         const chunk = logoCommands.slice(i, Math.min(i + chunkSize, logoCommands.length));
                         await characteristic.writeValue(chunk);
-                        await new Promise(resolve => setTimeout(resolve, chunkDelay));
+                        // Increase delay slightly for image data chunks to prevent buffer overflow
+                        await new Promise(resolve => setTimeout(resolve, chunkDelay + 10));
                     }
                     // Add a small feed after image
-                    await characteristic.writeValue(encoder.encode(ESC + 'd' + '\x01')); // Feed 2 lines
+                    await characteristic.writeValue(encoder.encode(ESC + 'd' + '\x01')); // Feed 1 line
+
+                    // CRITICAL: Reset printer state after image to prevent "scrambled" text
+                    await characteristic.writeValue(encoder.encode(INIT));
+                    await characteristic.writeValue(encoder.encode(ALIGN_LEFT));
+
                     console.log("Logo sent to printer successfully");
                 } catch (e) {
                     console.error("Failed to print logo:", e);
-                    // Don't alert the user to avoid disrupting the flow, just log it. 
-                    // Or maybe a toast? For now, silent fail on UI but log error is better for UX flow unless critical.
-                    // But user specifically complained about logo. Let's keep a console warning.
+                    // Reset anyway just in case
+                    await characteristic.writeValue(encoder.encode(INIT));
                 }
             } else {
                 console.log("No logo found in storeConfig");
@@ -303,19 +368,44 @@ export const printerService = {
                     addLine(`HP: ${transaction.customerPhone}`);
                 }
             }
-            addLine('-'.repeat(32)); // Assuming 58mm (32 chars)
+            // Determine max characters per line based on paper width
+            const is80mm = storeConfig.printerWidth === '80mm';
+            const maxChars = is80mm ? 48 : 32;
+
+            addLine('-'.repeat(maxChars));
 
             // Items
             transaction.items.forEach(item => {
-                addLine(item.name);
-                const qtyPrice = `${item.qty} x ${(item.price || 0).toLocaleString()}`;
+                // Format: Product Name ........... Total Price
+                //         Qty x Price
+
                 const total = (item.total || (item.price * item.qty) || 0).toLocaleString();
-                // Simple spacing calculation
-                const spaces = 32 - qtyPrice.length - total.length;
-                addLine(qtyPrice + ' '.repeat(Math.max(1, spaces)) + total);
+                const name = item.name;
+
+                // Calculate space for Name + Total
+                // 32 chars max. Total takes ~10 chars. Name takes rest.
+                // If Name is too long, it might wrap, which is fine mostly, but let's try to fit.
+
+                // Proposed Layout:
+                // Product Name (Truncated if needed) ... Total
+                // Qty x Price
+
+                let line1 = name;
+                const totalStr = total;
+                const maxNameLen = maxChars - totalStr.length - 1;
+
+                if (line1.length > maxNameLen) {
+                    line1 = line1.substring(0, maxNameLen);
+                }
+
+                const spaces = maxChars - line1.length - totalStr.length;
+                addLine(line1 + ' '.repeat(Math.max(1, spaces)) + totalStr);
+
+                const qtyPrice = `${item.qty} x ${(item.price || 0).toLocaleString()}`;
+                addLine(qtyPrice);
             });
 
-            addLine('-'.repeat(32));
+            addLine('-'.repeat(maxChars));
 
             // Totals
             commands += ALIGN_RIGHT;
@@ -459,12 +549,17 @@ export const printerService = {
                     for (let i = 0; i < logoCommands.length; i += CHUNK_SIZE) {
                         const chunk = logoCommands.slice(i, Math.min(i + CHUNK_SIZE, logoCommands.length));
                         await characteristic.writeValue(chunk);
-                        await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY));
+                        await new Promise(resolve => setTimeout(resolve, CHUNK_DELAY + 10));
                     }
                     // Minimal feed after logo
                     await characteristic.writeValue(encoder.encode(ESC + 'J' + '\x10'));
+
+                    // CRITICAL: Reset printer state
+                    await characteristic.writeValue(encoder.encode(INIT));
+                    await characteristic.writeValue(encoder.encode(ALIGN_LEFT));
                 } catch (e) {
                     console.error("Failed to print logo in test:", e);
+                    await characteristic.writeValue(encoder.encode(INIT));
                 }
             }
 
@@ -492,10 +587,11 @@ export const printerService = {
             addLine('-'.repeat(32));
 
             // Sample Items
-            addLine('Produk Contoh 1');
-            addLine('2 x 15,000' + ' '.repeat(10) + '30,000');
-            addLine('Produk Contoh 2');
-            addLine('1 x 25,000' + ' '.repeat(10) + '25,000');
+            addLine('Produk Contoh 1' + ' '.repeat(10) + '30.000');
+            addLine('2 x 15.000');
+
+            addLine('Produk Contoh 2' + ' '.repeat(10) + '25.000');
+            addLine('1 x 25.000');
             addLine('-'.repeat(32));
 
             // Totals

@@ -8,6 +8,18 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        version: "0.16.8",
+        date: "2026-02-16",
+        type: "patch",
+        title: "Printer Perfection & Staging Environment",
+        changes: [
+            "Printer: Optimized 'Safe Mode' image processing (360px) to prevent logo scrambling on various 58mm printers.",
+            "Printer: Implemented Dynamic Character Width (32 vs 48 chars) based on paper setting for perfect right-alignment.",
+            "Staging: Renamed PWA and HTML title to 'KULA POS (Staging)' for better environment distinction.",
+            "Stability: Fixed Web Bluetooth connection issues by enforcing Secure Context checks."
+        ]
+    },
+    {
         version: "0.16.7",
         date: "2026-02-16",
         type: "patch",

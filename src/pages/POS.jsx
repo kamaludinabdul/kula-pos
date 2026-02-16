@@ -8,6 +8,7 @@ import { useShift } from '../context/ShiftContext';
 import { sendTransactionToTelegram } from '../services/telegram';
 import { printerService } from '../services/printer';
 import { constructTransactionData } from '../lib/transactionLogic';
+import { calculateLoyaltyPoints } from '../lib/loyaltyLogic';
 
 import { usePOS } from '../hooks/usePOS';
 import { printReceiptBrowser } from '../lib/receiptHelper';
@@ -421,37 +422,17 @@ const POS = () => {
             transactionData.date = txDate.toISOString();
         }
 
-        // Loyalty Logic
-        console.log("DEBUG: Loyalty Logic Check", {
-            isActive: currentStore?.loyaltySettings?.isActive,
-            hasCustomer: !!selectedCustomer,
+        // Loyalty Logic (Refactored)
+        const loyaltyResult = calculateLoyaltyPoints({
             loyaltySettings: currentStore?.loyaltySettings,
-            finalTotal: totals.finalTotal,
-            minTransaction: currentStore?.loyaltySettings?.minTransactionAmount
+            transactionTotal: totals.finalTotal,
+            selectedCustomer
         });
 
-        if (currentStore?.loyaltySettings?.isActive && selectedCustomer) {
-            const rule = currentStore.loyaltySettings;
-            if (rule.ruleType === 'minimum' && totals.finalTotal >= rule.minTransactionAmount) {
-                transactionData.pointsEarned = parseInt(rule.pointsReward) || 0;
-                console.log("DEBUG: Points Earned (Minimum)!", transactionData.pointsEarned);
-            } else if (rule.ruleType === 'multiple') {
-                const step = parseFloat(rule.ratioAmount) || 0;
-                if (step > 0) {
-                    const multipliers = Math.floor(totals.finalTotal / step);
-                    transactionData.pointsEarned = multipliers * (parseInt(rule.ratioPoints) || 0);
-                    console.log("DEBUG: Points Earned (Multiple)!", transactionData.pointsEarned, { multipliers, step, ratioPoints: rule.ratioPoints });
-                } else {
-                    console.log("DEBUG: Step (ratioAmount) is 0 or invalid for multiple rule", step);
-                }
-                console.log("DEBUG: Points condition failed or unknown type", rule.ruleType);
-            }
-        }
-        // Add total points for receipt display (Always snapshot if customer is selected)
-        transactionData.customerTotalPoints = selectedCustomer
-            ? ((parseInt(selectedCustomer.loyaltyPoints || selectedCustomer.points) || 0) + (transactionData.pointsEarned || 0))
-            : 0;
-        console.log("DEBUG: Total Customer Points", transactionData.customerTotalPoints);
+        transactionData.pointsEarned = loyaltyResult.pointsEarned;
+        transactionData.customerTotalPoints = loyaltyResult.customerTotalPoints;
+
+        console.log("DEBUG: Loyalty Logic Result", loyaltyResult);
 
 
         const result = await processSale(transactionData);
