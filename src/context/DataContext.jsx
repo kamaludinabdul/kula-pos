@@ -1920,16 +1920,15 @@ export const DataProvider = ({ children }) => {
 
             if (transactionData.customerId) {
                 setCustomers(prev => prev.map(c => {
-                    if (c.id === transactionData.customerId) {
+                    if (c && c.id === transactionData.customerId) {
                         const newDebt = transactionData.paymentMethod === 'debt'
                             ? (c.debt || 0) + transactionData.total
                             : (c.debt || 0);
                         return {
                             ...c,
                             total_spent: (c.total_spent || 0) + transactionData.total,
-                            // Use mapped camelCase or fallback to snake_case if mixed
+                            // Use mapped camelCase or fallback to snake_case if mixed, with defensive checks
                             loyaltyPoints: (c.loyaltyPoints || c.loyalty_points || 0) + (transactionData.pointsEarned || 0),
-                            // Also update snake_case for consistency if needed by other parts, or just use camelCase
                             loyalty_points: (c.loyaltyPoints || c.loyalty_points || 0) + (transactionData.pointsEarned || 0),
                             debt: newDebt
                         };

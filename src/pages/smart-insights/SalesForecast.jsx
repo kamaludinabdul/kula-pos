@@ -23,114 +23,122 @@ const SalesForecast = () => {
         if (!currentStore?.id) return;
         setLoading(true);
         try {
-            // Fetch last 30 days
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 45); // Fetch a bit more for buffer
+            // 1. Setup Date Range (Last 45 days to TODAY)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
+            const startDate = new Date(today);
+            startDate.setDate(today.getDate() - 45);
+
+            // Fetch transactions
             const { data: txList, error } = await supabase
                 .from('transactions')
                 .select('*')
                 .eq('store_id', currentStore.id)
-                .gte('date', thirtyDaysAgo.toISOString())
+                .gte('date', startDate.toISOString())
                 .order('date', { ascending: true });
 
             if (error) throw error;
 
+            // 2. Aggregate Sales by Date
             const dailyMap = {};
-
-            // Aggregate Daily Sales (excluding voided/refunded transactions)
             (txList || []).forEach(data => {
-                // Skip voided and refunded transactions
                 if (data.status === 'void' || data.status === 'refunded' || data.status === 'cancelled') return;
-
-                const d = new Date(data.date);
-                const key = d.toISOString().split('T')[0];
-                dailyMap[key] = (dailyMap[key] || 0) + (data.total || 0);
+                const dateKey = new Date(data.date).toISOString().split('T')[0];
+                dailyMap[dateKey] = (dailyMap[dateKey] || 0) + (data.total || 0);
             });
 
-            // Convert to Array & Sort
-            const historicalData = Object.entries(dailyMap)
-                .map(([date, total]) => ({ date, total }))
-                .sort((a, b) => new Date(a.date) - new Date(b.date));
+            // 3. Generate Continuous Timeline (Fill Gaps with 0)
+            const historicalData = [];
+            // Iterate from startDate up to TODAY
+            for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
+                const dateStr = d.toISOString().split('T')[0];
+                historicalData.push({
+                    date: dateStr,
+                    total: dailyMap[dateStr] || 0
+                });
+            }
 
-            // -- Improved Forecast Logic (Backtesting + Future) --
+            // 4. Calculate Historical Forecast & Error (Backtesting)
             const finalChart = [];
             let totalError = 0;
             let errorCount = 0;
 
-            // Requirement: At least 7 days of data recommended for 7-day moving average
-            if (historicalData.length > 0) {
-                for (let i = 0; i < historicalData.length; i++) {
-                    const current = historicalData[i];
-                    let historicalPrediction = null;
+            for (let i = 0; i < historicalData.length; i++) {
+                const current = historicalData[i];
+                let historicalPrediction = null;
 
-                    // Calculate 7-day moving average prediction for THIS day
-                    // based on previous 7 days.
-                    if (i >= 7) {
-                        const window = historicalData.slice(i - 7, i);
-                        const avg = window.reduce((sum, d) => sum + d.total, 0) / 7;
-                        historicalPrediction = Math.round(avg);
+                // 7-day Simple Moving Average
+                if (i >= 7) {
+                    const window = historicalData.slice(i - 7, i);
+                    const avg = window.reduce((sum, d) => sum + d.total, 0) / 7;
+                    historicalPrediction = Math.round(avg);
 
-                        // Calculate Accuracy Metric (Absolute Percentage Error)
-                        if (current.total > 0) {
-                            const error = Math.abs(current.total - historicalPrediction) / current.total;
-                            totalError += error;
-                            errorCount++;
-                        }
+                    // Error Calculation (MAPE) - Only if actual > 0
+                    if (current.total > 0) {
+                        const error = Math.abs(current.total - historicalPrediction) / current.total;
+                        totalError += error;
+                        errorCount++;
                     }
-
-                    finalChart.push({
-                        date: current.date,
-                        displayDate: new Date(current.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-                        actual: current.total,
-                        predicted: historicalPrediction,
-                        fullHash: current.date + 'act'
-                    });
                 }
 
-                // Generate Future Forecast
-                const windowSize = Math.min(historicalData.length, 7);
-                let lastDaysValues = historicalData.slice(-windowSize).map(d => d.total);
-                let currentAvg = lastDaysValues.reduce((a, b) => a + b, 0) / windowSize;
+                finalChart.push({
+                    date: current.date,
+                    displayDate: new Date(current.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+                    actual: current.total,
+                    predicted: historicalPrediction,
+                    fullHash: current.date + 'act'
+                });
+            }
 
-                // Add Connection Point (Last historical point starts the future line)
-                if (finalChart.length > 0) {
-                    finalChart[finalChart.length - 1].predicted = finalChart[finalChart.length - 1].actual;
-                }
+            // 5. Generate Future Forecast (Next 7 Days starting form Tomorrow)
+            // Use last 7 days of KNOWN data (up to today) for the first prediction
+            const windowSize = 7;
+            // Get last 7 days of actuals/zeros
+            let lastDaysValues = historicalData.slice(-windowSize).map(d => d.total);
+            // If we don't have enough data yet, pad with 0
+            while (lastDaysValues.length < windowSize) lastDaysValues.unshift(0);
 
-                for (let i = 1; i <= 7; i++) {
-                    const lastDate = new Date(finalChart[finalChart.length - 1].date);
-                    lastDate.setDate(lastDate.getDate() + 1);
-                    const nextDateStr = lastDate.toISOString().split('T')[0];
-                    const nextVal = Math.round(currentAvg);
+            let currentAvg = lastDaysValues.reduce((a, b) => a + b, 0) / windowSize;
 
-                    finalChart.push({
-                        date: nextDateStr,
-                        displayDate: new Date(nextDateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-                        actual: null,
-                        predicted: nextVal,
-                        fullHash: nextDateStr + 'pred'
-                    });
+            // Connect lines: Set "predicted" for Today to match "actual" (visual continuity)
+            if (finalChart.length > 0) {
+                const lastPoint = finalChart[finalChart.length - 1]; // This is Today
+                lastPoint.predicted = lastPoint.predicted || lastPoint.actual; // Ensure it has a value
+            }
 
-                    // Sliding window update for multi-step forecast
-                    lastDaysValues.shift();
-                    lastDaysValues.push(nextVal);
-                    currentAvg = lastDaysValues.reduce((a, b) => a + b, 0) / windowSize;
-                }
+            for (let i = 1; i <= 7; i++) {
+                const nextDate = new Date(today);
+                nextDate.setDate(today.getDate() + i);
+                const nextDateStr = nextDate.toISOString().split('T')[0];
+                const nextVal = Math.round(currentAvg);
+
+                finalChart.push({
+                    date: nextDateStr,
+                    displayDate: new Date(nextDateStr).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+                    actual: null,
+                    predicted: nextVal,
+                    fullHash: nextDateStr + 'pred'
+                });
+
+                // Update sliding window
+                lastDaysValues.shift();
+                lastDaysValues.push(nextVal);
+                currentAvg = lastDaysValues.reduce((a, b) => a + b, 0) / windowSize;
             }
 
             setChartData(finalChart);
 
+            // 6. Calculate Summaries
             const futureData = finalChart.filter(d => d.actual === null);
             const totalPred = futureData.reduce((acc, cur) => acc + cur.predicted, 0);
 
-            // Calculate trend
+            // Trend: Compare next 7 days sum vs last 7 days sum
             let pastTotal = 0;
             if (historicalData.length >= 7) {
                 pastTotal = historicalData.slice(-7).reduce((a, b) => a + b.total, 0);
             }
 
-            // Accuracy calculation
             const accuracy = errorCount > 0 ? Math.max(0, 100 - (totalError / errorCount * 100)) : 0;
 
             setPrediction({

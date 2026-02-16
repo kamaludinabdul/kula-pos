@@ -87,42 +87,65 @@ const MobilePOS = () => {
     };
 
     const processPayment = async (paymentDetails) => {
-        const { paymentMethod, cashAmount, change } = paymentDetails;
+        try {
+            const { paymentMethod, cashAmount, change } = paymentDetails;
 
-        // 1. Construct Transaction Data using shared logic
-        const transactionData = constructTransactionData({
-            cart,
-            totals,
-            user,
-            customer: null,
-            activeStoreId: currentStore?.id,
-            paymentMethod,
-            amountPaid: cashAmount,
-            change,
-            notes: '',
-            store: currentStore
-        });
+            // 1. Construct Transaction Data using shared logic
+            const transactionData = constructTransactionData({
+                cart,
+                totals,
+                user,
+                customer: null,
+                activeStoreId: currentStore?.id,
+                paymentMethod,
+                amountPaid: cashAmount,
+                change,
+                notes: '',
+                store: currentStore
+            });
 
-        // Add extras
-        transactionData.discountType = 'percentage';
-        transactionData.discountValue = 0;
-        transactionData.storeName = currentStore?.name;
-        transactionData.shiftId = currentShift?.id;
+            if (!transactionData) { throw new Error("Gagal menyusun data transaksi"); }
 
-        const result = await processSale(transactionData);
+            // Add extras
+            transactionData.discountType = 'percentage';
+            transactionData.discountValue = 0;
+            transactionData.storeName = currentStore?.name;
+            transactionData.shiftId = currentShift?.id;
 
-        if (result.success) {
-            await updateShiftStats(totals.finalTotal, paymentMethod, totals.discountAmount);
-            if (currentStore?.telegramNotifyTransaction) {
-                sendTransactionToTelegram({ ...transactionData, id: Date.now() }, { token: currentStore.telegramBotToken, chatId: currentStore.telegramChatId }, currentStore);
+            // Defensive: Only calculate customer points if customer exists
+            // MobilePOS doesn't always have selectedCustomer in context if not using full POS hook state?
+            // Actually MobilePOS uses: const { ... selectedCustomer ... } = usePOS();
+            // Let's check where selectedCustomer comes from.
+            // In the file above it is NOT destructured from usePOS().
+            // So selectedCustomer is undefined/null here.
+
+            // Fix: MobilePOS usually doesn't select customer yet (simplified flow).
+            // If we want to support it, we need to destructure it.
+            // For now, let's explicitly set it to 0 if no customer.
+
+            transactionData.customerTotalPoints = 0;
+            // If we later add customer selection to MobilePOS, we would do:
+            // if (selectedCustomer) { ... }
+
+            const result = await processSale(transactionData);
+
+            if (result.success) {
+                await updateShiftStats(totals.finalTotal, paymentMethod, totals.discountAmount);
+                if (currentStore?.telegramNotifyTransaction) {
+                    sendTransactionToTelegram({ ...transactionData, id: Date.now() }, { token: currentStore.telegramBotToken, chatId: currentStore.telegramChatId }, currentStore);
+                }
+                setLastTransaction({ ...transactionData, id: result.id });
+                setPaymentSuccess(true);
+                refreshTransactions();
+            } else {
+                alert(`Gagal Proses Transaksi: ${result.error}`);
             }
-            setLastTransaction({ ...transactionData, id: result.id });
-            setPaymentSuccess(true);
-            refreshTransactions();
-        } else {
-            alert(`Gagal: ${result.error}`);
+        } catch (err) {
+            console.error("Mobile Checkout Error:", err);
+            alert(`MobilePOS Exception: ${err.message}`);
         }
     };
+    // End processPayment
 
     return (
         <div className="flex flex-col h-screen bg-slate-50">

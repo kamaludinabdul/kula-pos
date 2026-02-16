@@ -448,7 +448,9 @@ const POS = () => {
             }
         }
         // Add total points for receipt display (Always snapshot if customer is selected)
-        transactionData.customerTotalPoints = (parseInt(selectedCustomer.loyaltyPoints || selectedCustomer.points) || 0) + (transactionData.pointsEarned || 0);
+        transactionData.customerTotalPoints = selectedCustomer
+            ? ((parseInt(selectedCustomer.loyaltyPoints || selectedCustomer.points) || 0) + (transactionData.pointsEarned || 0))
+            : 0;
         console.log("DEBUG: Total Customer Points", transactionData.customerTotalPoints);
 
 

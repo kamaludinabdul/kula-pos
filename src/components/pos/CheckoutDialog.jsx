@@ -82,26 +82,26 @@ const CheckoutDialog = ({
 
     const handleProcess = async () => {
         if (isProcessing) return;
-        setIsProcessing(true);
 
-        // Debug: Log backdate info
-        console.log('[CheckoutDialog] Backdate Debug:', {
-            canBackdate,
-            userRole: user?.role,
-            storeAllowBackdate: store?.settings?.allowBackdateTransaction,
-            transactionDate: transactionDate?.toISOString(),
-            willUseDate: (canBackdate ? transactionDate : new Date()).toISOString()
-        });
+        const parsedCash = parseFloat(cashAmount) || 0;
+
+        if (paymentMethod === 'cash' && parsedCash < total) {
+            alert(`Pembayaran Gagal: Uang tunai kurang! (Butuh: ${total}, Input: ${parsedCash})`);
+            return;
+        }
+
+        setIsProcessing(true);
 
         try {
             await onProcessPayment({
                 paymentMethod,
-                cashAmount: paymentMethod === 'cash' ? parseFloat(cashAmount) : total,
-                change: paymentMethod === 'cash' ? change : 0,
+                cashAmount: paymentMethod === 'cash' ? parsedCash : total,
+                change: paymentMethod === 'cash' ? (parsedCash - total) : 0,
                 transactionDate: canBackdate ? transactionDate : new Date() // NEW: Pass transaction date
             });
         } catch (error) {
             console.error("Payment failed", error);
+            alert(`Error System (CheckoutDialog): ${error.message}`);
         } finally {
             setIsProcessing(false);
         }
@@ -319,13 +319,13 @@ const CheckoutDialog = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !isProcessing && onClose(open)}>
-            <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
+            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto scrollbar-hide">
                 <DialogHeader>
                     <DialogTitle>Pembayaran</DialogTitle>
                     <DialogDescription>Total tagihan Rp {total.toLocaleString('id-ID')}</DialogDescription>
                 </DialogHeader>
 
-                <div className="py-4 space-y-6 flex-1 overflow-y-auto px-1">
+                <div className="py-4 space-y-6 px-1">
                     {/* Big Total & Loyalty Info */}
                     <div className="bg-slate-900 text-white p-6 rounded-xl text-center shadow-lg relative overflow-hidden">
                         <p className="text-slate-400 text-xs uppercase tracking-wider font-medium mb-1">Total Bayar</p>
@@ -408,6 +408,8 @@ const CheckoutDialog = ({
                                         <Input
                                             ref={cashInputRef}
                                             type="number"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
                                             className="pl-10 text-lg font-bold h-12"
                                             placeholder="0"
                                             value={cashAmount}
@@ -464,7 +466,7 @@ const CheckoutDialog = ({
                     </Tabs>
                 </div>
 
-                <DialogFooter className="flex flex-row gap-3 mt-4">
+                <DialogFooter className="flex flex-row gap-3 mt-4 pb-2">
                     <Button variant="outline" onClick={() => onClose(false)} disabled={isProcessing} className="flex-1">Batal</Button>
                     <Button
                         onClick={handleProcess}

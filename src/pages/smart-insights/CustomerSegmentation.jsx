@@ -8,6 +8,15 @@ import { Button } from '../../components/ui/button';
 import { Loader2, Users, Star, UserX, UserPlus, MessageCircle, RefreshCw } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { Textarea } from '../../components/ui/textarea';
+import { Input } from '../../components/ui/input';
+import { Checkbox } from '../../components/ui/checkbox';
+import { Label } from '../../components/ui/label';
+import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
+import { ScrollArea } from '../../components/ui/scroll-area';
+import { MessageSquare, ExternalLink, Check, Copy } from 'lucide-react';
+
 const CustomerSegmentation = () => {
     const { currentStore, customers } = useData();
     const [loading, setLoading] = useState(false);
@@ -19,19 +28,20 @@ const CustomerSegmentation = () => {
         new: []
     });
 
+    // Broadcast State
+    const [broadcastOpen, setBroadcastOpen] = useState(false);
+    const [selectedSegment, setSelectedSegment] = useState(null); // { name: 'Champions', data: [] }
+    const [message, setMessage] = useState('');
+    const [greetingType, setGreetingType] = useState('formal'); // formal, casual, personal, custom
+    const [clickedCustomers, setClickedCustomers] = useState({}); // { id: true }
+    const [customGreetingText, setCustomGreetingText] = useState('');
+    const [includeName, setIncludeName] = useState(true);
+
     const analyzeCustomers = React.useCallback(async () => {
         if (!currentStore?.id || customers.length === 0) return;
         setLoading(true);
 
         try {
-            // Fetch ALL transactions? Too heavy. 
-            // Better: If we have 'lastVisit', 'totalSpend' in customer doc, use that.
-            // Assuming customer docs are updated. If not, we might need to agg from transactions (heavy).
-            // Let's assume for MVP we fetch transactions but optimize/limit or rely on customer metadata if available.
-            // Checking DataContext customers... usually minimal data.
-            // Fallback: Fetch transactions for ALL time might be too much.
-            // Strategy: Fetch last 6 months transactions, agg by customerId.
-
             const sixMonthsAgo = new Date();
             sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
@@ -42,7 +52,7 @@ const CustomerSegmentation = () => {
                 .gte('date', sixMonthsAgo.toISOString());
 
             if (error) throw error;
-            const customerStats = {}; // customerId -> { lastDate, count, total }
+            const customerStats = {};
 
             (txList || []).forEach(t => {
                 if (!t.customer_id || t.customer_id === 'guest') return;
@@ -70,8 +80,6 @@ const CustomerSegmentation = () => {
             customers.forEach(cust => {
                 const stat = customerStats[cust.id];
                 if (!stat) {
-                    // No transactions in last 6 months? -> Lost or Brand New (never bought)
-                    // For simplicity, ignore or put in 'Lost'
                     return;
                 }
 
@@ -79,20 +87,13 @@ const CustomerSegmentation = () => {
                 const frequency = stat.count;
                 const monetary = stat.total;
 
-                // Scoring (Simplified Rules)
-                // Champions: Recent (<30 days), Frequent (>5), High Spender (> avg)
-                // Loyal: Recent (<60 days), Frequent (>3)
-                // New: Recent (<30 days), Low Freq (1-2)
-                // At Risk: Not Recent (60-90 days), Was Frequent
-                // Lost: Not Recent (>90 days)
-
                 const customerData = { ...cust, ...stat, daysSinceLast };
 
                 if (daysSinceLast > 90) {
                     tempSegments.lost.push(customerData);
                 } else if (daysSinceLast > 60) {
                     tempSegments.atRisk.push(customerData);
-                } else if (frequency > 5 && monetary > 1000000) { // Thresholds should be dynamic, but fixed for MVP
+                } else if (frequency > 5 && monetary > 1000000) {
                     tempSegments.champions.push(customerData);
                 } else if (frequency >= 3) {
                     tempSegments.loyal.push(customerData);
@@ -112,8 +113,55 @@ const CustomerSegmentation = () => {
 
     useEffect(() => {
         analyzeCustomers();
-
     }, [analyzeCustomers]);
+
+    // Broadcast Handlers
+    const openBroadcast = (segmentName, segmentData) => {
+        if (segmentData.length === 0) return;
+        setSelectedSegment({ name: segmentName, data: segmentData });
+        setBroadcastOpen(true);
+        setClickedCustomers({});
+        // Default message based on segment
+        if (segmentName === 'At Risk') {
+            setMessage("Kami merindukanmu! Ada promo spesial diskon 10% kalau belanja minggu ini. Yuk mampir lagi!");
+        } else if (segmentName === 'Champions') {
+            setMessage("Terima kasih sudah jadi pelanggan setia kami! Ini ada voucher khusus buat Kakak.");
+        } else {
+            setMessage("Halo, ada produk baru nih di toko kami. Cek yuk!");
+        }
+    };
+
+    const getGreeting = (name) => {
+        const hours = new Date().getHours();
+        let timeGreeting = "Pagi";
+        if (hours >= 10 && hours < 15) timeGreeting = "Siang";
+        else if (hours >= 15 && hours < 18) timeGreeting = "Sore";
+        else if (hours >= 18) timeGreeting = "Malam";
+
+        if (greetingType === 'formal') return `Selamat ${timeGreeting},`;
+        if (greetingType === 'casual') return `Halo Pelanggan Setia,`;
+        if (greetingType === 'personal') return `Halo Kak ${name || 'Pelanggan'},`;
+        if (greetingType === 'custom') return `${customGreetingText}${includeName ? ' ' + (name || '') : ''},`;
+        return "";
+    };
+
+    const handleSendWA = (customer) => {
+        const greeting = getGreeting(customer.name);
+        const fullMessage = `${greeting}\n\n${message}`;
+        const encoded = encodeURIComponent(fullMessage);
+
+        let phone = customer.phone;
+        if (!phone) return;
+
+        // Format phone (08 -> 628)
+        phone = phone.replace(/\D/g, '');
+        if (phone.startsWith('0')) phone = '62' + phone.substring(1);
+        if (phone.startsWith('8')) phone = '62' + phone;
+
+        window.open(`https://wa.me/${phone}?text=${encoded}`, '_blank');
+
+        setClickedCustomers(prev => ({ ...prev, [customer.id]: true }));
+    };
 
     const renderCustomerTable = (list) => (
         <div className="border rounded-md mt-4">
@@ -183,44 +231,52 @@ const CustomerSegmentation = () => {
                 </Button>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-5">
-                <div className="grid gap-4 md:grid-cols-5">
-                    <InfoCard
-                        title="Champions"
-                        value={segments.champions.length}
-                        icon={Star}
-                        variant="purple"
-                        description="Pelanggan terbaik"
-                    />
-                    <InfoCard
-                        title="Loyal"
-                        value={segments.loyal.length}
-                        icon={Users}
-                        variant="info"
-                        description="Rutin belanja"
-                    />
-                    <InfoCard
-                        title="New"
-                        value={segments.new.length}
-                        icon={UserPlus}
-                        variant="success"
-                        description="Baru bergabung"
-                    />
-                    <InfoCard
-                        title="At Risk"
-                        value={segments.atRisk.length}
-                        icon={UserX}
-                        variant="warning"
-                        description="Mulai jarang"
-                    />
-                    <InfoCard
-                        title="Lost"
-                        value={segments.lost.length}
-                        icon={UserX}
-                        variant="danger"
-                        description="Hampir hilang"
-                    />
-                </div>
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
+                <InfoCard
+                    title="Champions"
+                    value={segments.champions.length}
+                    icon={Star}
+                    variant="purple"
+                    description="Klik untuk Broadcast"
+                    className="cursor-pointer hover:ring-2 hover:ring-purple-200 transition-all hover:-translate-y-1"
+                    onClick={() => openBroadcast('Champions', segments.champions)}
+                />
+                <InfoCard
+                    title="Loyal"
+                    value={segments.loyal.length}
+                    icon={Users}
+                    variant="info"
+                    description="Klik untuk Broadcast"
+                    className="cursor-pointer hover:ring-2 hover:ring-blue-200 transition-all hover:-translate-y-1"
+                    onClick={() => openBroadcast('Loyal', segments.loyal)}
+                />
+                <InfoCard
+                    title="New"
+                    value={segments.new.length}
+                    icon={UserPlus}
+                    variant="success"
+                    description="Klik untuk Broadcast"
+                    className="cursor-pointer hover:ring-2 hover:ring-emerald-200 transition-all hover:-translate-y-1"
+                    onClick={() => openBroadcast('New', segments.new)}
+                />
+                <InfoCard
+                    title="At Risk"
+                    value={segments.atRisk.length}
+                    icon={UserX}
+                    variant="warning"
+                    description="Klik untuk Broadcast"
+                    className="cursor-pointer hover:ring-2 hover:ring-orange-200 transition-all hover:-translate-y-1"
+                    onClick={() => openBroadcast('At Risk', segments.atRisk)}
+                />
+                <InfoCard
+                    title="Lost"
+                    value={segments.lost.length}
+                    icon={UserX}
+                    variant="danger"
+                    description="Klik untuk Broadcast"
+                    className="cursor-pointer hover:ring-2 hover:ring-red-200 transition-all hover:-translate-y-1"
+                    onClick={() => openBroadcast('Lost', segments.lost)}
+                />
             </div>
 
             <Card className="col-span-4">
@@ -237,10 +293,111 @@ const CustomerSegmentation = () => {
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         </div>
                     ) : (
-                        renderCustomerTable(segments.atRisk, 'atRisk')
+                        renderCustomerTable(segments.atRisk)
                     )}
                 </CardContent>
             </Card>
+
+            {/* Broadcast Dialog */}
+            <Dialog open={broadcastOpen} onOpenChange={setBroadcastOpen}>
+                <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle>Broadcast WA - {selectedSegment?.name}</DialogTitle>
+                        <DialogDescription>
+                            Kirim pesan ke {selectedSegment?.data.length} pelanggan di segmen ini.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="flex-1 overflow-y-auto space-y-4 px-1">
+                        <div className="space-y-3 p-4 bg-slate-50 rounded-lg border border-slate-100">
+                            <div className="space-y-2">
+                                <Label>Pilih Sapaan (Bagian Awal Pesan)</Label>
+                                <RadioGroup defaultValue="formal" value={greetingType} onValueChange={setGreetingType} className="flex flex-wrap gap-4">
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="formal" id="r1" />
+                                        <Label htmlFor="r1">Formal</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="casual" id="r2" />
+                                        <Label htmlFor="r2">Umum</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="personal" id="r3" />
+                                        <Label htmlFor="r3">Personal</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="custom" id="r4" />
+                                        <Label htmlFor="r4">Custom</Label>
+                                    </div>
+                                </RadioGroup>
+
+                                {greetingType === 'custom' && (
+                                    <div className="mt-2 space-y-2">
+                                        <Input
+                                            placeholder="Contoh: Hai Pwstizen"
+                                            value={customGreetingText}
+                                            onChange={(e) => setCustomGreetingText(e.target.value)}
+                                            className="bg-white"
+                                        />
+                                        <div className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id="includeName"
+                                                checked={includeName}
+                                                onCheckedChange={setIncludeName}
+                                            />
+                                            <Label htmlFor="includeName" className="text-sm font-normal cursor-pointer">
+                                                Sertakan Nama Pelanggan (misal: Hai Pwstizen Budi,)
+                                            </Label>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Isi Pesan</Label>
+                                <Textarea
+                                    value={message}
+                                    onChange={(e) => setMessage(e.target.value)}
+                                    className="min-h-[100px] bg-white"
+                                    placeholder="Tulis pesan promosi Anda di sini..."
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Preview: {getGreeting("Budi")} {message}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Daftar Penerima ({selectedSegment?.data.length})</Label>
+                            <div className="border rounded-lg divide-y">
+                                {selectedSegment?.data.map((customer, idx) => (
+                                    <div key={idx} className="flex items-center justify-between p-3 hover:bg-slate-50 transition-colors">
+                                        <div className="flex flex-col">
+                                            <span className="font-medium text-sm flex items-center gap-2">
+                                                {customer.name}
+                                                {clickedCustomers[customer.id] && <Check className="h-3 w-3 text-green-500" />}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground">{customer.phone}</span>
+                                        </div>
+                                        <Button
+                                            size="sm"
+                                            variant={clickedCustomers[customer.id] ? "outline" : "default"}
+                                            className={clickedCustomers[customer.id] ? "text-green-600 border-green-200 bg-green-50" : "bg-green-600 hover:bg-green-700"}
+                                            onClick={() => handleSendWA(customer)}
+                                        >
+                                            {clickedCustomers[customer.id] ? (
+                                                <>Opened <ExternalLink className="ml-2 h-3 w-3" /></>
+                                            ) : (
+                                                <>Kirim WA <MessageSquare className="ml-2 h-3 w-3" /></>
+                                            )}
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

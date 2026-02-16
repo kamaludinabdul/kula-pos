@@ -8,6 +8,18 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        version: "0.16.7",
+        date: "2026-02-16",
+        type: "patch",
+        title: "Mobile POS Payment & Stability Fixes",
+        changes: [
+            "Mobile POS: Fixed 'Bayar' button unresponsive and 'loyaltyPoints' crash — added defensive checks for guest transactions.",
+            "POS: Fixed critical crash in Desktop POS when processing transaction without selected customer.",
+            "Customer Segmentation: Added 'Include Name' toggle for custom greetings in Broadcast feature.",
+            "Code Quality: Resolved linting errors in Customer Segmentation module."
+        ]
+    },
+    {
         version: "0.16.6",
         date: "2026-02-16",
         type: "patch",

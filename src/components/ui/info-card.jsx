@@ -44,10 +44,11 @@ export const InfoCard = ({
     variant = 'default',
     className,
     description,
-    trend
+    trend,
+    ...props
 }) => {
     return (
-        <Card className={cn("rounded-2xl border-none shadow-sm bg-white overflow-hidden", className)}>
+        <Card className={cn("rounded-2xl border-none shadow-sm bg-white overflow-hidden", className)} {...props}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
                 <CardTitle className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate pr-2">
                     {title}
