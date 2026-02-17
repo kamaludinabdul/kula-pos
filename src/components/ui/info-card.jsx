@@ -50,7 +50,7 @@ export const InfoCard = ({
     return (
         <Card className={cn("rounded-2xl border-none shadow-sm bg-white overflow-hidden", className)} {...props}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
-                <CardTitle className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate pr-2">
+                <CardTitle className="text-[10px] font-bold text-slate-400 uppercase tracking-widest break-words pr-2 line-clamp-2">
                     {title}
                 </CardTitle>
                 {Icon && (
@@ -61,7 +61,7 @@ export const InfoCard = ({
             </CardHeader>
             <CardContent className="p-4 pt-0">
                 <div className="flex items-baseline gap-2">
-                    <div className="text-2xl font-extrabold text-slate-900 truncate">
+                    <div className="text-lg sm:text-2xl font-extrabold text-slate-900 break-words">
                         {value}
                     </div>
                     {/* Optional Trend Indicator */}
