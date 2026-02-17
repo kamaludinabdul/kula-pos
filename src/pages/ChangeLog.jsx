@@ -8,6 +8,17 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        version: "0.16.9",
+        date: "2026-02-17",
+        type: "patch",
+        title: "Sales Forecast & Maintenance",
+        changes: [
+            "Sales Forecast: Fixed zero prediction bug caused by timezone mismatch (UTC vs Local).",
+            "Maintenance: Fixed `npm run lint` hanging issue by optimizing ignore patterns.",
+            "Sysadmin: Installed `baseline-browser-mapping` for development."
+        ]
+    },
+    {
         version: "0.16.8",
         date: "2026-02-16",
         type: "patch",

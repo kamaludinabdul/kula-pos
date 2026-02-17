@@ -47,7 +47,7 @@ const CustomerSegmentation = () => {
 
             const { data: txList, error } = await supabase
                 .from('transactions')
-                .select('*')
+                .select('customer_id,date,total')
                 .eq('store_id', currentStore.id)
                 .gte('date', sixMonthsAgo.toISOString());
 

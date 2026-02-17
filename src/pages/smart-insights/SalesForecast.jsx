@@ -40,11 +40,12 @@ const SalesForecast = () => {
 
             if (error) throw error;
 
-            // 2. Aggregate Sales by Date
+            // 2. Aggregate Sales by Date (Use Local Date to match user's day)
             const dailyMap = {};
             (txList || []).forEach(data => {
                 if (data.status === 'void' || data.status === 'refunded' || data.status === 'cancelled') return;
-                const dateKey = new Date(data.date).toISOString().split('T')[0];
+                // Use en-CA for YYYY-MM-DD format in local time
+                const dateKey = new Date(data.date).toLocaleDateString('en-CA');
                 dailyMap[dateKey] = (dailyMap[dateKey] || 0) + (data.total || 0);
             });
 
@@ -52,7 +53,8 @@ const SalesForecast = () => {
             const historicalData = [];
             // Iterate from startDate up to TODAY
             for (let d = new Date(startDate); d <= today; d.setDate(d.getDate() + 1)) {
-                const dateStr = d.toISOString().split('T')[0];
+                // Use en-CA to match the key format
+                const dateStr = d.toLocaleDateString('en-CA');
                 historicalData.push({
                     date: dateStr,
                     total: dailyMap[dateStr] || 0
@@ -110,7 +112,8 @@ const SalesForecast = () => {
             for (let i = 1; i <= 7; i++) {
                 const nextDate = new Date(today);
                 nextDate.setDate(today.getDate() + i);
-                const nextDateStr = nextDate.toISOString().split('T')[0];
+                // Use en-CA for local date string
+                const nextDateStr = nextDate.toLocaleDateString('en-CA');
                 const nextVal = Math.round(currentAvg);
 
                 finalChart.push({

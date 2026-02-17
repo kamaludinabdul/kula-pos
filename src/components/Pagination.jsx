@@ -26,8 +26,8 @@ const Pagination = ({
                 <Select
                     value={itemsPerPage.toString()}
                     onValueChange={(val) => {
-                        onItemsPerPageChange(Number(val));
-                        onPageChange(1); // Reset to page 1 when changing page size
+                        onItemsPerPageChange?.(Number(val));
+                        onPageChange?.(1); // Reset to page 1 when changing page size
                     }}
                 >
                     <SelectTrigger className="h-8 w-[70px]">

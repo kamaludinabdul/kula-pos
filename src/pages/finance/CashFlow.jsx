@@ -45,7 +45,7 @@ const CashFlow = () => {
 
     const categories = React.useMemo(() => ({
         in: ['Penjualan (Manual)', 'Penjualan (Rekap)', 'Modal Tambahan', 'Pendapatan Lain-lain'],
-        out: ['Operasional', 'Gaji Karyawan', 'Sewa Tempat', 'Listrik & Air', 'Internet', 'Maintenance', 'Perlengkapan', 'Lain-lain']
+        out: ['Operasional', 'Gaji Karyawan', 'Sewa Tempat', 'Listrik & Air', 'Internet', 'Maintenance', 'Perlengkapan', 'Belanja Pakan', 'Lain-lain']
     }), []);
 
 
@@ -611,6 +611,7 @@ const CashFlow = () => {
                                 </TableHead>
                                 <TableHead>Sumber</TableHead>
                                 <TableHead>Kategori</TableHead>
+                                <TableHead>Grup</TableHead>
                                 <TableHead>Keterangan</TableHead>
                                 <TableHead>Oleh</TableHead>
                                 <TableHead className="text-right">
@@ -637,11 +638,11 @@ const CashFlow = () => {
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="text-center py-12 text-slate-400">Memuat data...</TableCell>
+                                    <TableCell colSpan={9} className="text-center py-12 text-slate-400">Memuat data...</TableCell>
                                 </TableRow>
                             ) : displayTransactions.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="text-center py-12 text-slate-400 font-medium">Belum ada data transaksi sesuai filter</TableCell>
+                                    <TableCell colSpan={9} className="text-center py-12 text-slate-400 font-medium">Belum ada data transaksi sesuai filter</TableCell>
                                 </TableRow>
                             ) : (
                                 displayTransactions.map((t) => (
@@ -659,6 +660,15 @@ const CashFlow = () => {
                                                 }`}>
                                                 {t.category}
                                             </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            {t.type === 'out' && t.expenseGroup ? (
+                                                <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${t.expenseGroup === 'operational' ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-200' : 'bg-amber-50 text-amber-600 ring-1 ring-amber-200'}`}>
+                                                    {t.expenseGroup === 'operational' ? 'OPEX' : 'CAPEX'}
+                                                </span>
+                                            ) : (
+                                                <span className="text-slate-300">-</span>
+                                            )}
                                         </TableCell>
                                         <TableCell className="max-w-[200px] truncate text-slate-600" title={t.description}>{t.description || '-'}</TableCell>
                                         <TableCell className="text-slate-500 text-xs font-medium">{t.performedBy}</TableCell>
@@ -710,6 +720,11 @@ const CashFlow = () => {
                                     >
                                         {t.category}
                                     </Badge>
+                                    {t.type === 'out' && t.expenseGroup && (
+                                        <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${t.expenseGroup === 'operational' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'}`}>
+                                            {t.expenseGroup === 'operational' ? 'OPEX' : 'CAPEX'}
+                                        </span>
+                                    )}
                                     <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{t.performedBy}</p>
                                 </div>
                             </div>
