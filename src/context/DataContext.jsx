@@ -232,14 +232,14 @@ export const DataProvider = ({ children }) => {
                         printerChunkSize: s.settings?.printerChunkSize,
                         printerChunkDelay: s.settings?.printerChunkDelay,
                         printLogo: s.settings?.printLogo !== undefined ? s.settings.printLogo : true, // Default to true
-                        receiptHeader: s.settings?.receiptHeader || '',
-                        receiptFooter: s.settings?.receiptFooter || '',
 
                         // --- Device Specific Settings (LocalStorage Override) ---
                         // These should be device-specific, not store-wide.
                         // Check local first, fallback to DB setting.
                         printerType: localStorage.getItem(`printerType_${s.id}`) || s.settings?.printerType || 'bluetooth',
                         printerWidth: localStorage.getItem(`printerWidth_${s.id}`) || s.settings?.printerWidth || '58mm',
+                        receiptHeader: localStorage.getItem(`receiptHeader_${s.id}`) || s.settings?.receiptHeader || '',
+                        receiptFooter: localStorage.getItem(`receiptFooter_${s.id}`) || s.settings?.receiptFooter || '',
                         autoPrintReceipt: localStorage.getItem(`autoPrint_${s.id}`) !== null
                             ? localStorage.getItem(`autoPrint_${s.id}`) === 'true'
                             : (s.settings?.autoPrintReceipt || false)

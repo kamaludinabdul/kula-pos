@@ -78,6 +78,8 @@ const PrinterSettings = () => {
         try {
             localStorage.setItem(`printerType_${activeStoreId}`, formData.printerType);
             localStorage.setItem(`printerWidth_${activeStoreId}`, formData.printerWidth);
+            localStorage.setItem(`receiptHeader_${activeStoreId}`, formData.receiptHeader);
+            localStorage.setItem(`receiptFooter_${activeStoreId}`, formData.receiptFooter);
             if (formData.autoPrintReceipt !== undefined) {
                 localStorage.setItem(`autoPrint_${activeStoreId}`, String(formData.autoPrintReceipt));
             }
