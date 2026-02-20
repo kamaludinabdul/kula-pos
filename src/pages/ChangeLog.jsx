@@ -8,6 +8,16 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        version: "0.16.13",
+        date: "2026-02-20",
+        type: "patch",
+        title: "PWA Printer Settings Fix",
+        changes: [
+            "Settings: Fixed an issue where the Kasir (Cashier) account could not save the receipt's Header and Footer text locally in the PWA.",
+            "Database: Properly mapped receipt header and footer settings to correctly load from cloud backups when logged in."
+        ]
+    },
+    {
         version: "0.16.11",
         date: "2026-02-20",
         type: "patch",
