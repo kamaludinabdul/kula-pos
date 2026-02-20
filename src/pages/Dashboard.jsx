@@ -7,12 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { InfoCard } from '../components/ui/info-card';
 import DashboardCharts from './dashboard-components/DashboardCharts';
 import { safeSupabaseRpc } from '../utils/supabaseHelper';
+
 import { SmartDatePicker } from '../components/SmartDatePicker';
-
-
-
-
-
 
 import { useAuth } from '../context/AuthContext';
 
@@ -26,6 +22,16 @@ const formatCurrency = (val) => {
 
 const Dashboard = () => {
     const { user } = useAuth();
+
+    // Helper to get Timezone
+    const userTimezone = useMemo(() => {
+        try {
+            return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta';
+        } catch {
+            return 'Asia/Jakarta';
+        }
+    }, []);
+
     const [selectedTransaction, setSelectedTransaction] = useState(null);
     const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
     const { currentStore, products: rawProducts, customers: rawCustomers, summary } = useData();
@@ -111,7 +117,9 @@ const Dashboard = () => {
                         p_store_id: currentStore.id,
                         p_start_date: start.toISOString(),
                         p_end_date: end.toISOString(),
-                        p_period: isSingleDay ? 'hour' : 'day'
+                        p_period: isSingleDay ? 'hour' : 'day',
+                        p_timezone: userTimezone
+
                     }
                 });
 
@@ -135,7 +143,7 @@ const Dashboard = () => {
         };
 
         fetchDashboardData();
-    }, [dateRange, currentStore, isSingleDay]);
+    }, [dateRange, currentStore, isSingleDay, userTimezone]);
 
     const chartData = useMemo(() => {
         if (!canViewFinancials) return [];

@@ -331,16 +331,29 @@ const Staff = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        console.log("DEBUG: handleSubmit called");
+        console.log("DEBUG: activeStoreId", activeStoreId);
+        console.log("DEBUG: currentStaff", currentStaff);
+        console.log("DEBUG: isEditing", isEditing);
+
         if (!activeStoreId) {
             showAlert("Error", "Terjadi kesalahan: Tidak ada toko yang aktif.");
             return;
         }
 
         try {
+            let finalEmail = currentStaff.email;
             // Auto-generate email from username if needed
-            let finalEmail = currentStaff.email ? currentStaff.email.trim().toLowerCase() : '';
             if (finalEmail && !finalEmail.includes('@')) {
                 finalEmail = `${finalEmail.replace(/\s+/g, '')}@kula.id`;
+            }
+
+            // VALIDATION: Password wajib untuk staff baru
+            if (!isEditing) {
+                if (!currentStaff.password || currentStaff.password.length < 6) {
+                    showAlert("Validasi Gagal", "Password/PIN wajib diisi untuk staff baru (minimal 6 karakter).");
+                    return;
+                }
             }
 
             if (isEditing) {
@@ -666,7 +679,7 @@ const Staff = () => {
                             </p>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="staffPassword">Password / PIN Login {isEditing ? '(Opsional)' : ''}</Label>
+                            <Label htmlFor="staffPassword">Password / PIN Login {isEditing ? '(Opsional)' : <span className="text-red-500">*</span>}</Label>
                             <div className="relative">
                                 <Input
                                     id="staffPassword"
@@ -674,6 +687,7 @@ const Staff = () => {
                                     value={currentStaff.password || ''}
                                     onChange={(e) => setCurrentStaff({ ...currentStaff, password: e.target.value })}
                                     placeholder={isEditing ? "(Biarkan kosong jika tidak diubah)" : "Minimal 6 karakter"}
+                                    required={!isEditing}
                                 />
                                 <button
                                     type="button"

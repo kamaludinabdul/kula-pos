@@ -18,6 +18,16 @@ const OwnerDashboard = () => {
     const { user } = useAuth();
     const { stores } = useData();
 
+    // Helper to get Timezone
+    const userTimezone = useMemo(() => {
+        try {
+            return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta';
+        } catch {
+            return 'Asia/Jakarta';
+        }
+    }, []);
+
+
     const [dateRange, setDateRange] = useState('today');
     const [customStartDate, setCustomStartDate] = useState('');
     const [customEndDate, setCustomEndDate] = useState('');
@@ -121,7 +131,11 @@ const OwnerDashboard = () => {
             try {
                 const data = await safeSupabaseRpc({
                     rpcName: 'get_owner_financial_summary',
-                    params: { p_year: selectedYear }
+                    params: {
+                        p_year: selectedYear,
+                        p_timezone: userTimezone
+                    }
+
                 });
                 if (data && !data.error) {
                     setFinancialSummary(data);
@@ -131,7 +145,7 @@ const OwnerDashboard = () => {
             }
         };
         fetchFinancialSummary();
-    }, [selectedYear, user]);
+    }, [selectedYear, user, userTimezone]);
 
     useEffect(() => {
         const fetchDailySales = async () => {
@@ -177,7 +191,9 @@ const OwnerDashboard = () => {
                     params: {
                         p_start_date: start.toISOString(),
                         p_end_date: end.toISOString(),
-                        p_period: period
+                        p_period: period,
+                        p_timezone: userTimezone
+
                     }
                 });
                 if (data && !data.error) {
@@ -189,8 +205,9 @@ const OwnerDashboard = () => {
                 setIsDailyLoading(false);
             }
         };
+
         fetchDailySales();
-    }, [dateRange, customStartDate, customEndDate, user]);
+    }, [dateRange, customStartDate, customEndDate, user, userTimezone]);
 
     // --- Computed Data for UI ---
 

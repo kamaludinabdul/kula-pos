@@ -8,6 +8,27 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        version: "0.16.11",
+        date: "2026-02-20",
+        type: "patch",
+        title: "Staff Registration & Dashboard Timezone",
+        changes: [
+            "Dashboard: Fixed timezone mismatches causing empty charts or wrong days in Daily Sales and Financial Summaries.",
+            "Staff Management: Added strict validation requiring a password/PIN (min 6 chars) for new staff registration."
+        ]
+    },
+    {
+        version: "0.16.10",
+        date: "2026-02-18",
+        type: "patch",
+        title: "Land Profile UI Consistency",
+        changes: [
+            "Land Profile: Synchronized search and filter component styling with Land Availability section for consistency.",
+            "Land Profile: Fixed tabs layout to be properly positioned relative to the table container.",
+            "Code Quality: Cleaned up unused variables and imports in Dashboard and OwnerDashboard."
+        ]
+    },
+    {
         version: "0.16.9",
         date: "2026-02-17",
         type: "patch",
