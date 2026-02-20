@@ -232,6 +232,8 @@ export const DataProvider = ({ children }) => {
                         printerChunkSize: s.settings?.printerChunkSize,
                         printerChunkDelay: s.settings?.printerChunkDelay,
                         printLogo: s.settings?.printLogo !== undefined ? s.settings.printLogo : true, // Default to true
+                        receiptHeader: s.settings?.receiptHeader || '',
+                        receiptFooter: s.settings?.receiptFooter || '',
 
                         // --- Device Specific Settings (LocalStorage Override) ---
                         // These should be device-specific, not store-wide.
