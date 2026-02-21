@@ -547,14 +547,14 @@ export const DataProvider = ({ children }) => {
     const fetchStockMovements = useCallback(async () => {
         if (!activeStoreId) return;
         try {
-            const { data, error } = await supabase
-                .from('stock_movements')
-                .select('*')
-                .eq('store_id', activeStoreId)
-                .order('date', { ascending: false })
-                .limit(500);
-
-            if (error) throw error;
+            const data = await safeSupabaseRpc({
+                rpcName: 'get_stock_history',
+                params: {
+                    p_store_id: activeStoreId,
+                    p_product_id: null,
+                    p_limit: 500
+                }
+            });
 
             // Robust check: ensure data is an array
             if (!Array.isArray(data)) {

@@ -165,9 +165,8 @@ describe('PurchaseOrderForm', () => {
         fireEvent.change(searchInput, { target: { value: 'Keramik' } });
         fireEvent.click(await screen.findByText('Keramik'));
 
-        // Check Price Input (Should be Base Price: 2500000)
-        // With FormattedNumberInput, it might be formatted "2.500.000"
-        const priceInput = screen.getAllByDisplayValue('2500000')[0];
+        // Check Price Input (Should be PO Price: 2500000 * 50 = 125000000)
+        const priceInput = screen.getAllByDisplayValue('125000000')[0];
         expect(priceInput).toBeInTheDocument();
 
         // Check Subtotal (Base Price * Total PCS)

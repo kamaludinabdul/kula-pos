@@ -252,9 +252,8 @@ const PurchaseOrderForm = () => {
                 qtyBase = qtyPO;
             }
 
-            // Determine Price (Reuse logic from handleAddProduct roughly)
-            let baseBuyPrice = parseInt(product.buyPrice) || 0;
-            let determinedPrice = hasConversion ? (baseBuyPrice * conversion) : baseBuyPrice;
+            // Determine Price
+            let determinedPrice = parseInt(product.buyPrice) || 0; // This is per PCS (Base Price)
 
             // Check history for better price (simplified: assume same supplier if set)
             // (Skipping history check for bulk add to keep it fast, user can adjust)
@@ -265,7 +264,8 @@ const PurchaseOrderForm = () => {
                 qty: qtyPO,
                 qtyBase: qtyBase,
                 buyPrice: determinedPrice,
-                subtotal: determinedPrice * qtyPO
+                poPrice: determinedPrice * conversion,
+                subtotal: determinedPrice * qtyBase
             });
             addedCount++;
         });
@@ -350,6 +350,11 @@ const PurchaseOrderForm = () => {
                 if (isHealed || newItem.purchaseUnit === undefined) newItem.purchaseUnit = product.purchaseUnit;
                 if (isHealed || newItem.conversionToUnit === undefined) newItem.conversionToUnit = product.conversionToUnit;
 
+                // Hydrate poPrice
+                if (newItem.poPrice === undefined) {
+                    newItem.poPrice = (parseFloat(newItem.buyPrice) || 0) * (newItem.conversionToUnit ? parseInt(newItem.conversionToUnit) : 1);
+                }
+
                 return newItem;
             });
 
@@ -418,6 +423,7 @@ const PurchaseOrderForm = () => {
             qty: initialQty,
             qtyBase: initialQtyBase,
             buyPrice: determinedPrice,
+            poPrice: determinedPrice * conversion,
             // Subtotal = Qty Base (Tot PCS) * Price Base
             subtotal: determinedPrice * initialQtyBase,
             // Store product metadata for display (fallback when products not loaded)
@@ -449,9 +455,14 @@ const PurchaseOrderForm = () => {
             // If Base Qty changed, update PO Qty
             const calculatedPOQty = value ? Math.ceil(value / conversion) : '';
             newItems[index].qty = calculatedPOQty;
+        } else if (field === 'poPrice') {
+            const newPOPrice = parseFloat(value) || 0;
+            newItems[index].buyPrice = newPOPrice / conversion;
+        } else if (field === 'buyPrice') {
+            const newBuyPrice = parseFloat(value) || 0;
+            newItems[index].poPrice = newBuyPrice * conversion;
         }
 
-        // Recalculate Subtotal
         // Recalculate Subtotal
         // Logic: Qty Base (Total PCS) * Price (Per PCS)
         const qtyBase = parseFloat(newItems[index].qtyBase) || 0;
@@ -871,10 +882,9 @@ const PurchaseOrderForm = () => {
                                 </TableHead>
                                 <TableHead className="w-[120px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">QTY PO</TableHead>
                                 <TableHead className="w-[100px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Satuan</TableHead>
-                                <TableHead className="w-[100px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center print:hidden">Berat (Kg)</TableHead>
-                                <TableHead className="w-[150px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Harga Beli PO</TableHead>
+                                <TableHead className="w-[150px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Harga Beli PO</TableHead>
                                 <TableHead className="w-[120px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">QTY PCS</TableHead>
-                                <TableHead className="w-[150px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Harga Satuan</TableHead>
+                                <TableHead className="w-[150px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Harga Satuan</TableHead>
                                 <TableHead className="w-[150px] text-right text-[10px] font-bold uppercase tracking-widest text-slate-500 pr-6">Subtotal</TableHead>
                                 {!isReadOnly && <TableHead className="w-[50px]"></TableHead>}
                             </TableRow>
@@ -922,20 +932,15 @@ const PurchaseOrderForm = () => {
                                                     {totalItemWeight.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 3 })} Kg
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="text-right">
-                                                {(() => {
-                                                    const conversion = itemConversionToUnit ? Number(itemConversionToUnit) : 1;
-                                                    if (hasConversion && conversion > 1) {
-                                                        const poPrice = (Number(item.buyPrice) || 0) * conversion;
-                                                        return (
-                                                            <div className="space-y-0.5">
-                                                                <p className="font-bold text-slate-900">Rp {poPrice.toLocaleString('id-ID')}</p>
-                                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">@ {itemConversionToUnit} {itemUnit}</p>
-                                                            </div>
-                                                        );
-                                                    }
-                                                    return <span className="font-bold text-slate-900">Rp {(Number(item.buyPrice) || 0).toLocaleString('id-ID')}</span>;
-                                                })()}
+                                            <TableCell className="text-center">
+                                                <Input
+                                                    type="number"
+                                                    min="0"
+                                                    value={item.poPrice !== undefined ? item.poPrice : (item.buyPrice * (itemConversionToUnit ? Number(itemConversionToUnit) : 1))}
+                                                    onChange={e => updateItem(index, 'poPrice', e.target.value)}
+                                                    disabled={isReadOnly}
+                                                    className="h-9 w-28 mx-auto text-center rounded-lg border-slate-200 font-bold"
+                                                />
                                             </TableCell>
                                             <TableCell className="text-center">
                                                 <Input
@@ -947,15 +952,19 @@ const PurchaseOrderForm = () => {
                                                     className="h-9 w-20 mx-auto text-center bg-slate-50 font-bold rounded-lg border-slate-200"
                                                 />
                                             </TableCell>
-                                            <TableCell className="text-center">
-                                                <Input
-                                                    type="number"
-                                                    min="0"
-                                                    value={item.buyPrice}
-                                                    onChange={e => updateItem(index, 'buyPrice', e.target.value)}
-                                                    disabled={isReadOnly}
-                                                    className="h-9 w-28 mx-auto text-center rounded-lg border-slate-200 font-bold"
-                                                />
+                                            <TableCell className="text-right">
+                                                {(() => {
+                                                    const conversion = itemConversionToUnit ? Number(itemConversionToUnit) : 1;
+                                                    if (hasConversion && conversion > 1) {
+                                                        return (
+                                                            <div className="space-y-0.5">
+                                                                <p className="font-bold text-slate-900">Rp {(Number(item.buyPrice) || 0).toLocaleString('id-ID')}</p>
+                                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">per {itemUnit}</p>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return <span className="font-bold text-slate-900">Rp {(Number(item.buyPrice) || 0).toLocaleString('id-ID')}</span>;
+                                                })()}
                                             </TableCell>
                                             <TableCell className="text-right font-extrabold text-slate-900 pr-6">
                                                 Rp {(item.subtotal || 0).toLocaleString('id-ID')}
@@ -1025,17 +1034,20 @@ const PurchaseOrderForm = () => {
                                             />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Harga Satuan</label>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Harga Beli PO</label>
                                             <div className="relative">
                                                 <span className="absolute left-3 top-2.5 text-xs font-bold text-slate-400">Rp</span>
                                                 <Input
                                                     type="number"
-                                                    value={item.buyPrice}
-                                                    onChange={e => updateItem(index, 'buyPrice', e.target.value)}
+                                                    value={item.poPrice !== undefined ? item.poPrice : (item.buyPrice * (itemConversionToUnit ? Number(itemConversionToUnit) : 1))}
+                                                    onChange={e => updateItem(index, 'poPrice', e.target.value)}
                                                     disabled={isReadOnly}
                                                     className="h-10 pl-8 rounded-xl border-slate-200 font-extrabold text-slate-900 focus:ring-indigo-500"
                                                 />
                                             </div>
+                                            {hasConversion && Number(itemConversionToUnit) > 1 && (
+                                                <p className="text-[10px] text-slate-500 ml-1 mt-1">@ Rp {(Number(item.buyPrice) || 0).toLocaleString('id-ID')} / {itemUnit}</p>
+                                            )}
                                         </div>
                                     </div>
 
