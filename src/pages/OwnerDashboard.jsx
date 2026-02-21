@@ -41,6 +41,7 @@ const OwnerDashboard = () => {
         totalTransactions: 0,
         avgOrder: 0,
         totalStores: 0,
+        totalProfit: 0,
         storeBreakdown: []
     });
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -111,6 +112,7 @@ const OwnerDashboard = () => {
                         totalTransactions: Number(data.totalTransactions) || 0,
                         avgOrder: Number(data.avgOrder) || 0,
                         totalStores: Number(data.totalStores) || ownerStores.length,
+                        totalProfit: Number(data.totalProfit) || 0,
                         storeBreakdown: data.storeBreakdown || []
                     });
                 }
@@ -491,12 +493,18 @@ const OwnerDashboard = () => {
             </Card>
 
             {/* Summary Stats Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 <InfoCard
                     title="Total Omzet"
                     value={`Rp ${stats.sales.toLocaleString('en-US')}`}
                     icon={DollarSign}
                     variant="primary"
+                />
+                <InfoCard
+                    title="Laba Bersih"
+                    value={`Rp ${(dashboardData.totalProfit || 0).toLocaleString('en-US')}`}
+                    icon={TrendingUp}
+                    variant="success"
                 />
                 <InfoCard
                     title="Total Transaksi"
@@ -552,7 +560,7 @@ const OwnerDashboard = () => {
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8fafc" />
                                         <XAxis dataKey="monthLabel" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)} jt` : v.toLocaleString('en-US')} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => v >= 1000000 ? `${Number((v / 1000000).toFixed(2))} jt` : v.toLocaleString('en-US')} />
                                         <Tooltip
                                             cursor={{ fill: '#f1f5f9' }}
                                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
@@ -589,7 +597,7 @@ const OwnerDashboard = () => {
                                     <BarChart data={transformedFinancials} barGap={4}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8fafc" />
                                         <XAxis dataKey="monthLabel" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)} jt` : v.toLocaleString('en-US')} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => v >= 1000000 ? `${Number((v / 1000000).toFixed(2))} jt` : v.toLocaleString('en-US')} />
                                         <Tooltip
                                             cursor={{ fill: '#f1f5f9' }}
                                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
@@ -626,7 +634,7 @@ const OwnerDashboard = () => {
                                     <BarChart data={transformedFinancials} barGap={4}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8fafc" />
                                         <XAxis dataKey="monthLabel" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)} jt` : v.toLocaleString('en-US')} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => v >= 1000000 ? `${Number((v / 1000000).toFixed(2))} jt` : v.toLocaleString('en-US')} />
                                         <Tooltip
                                             cursor={{ fill: '#f1f5f9' }}
                                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}

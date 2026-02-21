@@ -97,7 +97,11 @@ const DashboardCharts = ({ currentStore }) => {
     }
 
     const formatCurrency = (val) => {
-        if (val >= 1000000) return `${(val / 1000000).toFixed(1)} jt`;
+        if (val >= 1000000) {
+            // Show up to 2 decimals, but remove trailing zeros (e.g., 12.06 jt, 12 jt)
+            const num = (val / 1000000).toFixed(2);
+            return `${Number(num)} jt`;
+        }
         if (val >= 1000) return `${(val / 1000).toFixed(0)} rb`;
         return `${val}`;
     };
@@ -242,6 +246,32 @@ const DashboardCharts = ({ currentStore }) => {
                                     <YAxis width={60} fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
                                     <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
                                     <Bar dataKey="totalOpEx" fill="url(#colorExpense)" radius={[6, 6, 0, 0]} name="Pengeluaran Ops" barSize={24} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* 5. Laba Bersih Bulanan (Bar) */}
+                <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden md:col-span-2">
+                    <CardHeader className="p-4 lg:p-6 pb-0">
+                        <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Laba Bersih Bulanan</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 lg:p-6">
+                        <div className="h-[250px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartData}>
+                                    <defs>
+                                        <linearGradient id="colorNetProfit" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
+                                            <stop offset="100%" stopColor="#34d399" stopOpacity={0.8} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                    <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
+                                    <YAxis width={60} fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
+                                    <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
+                                    <Bar dataKey="totalProfit" fill="url(#colorNetProfit)" radius={[6, 6, 0, 0]} name="Laba Bersih" barSize={24} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>

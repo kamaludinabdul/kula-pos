@@ -71,7 +71,12 @@ export const REQUIRED_PLANS = {
     'finance.cash_flow': 'pro',
     'customers.read': 'pro',
     'others.recommendations': 'enterprise',
-    'features.shopping_recommendations': 'enterprise'
+    'features.shopping_recommendations': 'enterprise',
+    'features.ai_bundling': 'enterprise',
+    'features.ai_budgeting': 'enterprise',
+    'features.ai_pricing': 'enterprise',
+    'features.ai_fraud_detection': 'enterprise',
+    'features.telegram_reports': 'enterprise'
 };
 
 export const checkPlanAccess = (currentPlan, requiredPlan) => {

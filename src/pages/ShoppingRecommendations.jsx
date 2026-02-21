@@ -40,6 +40,7 @@ import {
     DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { checkPlanAccess } from '../utils/plans';
+import { getRecommendationReasoning, getAutoBudgetRecommendation } from '../utils/ai';
 
 const ShoppingRecommendations = () => {
     const navigate = useNavigate();
@@ -59,6 +60,10 @@ const ShoppingRecommendations = () => {
     // Dialog States
     const [isAlertOpen, setIsAlertOpen] = useState(false);
     const [alertData, setAlertData] = useState({ title: '', message: '' });
+
+    // Auto-Budgeting State
+    const [isAutoBudgeting, setIsAutoBudgeting] = useState(false);
+    const [aiBudgetReason, setAiBudgetReason] = useState(null);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [confirmData, setConfirmData] = useState({ title: '', message: '', onConfirm: null });
 
@@ -115,7 +120,89 @@ const ShoppingRecommendations = () => {
         // Default values
         setBudget('5.000.000');
         setSelectedCategories([]); // Empty means ALL
+        setAiBudgetReason(null);
         setIsConfigModalOpen(true);
+    };
+
+    const handleAutoBudget = async () => {
+        setIsAutoBudgeting(true);
+        try {
+            // 1. Fetch transactions from last 30 days
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 30);
+
+            const { data: recentTransactions, error } = await supabase
+                .from('transactions')
+                .select('*')
+                .eq('store_id', activeStoreId)
+                .gte('date', startDate.toISOString())
+                .eq('status', 'completed')
+                .order('date', { ascending: false });
+
+            if (error) throw error;
+
+            if (!recentTransactions || recentTransactions.length === 0) {
+                showAlert("Info", "Data transaksi 30 hari terakhir belum cukup untuk dianalisis AI.");
+                setIsAutoBudgeting(false);
+                return;
+            }
+
+            // 2. Aggregate Revenue and calculate average margin
+            let recentRevenue = 0;
+            let totalCost = 0;
+            const productStats = {};
+
+            recentTransactions.forEach(t => {
+                recentRevenue += t.total;
+                if (t.items) {
+                    t.items.forEach(item => {
+                        const product = products.find(p => p.id === item.id);
+                        if (product) {
+                            const cost = parseInt(product.buyPrice) || 0;
+                            totalCost += cost * item.qty;
+
+                            // Count for Top Products
+                            if (!productStats[product.id]) {
+                                productStats[product.id] = { name: product.name, qty: 0 };
+                            }
+                            productStats[product.id].qty += item.qty;
+                        }
+                    });
+                }
+            });
+
+            const grossProfit = recentRevenue - totalCost;
+            let averageMargin = 0;
+            if (recentRevenue > 0) {
+                averageMargin = ((grossProfit / recentRevenue) * 100).toFixed(1);
+            }
+
+            // Top 10 selling products
+            const topProducts = Object.values(productStats)
+                .sort((a, b) => b.qty - a.qty)
+                .slice(0, 10);
+
+            // 3. Call AI
+            const aiResponse = await getAutoBudgetRecommendation({
+                recentRevenue,
+                averageMargin,
+                topProducts: topProducts.map(p => p.name)
+            }, currentStore.settings?.geminiApiKey);
+
+            if (aiResponse && aiResponse.recommendedBudget > 0) {
+                const formatted = aiResponse.recommendedBudget.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                setBudget(formatted);
+                setAiBudgetReason(aiResponse.reason);
+            } else {
+                showAlert("Oops", aiResponse?.reason || "Gagal mendapatkan rekomendasi budget dari AI.");
+            }
+
+        } catch (error) {
+            console.error("Error auto-budgeting:", error);
+            showAlert("Error", "Gagal menghitung AI Auto-Budgeting.");
+        } finally {
+            setIsAutoBudgeting(false);
+        }
     };
 
     const handleConfirmConfig = () => {
@@ -266,8 +353,8 @@ const ShoppingRecommendations = () => {
             // 4. Build Shopping List based on Budget
             let remainingBudget = rawBudget;
             const shoppingList = [];
-            let totalWeight = 0;
-            let totalItems = 0;
+            let totalWeightAcc = 0;
+            let totalItemsAcc = 0;
 
             for (const product of scoredProducts) {
                 if (remainingBudget <= 0) break;
@@ -330,13 +417,13 @@ const ShoppingRecommendations = () => {
                         // Weight calculation needs careful handling. 
                         // product.weight is usually per Base Unit.
                         const weightPerBaseUnit = Number(product.weight) || 0;
-                        let totalWeight = 0;
+                        let itemTotalWeight = 0;
 
                         if (isPO) {
                             // Total Weight = Weight per Pcs * Conversion * Qty PO
-                            totalWeight = weightPerBaseUnit * Number(product.conversionToUnit) * displayQty;
+                            itemTotalWeight = weightPerBaseUnit * Number(product.conversionToUnit) * displayQty;
                         } else {
-                            totalWeight = weightPerBaseUnit * displayQty;
+                            itemTotalWeight = weightPerBaseUnit * displayQty;
                         }
 
                         shoppingList.push({
@@ -349,32 +436,56 @@ const ShoppingRecommendations = () => {
                             conversion: Number(product.conversionToUnit) || 1,
                             purchaseUnit: product.purchaseUnit || null,
                             total: totalCost,
-                            weight: totalWeight,
+                            weight: itemTotalWeight,
                             reasoning: product.reasoning,
                             trend: product.trendLabel
                         });
 
                         remainingBudget -= totalCost;
-                        totalWeight += totalWeight;
-                        totalItems += displayQty;
+                        totalWeightAcc += itemTotalWeight;
+                        totalItemsAcc += displayQty;
                     }
                 }
             }
 
             if (shoppingList.length === 0) {
-                showAlert("Info", "Tidak ada produk yang cocok untuk dibeli dengan budget ini.");
+                const minPrice = Math.min(...scoredProducts.filter(p => (Number(p.buyPrice) || (Number(p.sellPrice) * 0.7)) > 0).map(p => Number(p.buyPrice) || (Number(p.sellPrice) * 0.7)));
+                if (rawBudget < minPrice) {
+                    showAlert("Budget Kurang", `Budget Rp ${rawBudget.toLocaleString()} terlalu kecil. Minimal Rp ${minPrice.toLocaleString()} untuk membeli 1 unit barang terlaris.`);
+                } else {
+                    showAlert("Info", "Tidak ada produk yang cocok untuk dibeli dengan budget ini. Coba cek apakah harga beli produk sudah diatur.");
+                }
                 setLoading(false);
                 return;
             }
 
-            // 5. Save Recommendation
+            // 5. Optional: Fetch AI Gemini Reasoning before saving
+            if (import.meta.env.VITE_GEMINI_API_KEY || currentStore.settings?.geminiApiKey) {
+                try {
+                    const aiReasoning = await getRecommendationReasoning({
+                        budget: rawBudget,
+                        items: shoppingList.slice(0, 10) // Limit to top 10 to save tokens
+                    }, currentStore.settings?.geminiApiKey);
+
+                    // Update shoppingList with AI reasons
+                    shoppingList.forEach(item => {
+                        if (aiReasoning[item.id]) {
+                            item.aiReason = aiReasoning[item.id];
+                        }
+                    });
+                } catch (aiErr) {
+                    console.error("AI reasoning failed:", aiErr);
+                }
+            }
+
+            // 6. Save Recommendation
             const newRecommendation = {
                 store_id: activeStoreId,
                 created_at: new Date().toISOString(),
                 budget: rawBudget,
                 total_spent: rawBudget - remainingBudget,
-                total_items: totalItems,
-                total_weight: totalWeight,
+                total_items: totalItemsAcc,
+                total_weight: totalWeightAcc,
                 items: shoppingList,
                 source: 'ai_smart_restock' // Mark source
             };
@@ -990,24 +1101,54 @@ const ShoppingRecommendations = () => {
                                                         <TableCell className="py-2 text-xs font-medium">{item.name}</TableCell>
                                                         <TableCell className="py-2 text-xs">
                                                             {item.trend === 'Trending Up' && (
-                                                                <div className="flex items-center text-green-600 gap-1">
-                                                                    <TrendingUp className="h-3 w-3" />
-                                                                    <span className="text-[10px]">{item.reasoning}</span>
+                                                                <div className="flex flex-col text-green-600">
+                                                                    <div className="flex items-center gap-1">
+                                                                        <TrendingUp className="h-3 w-3" />
+                                                                        <span className="text-[10px]">{item.reasoning}</span>
+                                                                    </div>
+                                                                    {item.aiReason && (
+                                                                        <div className="flex items-center gap-1 mt-1 text-primary">
+                                                                            <Sparkles className="h-3 w-3 fill-primary animate-pulse" />
+                                                                            <span className="text-[9px] italic font-semibold">{item.aiReason}</span>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             )}
                                                             {item.trend === 'Trending Down' && (
-                                                                <div className="flex items-center text-red-500 gap-1">
-                                                                    <TrendingDown className="h-3 w-3" />
-                                                                    <span className="text-[10px]">{item.reasoning}</span>
+                                                                <div className="flex flex-col text-red-500">
+                                                                    <div className="flex items-center gap-1">
+                                                                        <TrendingDown className="h-3 w-3" />
+                                                                        <span className="text-[10px]">{item.reasoning}</span>
+                                                                    </div>
+                                                                    {item.aiReason && (
+                                                                        <div className="flex items-center gap-1 mt-1 text-primary">
+                                                                            <Sparkles className="h-3 w-3 fill-primary animate-pulse" />
+                                                                            <span className="text-[9px] italic font-semibold">{item.aiReason}</span>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             )}
                                                             {item.trend === 'New Hit' && (
-                                                                <div className="flex items-center text-blue-600 gap-1">
-                                                                    <Sparkles className="h-3 w-3" />
-                                                                    <span className="text-[10px]">{item.reasoning}</span>
+                                                                <div className="flex flex-col text-blue-600">
+                                                                    <div className="flex items-center gap-1">
+                                                                        <TrendingUp className="h-3 w-3" />
+                                                                        <span className="text-[10px]">{item.reasoning}</span>
+                                                                    </div>
+                                                                    {item.aiReason && (
+                                                                        <div className="flex items-center gap-1 mt-1 text-primary">
+                                                                            <Sparkles className="h-3 w-3 fill-primary animate-pulse" />
+                                                                            <span className="text-[9px] italic font-semibold">{item.aiReason}</span>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             )}
-                                                            {!item.trend && <span className="text-[10px] text-muted-foreground">-</span>}
+                                                            {!item.trend && item.aiReason && (
+                                                                <div className="flex items-center gap-1 text-primary">
+                                                                    <Sparkles className="h-3 w-3 fill-primary animate-pulse" />
+                                                                    <span className="text-[9px] italic font-semibold">{item.aiReason}</span>
+                                                                </div>
+                                                            )}
+                                                            {!item.trend && !item.aiReason && <span className="text-[10px] text-muted-foreground">-</span>}
                                                         </TableCell>
                                                         <TableCell className="py-2 text-xs text-right">
                                                             <div>Rp {item.buyPrice.toLocaleString('id-ID')}</div>
@@ -1067,7 +1208,25 @@ const ShoppingRecommendations = () => {
 
                     <div className="space-y-6 py-4 px-6 overflow-y-auto flex-1 text-left">
                         <div className="space-y-2">
-                            <Label>Total Budget Belanja (Rp)</Label>
+                            <div className="flex justify-between items-center">
+                                <Label>Total Budget Belanja (Rp)</Label>
+                                {configMode === 'ai' && checkPlanAccess(currentStore?.owner?.plan, 'enterprise') && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 text-xs text-indigo-600 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100"
+                                        onClick={handleAutoBudget}
+                                        disabled={isAutoBudgeting}
+                                    >
+                                        {isAutoBudgeting ? (
+                                            <Sparkles className="h-3 w-3 mr-1.5 animate-spin" />
+                                        ) : (
+                                            <Sparkles className="h-3 w-3 mr-1.5" />
+                                        )}
+                                        Hitung AI Budget Pintar
+                                    </Button>
+                                )}
+                            </div>
                             <div className="relative">
                                 <span className="absolute left-3 top-2.5 text-gray-500">Rp</span>
                                 <Input
@@ -1076,11 +1235,29 @@ const ShoppingRecommendations = () => {
                                         const val = e.target.value.replace(/[^0-9]/g, '');
                                         const formatted = val.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                                         setBudget(formatted);
+                                        setAiBudgetReason(null); // Clear reason on manual edit
                                     }}
                                     placeholder="Contoh: 5.000.000"
-                                    className="pl-10"
+                                    className="pl-10 font-bold text-lg h-12"
                                 />
                             </div>
+
+                            {configMode === 'ai' && !checkPlanAccess(currentStore?.owner?.plan, 'enterprise') && (
+                                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                    <Crown size={12} className="text-amber-500" />
+                                    Upgrade ke Enterprise untuk Rekomendasi AI Auto-Budgeting.
+                                </p>
+                            )}
+
+                            {aiBudgetReason && (
+                                <div className="bg-indigo-50 border border-indigo-100 p-3 rounded-lg flex items-start gap-2 mt-2 animate-in fade-in zoom-in-95">
+                                    <Sparkles className="h-4 w-4 text-indigo-500 mt-0.5 shrink-0" />
+                                    <p className="text-xs text-indigo-900 leading-relaxed font-medium">
+                                        "{aiBudgetReason}"
+                                    </p>
+                                </div>
+                            )}
+
                         </div>
 
                         <div className="space-y-3">

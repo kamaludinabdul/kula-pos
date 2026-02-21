@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { calculateAssociations, getSmartRecommendations } from '../utils/smartCashier';
 import { calculateCartTotals, calculateWholesaleUnitPrice } from '../lib/cartLogic';
@@ -6,8 +6,53 @@ import { calculateCartTotals, calculateWholesaleUnitPrice } from '../lib/cartLog
 export const usePOS = () => {
     const { products, transactions, currentStore } = useData();
 
+    // Generate a unique key for the store's cart
+    const cartStorageKey = useMemo(() => {
+        return currentStore?.id ? `pos_cart_${currentStore.id}` : 'pos_cart_default';
+    }, [currentStore?.id]);
+
     // --- State ---
-    const [cart, setCart] = useState([]);
+    const [cart, setCart] = useState(() => {
+        try {
+            // Initial load using the specific key
+            if (typeof window !== 'undefined' && window.localStorage) {
+                const savedKey = currentStore?.id ? `pos_cart_${currentStore.id}` : 'pos_cart_default';
+                const saved = localStorage.getItem(savedKey);
+                return saved ? JSON.parse(saved) : [];
+            }
+        } catch {
+            return [];
+        }
+        return [];
+    });
+
+    // Reload cart if store changes
+    useEffect(() => {
+        try {
+            if (typeof window !== 'undefined' && window.localStorage) {
+                const saved = localStorage.getItem(cartStorageKey);
+                // eslint-disable-next-line react-hooks/set-state-in-effect
+                setCart(saved ? JSON.parse(saved) : []);
+            }
+        } catch {
+            setCart([]);
+        }
+    }, [cartStorageKey]);
+
+    // Save cart to local storage whenever it changes
+    useEffect(() => {
+        try {
+            if (typeof window !== 'undefined' && window.localStorage) {
+                // Only save if cart has items or if there's already a saved state we need to clear
+                if (cart.length > 0 || localStorage.getItem(cartStorageKey)) {
+                    localStorage.setItem(cartStorageKey, JSON.stringify(cart));
+                }
+            }
+        } catch {
+            console.error("Failed to save cart to local storage");
+        }
+    }, [cart, cartStorageKey]);
+
     const [activeCategory, setActiveCategory] = useState('Semua');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCustomer, setSelectedCustomer] = useState(null);
@@ -189,6 +234,12 @@ export const usePOS = () => {
             // 1. Bundle Logic
             if (promo.type === 'bundle') {
                 const targetIds = promo.targetIds || [];
+
+                // If no targets defined, bundle is invalid
+                if (targetIds.length === 0) {
+                    return { ...promo, isApplicable: false, potentialDiscount: 0, missingItems: [] };
+                }
+
                 let minSets = Infinity;
 
                 for (const id of targetIds) {
@@ -197,16 +248,16 @@ export const usePOS = () => {
                     if (qty < minSets) minSets = qty;
                 }
 
-                if (minSets >= 1) {
+                if (minSets >= 1 && minSets !== Infinity) {
                     isApplicable = true;
                     const oneSetNormalPrice = targetIds.reduce((sum, id) => {
                         const product = products.find(p => p.id === id);
-                        return sum + (product ? (product.sellPrice || product.price) : 0);
+                        return sum + (product ? parseInt(product.sellPrice || product.price || 0) : 0);
                     }, 0);
-                    const oneSetDiscount = oneSetNormalPrice - promo.value;
+                    const oneSetDiscount = oneSetNormalPrice - parseInt(promo.value || 0);
                     const multiplier = (promo.allowMultiples === false) ? 1 : minSets;
                     potentialDiscount = oneSetDiscount * multiplier;
-                    if (potentialDiscount < 0) potentialDiscount = 0;
+                    if (isNaN(potentialDiscount) || potentialDiscount < 0) potentialDiscount = 0;
                 } else {
                     missingItems = targetIds.filter(id => {
                         const item = cart.find(c => c.id === id);

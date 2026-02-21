@@ -34,18 +34,17 @@ import {
     DialogTitle,
 } from "../components/ui/dialog";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
+import { getRecommendationReasoning } from '../utils/ai';
 
 const PurchaseOrderForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
     const { toast } = useToast();
-    const { suppliers, products, addPurchaseOrder, updatePurchaseOrder, purchaseOrders, stores, activeStoreId, fetchAllProducts } = useData();
+    const { suppliers, products, addPurchaseOrder, updatePurchaseOrder, purchaseOrders, stores, activeStoreId, fetchAllProducts, currentStore } = useData();
 
     const isEditMode = !!id;
     const [loading, setLoading] = useState(false);
@@ -207,6 +206,29 @@ const PurchaseOrderForm = () => {
                 .sort((a, b) => b.dailyRate - a.dailyRate); // Prioritize fast movers
 
             setSuggestions(candidates);
+
+            // 3. Optional: Fetch AI Gemini Reasoning
+            if ((import.meta.env.VITE_GEMINI_API_KEY || currentStore.settings?.geminiApiKey) && candidates.length > 0) {
+                try {
+                    const aiReasoning = await getRecommendationReasoning({
+                        budget: 100000000, // Large budget for generic reasoning
+                        items: candidates.slice(0, 10).map(c => ({
+                            id: c.id,
+                            name: c.name,
+                            velocity: c.dailyRate * 30, // Estimate monthly velocity
+                            trend: c.reason
+                        }))
+                    }, currentStore.settings?.geminiApiKey);
+
+                    const updatedSuggestions = candidates.map(c => ({
+                        ...c,
+                        aiReason: aiReasoning[c.id] || null
+                    }));
+                    setSuggestions(updatedSuggestions);
+                } catch (aiErr) {
+                    console.error("AI reasoning in PO failed:", aiErr);
+                }
+            }
 
             // Auto-select all by default
             const initialSelection = {};
@@ -1114,8 +1136,14 @@ const PurchaseOrderForm = () => {
                                                     />
                                                 </TableCell>
                                                 <TableCell>
-                                                    <div className="font-bold text-slate-900">{s.name}</div>
-                                                    <div className="text-[10px] text-slate-400 font-mono tracking-tighter">{s.barcode || '-'}</div>
+                                                    <div className="font-bold text-slate-900 leading-tight">{s.name}</div>
+                                                    <div className="text-[10px] text-slate-400 font-mono tracking-tighter mb-1">{s.barcode || '-'}</div>
+                                                    {s.aiReason && (
+                                                        <div className="flex items-center gap-1 text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-md w-fit ring-1 ring-purple-100 italic">
+                                                            <Sparkles size={10} className="fill-purple-600" />
+                                                            {s.aiReason}
+                                                        </div>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell className="text-center font-bold text-slate-600">
                                                     {s.currentStock} {s.unit}

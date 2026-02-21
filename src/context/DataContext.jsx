@@ -228,6 +228,12 @@ export const DataProvider = ({ children }) => {
 
                         // Extract settings for easier access
                         loyaltySettings: s.settings?.loyaltySettings,
+                        telegramNotifyShift: s.settings?.telegramNotifyShift,
+                        telegramNotifyTransaction: s.settings?.telegramNotifyTransaction,
+                        telegramNotifyLowStock: s.settings?.telegramNotifyLowStock,
+                        telegramNotifyShiftReminder: s.settings?.telegramNotifyShiftReminder,
+                        shiftOpenTime: s.settings?.shiftOpenTime || '08:00',
+                        shiftCloseTime: s.settings?.shiftCloseTime || '22:00',
                         printerPaperSize: s.settings?.printerPaperSize,
                         printerChunkSize: s.settings?.printerChunkSize,
                         printerChunkDelay: s.settings?.printerChunkDelay,
@@ -356,6 +362,10 @@ export const DataProvider = ({ children }) => {
                 updates.shiftCloseTime ||
                 updates.lastShiftOpenReminderDate ||
                 updates.lastShiftCloseReminderDate ||
+                typeof updates.telegramNotifyShift !== 'undefined' ||
+                typeof updates.telegramNotifyTransaction !== 'undefined' ||
+                typeof updates.telegramNotifyLowStock !== 'undefined' ||
+                typeof updates.telegramNotifyShiftReminder !== 'undefined' ||
                 // Printer Settings
                 updates.printerType ||
                 updates.printerWidth ||
@@ -380,6 +390,12 @@ export const DataProvider = ({ children }) => {
                     ...(typeof updates.printerChunkSize !== 'undefined' ? { printerChunkSize: updates.printerChunkSize } : {}),
                     ...(typeof updates.printerChunkDelay !== 'undefined' ? { printerChunkDelay: updates.printerChunkDelay } : {}),
                     ...(typeof updates.printLogo !== 'undefined' ? { printLogo: updates.printLogo } : {}),
+                    ...(typeof updates.telegramNotifyShift !== 'undefined' ? { telegramNotifyShift: updates.telegramNotifyShift } : {}),
+                    ...(typeof updates.telegramNotifyTransaction !== 'undefined' ? { telegramNotifyTransaction: updates.telegramNotifyTransaction } : {}),
+                    ...(typeof updates.telegramNotifyLowStock !== 'undefined' ? { telegramNotifyLowStock: updates.telegramNotifyLowStock } : {}),
+                    ...(typeof updates.telegramNotifyShiftReminder !== 'undefined' ? { telegramNotifyShiftReminder: updates.telegramNotifyShiftReminder } : {}),
+                    ...(updates.shiftOpenTime ? { shiftOpenTime: updates.shiftOpenTime } : {}),
+                    ...(updates.shiftCloseTime ? { shiftCloseTime: updates.shiftCloseTime } : {}),
                 };
             }
 

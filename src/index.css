@@ -65,3 +65,13 @@
     z-index: 10000 !important;
   }
 }
+
+/* Fix for date input calendar icon position when input has flex */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator,
+input[type="week"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  margin-left: auto;
+}

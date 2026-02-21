@@ -27,6 +27,10 @@ import { format, startOfDay, endOfDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import AlertDialog from '../components/AlertDialog';
 import { formatPaymentMethod } from '../lib/utils';
+import { hasFeatureAccess } from '../utils/plans';
+import { getAnomalyDetectionInsights } from '../utils/ai';
+import { Sparkles, ShieldAlert, Lock, Info, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -36,6 +40,7 @@ const Transactions = () => {
     // user unused
     const { user, checkPermission } = useAuth();
     const { voidTransaction, processRefund, currentStore } = useData();
+    const navigate = useNavigate();
 
 
     // -- Local Data State (Pagination) --
@@ -85,6 +90,16 @@ const Transactions = () => {
     const [closeBookStats, setCloseBookStats] = useState(null);
     const [existingRekapId, setExistingRekapId] = useState(null);
     const [isProcessingCloseBook, setIsProcessingCloseBook] = useState(false);
+
+    // AI Anomaly States
+    const [anomalyInsights, setAnomalyInsights] = useState([]);
+    const [isAnalyzingAnomaly, setIsAnalyzingAnomaly] = useState(false);
+    const [showAnomalyDialog, setShowAnomalyDialog] = useState(false);
+
+    // Filter plan access
+    const userPlan = currentStore?.owner?.plan || 'free';
+    const hasAnomalyAccess = hasFeatureAccess(userPlan, 'features.ai_fraud_detection');
+    const hasApiKey = Boolean(currentStore?.settings?.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY);
 
     // -- Data Fetching Logic --
 
@@ -415,6 +430,58 @@ const Transactions = () => {
                 if (error) throw error;
             }
 
+            // Telegram AI Reporting Logic
+            if (currentStore?.settings?.enableTelegramReport && currentStore?.settings?.telegramBotToken && currentStore?.settings?.telegramChatId) {
+                try {
+                    // Fetch items sold today for AI context
+                    const { data: salesData } = await supabase
+                        .from('transactions')
+                        .select('items')
+                        .eq('store_id', currentStore.id)
+                        .eq('status', 'completed')
+                        .eq('date', closeBookStats.dateStr);
+
+                    let itemCounts = {};
+                    if (salesData) {
+                        salesData.forEach(tx => {
+                            if (tx.items) {
+                                tx.items.forEach(item => {
+                                    itemCounts[item.name] = (itemCounts[item.name] || 0) + item.qty;
+                                });
+                            }
+                        });
+                    }
+
+                    const topItemsArr = Object.entries(itemCounts)
+                        .map(([name, qty]) => ({ name, qty }))
+                        .sort((a, b) => b.qty - a.qty)
+                        .slice(0, 5); // Take top 5
+
+                    // Import dynamically to avoid top-level clutter if preferred, but doing standard import at top is better.
+                    // Assuming getGenAIInstance is handled inside generateTelegramClosingReport
+                    const { generateTelegramClosingReport } = await import('../utils/ai');
+                    const { sendTelegramMessage } = await import('../utils/telegram');
+
+                    const customApiKey = currentStore?.settings?.geminiApiKey;
+
+                    const reportText = await generateTelegramClosingReport({
+                        date: format(closeBookStats.date, 'dd MMM yyyy', { locale: localeId }),
+                        totalSales: closeBookStats.totalSales,
+                        count: closeBookStats.count,
+                        topItems: topItemsArr
+                    }, customApiKey);
+
+                    await sendTelegramMessage(
+                        currentStore.settings.telegramBotToken,
+                        currentStore.settings.telegramChatId,
+                        reportText
+                    );
+
+                } catch (telegramErr) {
+                    console.error("Gagal mengirim laporan Telegram:", telegramErr);
+                }
+            }
+
             setIsCloseBookDialogOpen(false);
             alert(existingRekapId ? "Rekap berhasil diperbarui!" : "Tutup buku berhasil!");
 
@@ -451,6 +518,46 @@ const Transactions = () => {
         link.href = URL.createObjectURL(blob);
         link.download = `transactions_${new Date().toISOString()}.csv`;
         link.click();
+    };
+
+    const runAiAnomalyAnalysis = async () => {
+        if (!hasAnomalyAccess) {
+            setShowAnomalyDialog(true);
+            return;
+        }
+
+        if (transactionsList.length === 0) {
+            setAlertConfig({
+                isOpen: true,
+                title: "Data Kosong",
+                message: "Tidak ada transaksi untuk dianalisis dalam rentang tanggal ini."
+            });
+            return;
+        }
+
+        if (!hasApiKey) {
+            setShowAnomalyDialog(true);
+            return;
+        }
+
+        setIsAnalyzingAnomaly(true);
+        try {
+            const insights = await getAnomalyDetectionInsights(
+                transactionsList.slice(0, 50),
+                currentStore.settings?.geminiApiKey
+            );
+            setAnomalyInsights(insights);
+            setShowAnomalyDialog(true);
+        } catch (err) {
+            console.error("AI Anomaly Error:", err);
+            setAlertConfig({
+                isOpen: true,
+                title: "Error",
+                message: "Gagal menjalankan analisis fraud AI."
+            });
+        } finally {
+            setIsAnalyzingAnomaly(false);
+        }
     };
 
     const handleExportPDF = () => {
@@ -499,6 +606,17 @@ const Transactions = () => {
                         {isProcessingCloseBook ? "..." : "Tutup Buku Harian"}
                     </Button>
                     <div className="flex gap-2 w-full sm:w-auto">
+                        {(user?.role === 'owner' || user?.role === 'admin') && (
+                            <Button
+                                variant="outline"
+                                onClick={runAiAnomalyAnalysis}
+                                disabled={isAnalyzingAnomaly}
+                                className="flex-1 sm:flex-none bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+                            >
+                                <ShieldAlert className={`mr-2 h-4 w-4 ${isAnalyzingAnomaly ? 'animate-pulse' : ''}`} />
+                                {isAnalyzingAnomaly ? "Menganalisis..." : "AI Fraud Check"}
+                            </Button>
+                        )}
                         {checkPermission('transactions.view') && (
                             <>
                                 <Button variant="outline" onClick={handleExportPDF} className="flex-1 sm:flex-none px-2 sm:px-4">
@@ -659,6 +777,11 @@ const Transactions = () => {
                                             >
                                                 {tx.status === 'void' ? 'Batal' : (tx.status === 'refunded' ? 'Refund' : 'Berhasil')}
                                             </Badge>
+                                            {anomalyInsights.find(a => a.transactionId === tx.id) && (
+                                                <Badge className="ml-2 bg-red-100 text-red-700 border-none animate-pulse">
+                                                    Suspicious
+                                                </Badge>
+                                            )}
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant="neutral-subtle" className="capitalize font-bold border-none text-[10px]">
@@ -810,6 +933,93 @@ const Transactions = () => {
                 // Remove isServerSide to use standard display
                 />
             )}
+
+            {/* AI Anomaly Dialog */}
+            <Dialog open={showAnomalyDialog} onOpenChange={setShowAnomalyDialog}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+                            <ShieldAlert className="h-6 w-6 text-purple-600" />
+                            AI Fraud & Anomaly Analysis
+                        </DialogTitle>
+                        <DialogDescription>
+                            Analisis kecurangan dan transaksi mencurigakan menggunakan Gemini AI.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {!hasAnomalyAccess ? (
+                        <div className="py-8 text-center space-y-4">
+                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-50 text-purple-600">
+                                <Lock className="h-8 w-8" />
+                            </div>
+                            <div className="max-w-xs mx-auto space-y-2">
+                                <h3 className="font-bold text-lg">Hanya untuk Enterprise</h3>
+                                <p className="text-sm text-slate-500">
+                                    Dapatkan perlindungan ekstra dari kecurangan kasir atau anomali transaksi dengan AI Fraud Detection.
+                                </p>
+                                <Button className="w-full mt-4 bg-purple-600 hover:bg-purple-700" onClick={() => navigate('/settings/plan')}>
+                                    Upgrade Sekarang
+                                </Button>
+                            </div>
+                        </div>
+                    ) : !hasApiKey ? (
+                        <div className="py-8 text-center space-y-4">
+                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-50 text-orange-600">
+                                <ShieldAlert className="h-8 w-8" />
+                            </div>
+                            <div className="max-w-xs mx-auto space-y-2">
+                                <h3 className="font-bold text-lg">API Key Belum Diatur</h3>
+                                <p className="text-sm text-slate-500">
+                                    Silakan atur Gemini API Key Anda di Pengaturan Umum untuk menggunakan fitur AI Fraud Detection.
+                                </p>
+                                <Button className="w-full mt-4 bg-orange-600 hover:bg-orange-700" onClick={() => navigate('/settings')}>
+                                    Buka Pengaturan
+                                </Button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                            {anomalyInsights.length === 0 ? (
+                                <div className="p-8 text-center bg-green-50 rounded-2xl border border-green-100">
+                                    <div className="text-green-600 font-bold mb-1">Semua Terlihat Aman!</div>
+                                    <div className="text-xs text-green-500">AI tidak menemukan transaksi yang mencurigakan dalam sampel ini.</div>
+                                </div>
+                            ) : (
+                                anomalyInsights.map((insight, idx) => (
+                                    <div key={idx} className="p-4 bg-red-50 rounded-xl border border-red-100 space-y-2">
+                                        <div className="flex justify-between items-start">
+                                            <div className="font-bold text-red-900 text-sm">#{insight.transactionId}</div>
+                                            <Badge variant="destructive" className="bg-red-200 text-red-700 hover:bg-red-200 border-none text-[10px]">
+                                                Warning
+                                            </Badge>
+                                        </div>
+                                        <p className="text-sm text-red-800 italic">"{insight.reason}"</p>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-7 text-[10px] bg-white border-red-200 text-red-600 font-bold"
+                                                onClick={() => {
+                                                    const tx = transactionsList.find(t => t.id === insight.transactionId);
+                                                    if (tx) handleViewReceipt(tx);
+                                                }}
+                                            >
+                                                Lihat Detail
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    )}
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowAnomalyDialog(false)} className="w-full">
+                            Tutup
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <ReceiptModal
                 isOpen={isReceiptOpen}

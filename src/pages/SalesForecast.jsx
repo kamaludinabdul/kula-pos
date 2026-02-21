@@ -6,8 +6,9 @@ import { InfoCard } from '../components/ui/info-card';
 import { Button } from '../components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { CloudRain, Sun, Cloud, MapPin, TrendingUp, AlertTriangle, Calendar, BarChart3, RefreshCw } from 'lucide-react';
+import { CloudRain, Sun, Cloud, MapPin, TrendingUp, AlertTriangle, Calendar, BarChart3, RefreshCw, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getSalesForecastInsights } from '../utils/ai';
 
 const SalesForecast = () => {
     const { activeStoreId, currentStore } = useData();
@@ -16,6 +17,8 @@ const SalesForecast = () => {
     const [forecastData, setForecastData] = useState([]);
     const [weatherForecast, setWeatherForecast] = useState([]);
     const [insights, setInsights] = useState([]);
+    const [aiInsight, setAiInsight] = useState('');
+    const [aiLoading, setAiLoading] = useState(false);
 
     const fetchDataAndForecast = React.useCallback(async () => {
         if (!activeStoreId || !currentStore || !currentStore.latitude || !currentStore.longitude) {
@@ -207,6 +210,18 @@ const SalesForecast = () => {
 
             setInsights(newInsights);
 
+            // 5. Fetch AI Gemini Insights
+            if (import.meta.env.VITE_GEMINI_API_KEY) {
+                setAiLoading(true);
+                const aiResult = await getSalesForecastInsights({
+                    historical: chartData.filter(d => d.type === 'historical').slice(-7), // Only last 7 days to save tokens
+                    forecast: chartData.filter(d => d.type === 'forecast').slice(0, 7), // Next 7 days
+                    weather: next14DaysWeather.slice(0, 7)
+                });
+                setAiInsight(aiResult);
+                setAiLoading(false);
+            }
+
         } catch (err) {
             console.error(err);
             setError(err.message);
@@ -303,16 +318,44 @@ const SalesForecast = () => {
             </div>
 
             {/* Insights Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {insights.map((insight, idx) => (
-                    <Alert key={idx} className={`${insight.type === 'warning' ? 'border-orange-200 bg-orange-50' : insight.type === 'opportunity' ? 'border-green-200 bg-green-50' : 'border-blue-200 bg-blue-50'}`}>
-                        {insight.type === 'warning' ? <CloudRain className="h-4 w-4" /> : insight.type === 'opportunity' ? <Sun className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
-                        <AlertTitle className="capitalize">{insight.type === 'opportunity' ? 'Peluang' : insight.type === 'warning' ? 'Perhatian' : 'Info'}</AlertTitle>
-                        <AlertDescription>
-                            {insight.message}
-                        </AlertDescription>
-                    </Alert>
-                ))}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* AI Gemini Insight Card */}
+                <Card className="md:col-span-2 border-primary/20 bg-primary/5 shadow-sm border-2">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-lg flex items-center gap-2 text-primary">
+                            <Sparkles className="h-5 w-5 fill-primary" />
+                            AI Smart Analysis (Gemini)
+                        </CardTitle>
+                        <CardDescription>Wawasan bisnis eksklusif untuk toko Anda</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {aiLoading ? (
+                            <div className="flex items-center gap-2 py-4">
+                                <RefreshCw className="h-4 w-4 animate-spin text-primary" />
+                                <span className="text-sm text-muted-foreground italic">Gemini sedang menganalisis data Anda...</span>
+                            </div>
+                        ) : aiInsight ? (
+                            <div className="text-sm prose prose-sm max-w-none prose-p:leading-relaxed whitespace-pre-wrap">
+                                {aiInsight}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground italic">Siapkan VITE_GEMINI_API_KEY di .env untuk mengaktifkan fitur ini.</p>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Rule-based Insights */}
+                <div className="md:col-span-2 flex flex-col gap-4">
+                    {insights.map((insight, idx) => (
+                        <Alert key={idx} className={`${insight.type === 'warning' ? 'border-orange-200 bg-orange-50' : insight.type === 'opportunity' ? 'border-green-200 bg-green-50' : 'border-blue-200 bg-blue-50'}`}>
+                            {insight.type === 'warning' ? <CloudRain className="h-4 w-4" /> : insight.type === 'opportunity' ? <Sun className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
+                            <AlertTitle className="capitalize font-bold">{insight.type === 'opportunity' ? 'Peluang' : insight.type === 'warning' ? 'Perhatian' : 'Info'}</AlertTitle>
+                            <AlertDescription className="text-xs">
+                                {insight.message}
+                            </AlertDescription>
+                        </Alert>
+                    ))}
+                </div>
             </div>
 
             {/* Main Chart */}

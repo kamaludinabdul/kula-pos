@@ -39,6 +39,9 @@ import {
     DialogDescription,
     DialogFooter,
 } from "../components/ui/dialog";
+import { hasFeatureAccess } from '../utils/plans';
+import { getPricingInsights } from '../utils/ai';
+import { Sparkles, Lock, Loader2 } from 'lucide-react';
 
 const Products = () => {
     const navigate = useNavigate();
@@ -83,6 +86,15 @@ const Products = () => {
     // Import Progress State
     const [isImporting, setIsImporting] = useState(false);
     const [importProgress, setImportProgress] = useState({ step: '', current: 0, total: 0 });
+
+    // AI Pricing States
+    const [isAiPricingOpen, setIsAiPricingOpen] = useState(false);
+    const [aiPricingData, setAiPricingData] = useState({ product: null, advice: '', loading: false });
+
+    const currentStore = stores.find(s => s.id === activeStoreId);
+    const userPlan = currentStore?.owner?.plan || 'free';
+    const hasAiPricingAccess = hasFeatureAccess(userPlan, 'features.ai_pricing');
+    const hasApiKey = Boolean(currentStore?.settings?.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY);
 
     // Fetch Products (Server Side)
     const loadProducts = useCallback(async () => {
@@ -449,6 +461,35 @@ const Products = () => {
         }
         // Reset input so same file can be selected again
         event.target.value = '';
+    };
+
+    const handleGetAiPricing = async (product) => {
+        if (!hasAiPricingAccess) {
+            setIsAiPricingOpen(true);
+            setAiPricingData({ product, advice: '', loading: false });
+            return;
+        }
+
+        if (!hasApiKey) {
+            setIsAiPricingOpen(true);
+            setAiPricingData({ product, advice: '', loading: false, error: 'no_key' });
+            return;
+        }
+
+        setIsAiPricingOpen(true);
+        setAiPricingData({ product, advice: '', loading: true });
+
+        try {
+            const advice = await getPricingInsights({
+                name: product.name,
+                buyPrice: product.buyPrice,
+                sellPrice: product.sellPrice || product.price
+            }, currentStore.settings?.geminiApiKey);
+            setAiPricingData(prev => ({ ...prev, advice, loading: false }));
+        } catch (err) {
+            console.error("AI Pricing error:", err);
+            setAiPricingData(prev => ({ ...prev, advice: "Gagal memuat saran AI.", loading: false }));
+        }
     };
 
 
@@ -880,6 +921,10 @@ const Products = () => {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={() => handleGetAiPricing(product)} className="text-purple-600 font-bold gap-2">
+                                                        <Sparkles className="h-3.5 w-3.5 fill-purple-600" />
+                                                        AI Pricing Insight
+                                                    </DropdownMenuItem>
                                                     {checkPermission('products.update') && (
                                                         <DropdownMenuItem onClick={() => handleEdit(product)}>
                                                             <Edit className="mr-2 h-4 w-4" />
@@ -973,6 +1018,9 @@ const Products = () => {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem onClick={() => handleGetAiPricing(product)} className="font-bold text-xs text-purple-600">
+                                                        <Sparkles size={14} className="mr-2 fill-purple-600" /> AI Pricing Insight
+                                                    </DropdownMenuItem>
                                                     {checkPermission('products.update') && (
                                                         <DropdownMenuItem onClick={() => handleEdit(product)} className="font-bold text-xs">
                                                             <Edit className="mr-2 h-4 w-4" /> Edit
@@ -1036,6 +1084,82 @@ const Products = () => {
                 onPageChange={setCurrentPage}
                 onItemsPerPageChange={setItemsPerPage}
             />
+
+            {/* AI Pricing Dialog */}
+            <Dialog open={isAiPricingOpen} onOpenChange={setIsAiPricingOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Sparkles className="h-5 w-5 text-purple-600" />
+                            AI Pricing Insight
+                        </DialogTitle>
+                        <DialogDescription>
+                            Analisis harga jual optimal menggunakan Gemini AI.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {!hasAiPricingAccess ? (
+                        <div className="py-6 text-center space-y-4">
+                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-indigo-50 text-indigo-600">
+                                <Lock className="h-6 w-6" />
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="font-bold text-slate-900">Fitur Khusus Enterprise</h3>
+                                <p className="text-sm text-slate-500">
+                                    Upgrade ke paket **Enterprise** untuk membuka rahasia harga jual paling menguntungkan dengan bantuan AI.
+                                </p>
+                            </div>
+                        </div>
+                    ) : aiPricingData.error === 'no_key' ? (
+                        <div className="py-8 text-center space-y-4">
+                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-50 text-orange-600">
+                                <ShieldAlert className="h-8 w-8" />
+                            </div>
+                            <div className="max-w-xs mx-auto space-y-2">
+                                <h3 className="font-bold text-lg">API Key Belum Diatur</h3>
+                                <p className="text-sm text-slate-500">
+                                    Silakan atur Gemini API Key Anda di Pengaturan Umum untuk menggunakan fitur AI Pricing.
+                                </p>
+                                <Button className="w-full mt-4 bg-orange-600 hover:bg-orange-700" onClick={() => navigate('/settings')}>
+                                    Buka Pengaturan
+                                </Button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-4 py-4">
+                            <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Produk</div>
+                                <div className="font-bold text-slate-900">{aiPricingData.product?.name}</div>
+                            </div>
+
+                            <div className="p-4 bg-purple-50 rounded-xl border border-purple-100 min-h-[100px] flex items-center justify-center text-center">
+                                {aiPricingData.loading ? (
+                                    <div className="flex flex-col items-center gap-2">
+                                        <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+                                        <div className="text-xs font-medium text-purple-600">Sedang menganalisis...</div>
+                                    </div>
+                                ) : (
+                                    <div className="text-purple-900 font-medium italic">
+                                        "{aiPricingData.advice}"
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    <DialogFooter>
+                        {!hasAiPricingAccess ? (
+                            <Button className="w-full bg-indigo-600" onClick={() => navigate('/settings/plan')}>
+                                Upgrade Sekarang
+                            </Button>
+                        ) : (
+                            <Button className="w-full" onClick={() => setIsAiPricingOpen(false)}>
+                                Tutup
+                            </Button>
+                        )}
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <ConfirmDialog
                 isOpen={isDeleteOpen}

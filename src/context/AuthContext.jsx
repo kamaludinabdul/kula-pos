@@ -196,6 +196,22 @@ export const AuthProvider = ({ children }) => {
             } catch (err) {
                 console.error("Logout audit failed:", err);
             }
+
+            // Clear POS cart persistence on explicit logout
+            try {
+                if (typeof window !== 'undefined' && window.localStorage) {
+                    const keysToRemove = [];
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key && key.startsWith('pos_cart_')) {
+                            keysToRemove.push(key);
+                        }
+                    }
+                    keysToRemove.forEach(key => localStorage.removeItem(key));
+                }
+            } catch (err) {
+                console.error("Failed to clear cart storage on logout:", err);
+            }
         }
         await supabase.auth.signOut();
 

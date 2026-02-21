@@ -77,6 +77,7 @@ const Dashboard = () => {
         totalSales: 0,
         totalTransactions: 0,
         avgOrder: 0,
+        totalProfit: 0,
         chartData: [],
         categoryData: [],
         topProducts: [],
@@ -128,6 +129,7 @@ const Dashboard = () => {
                         totalSales: Number(data.totalSales) || 0,
                         totalTransactions: Number(data.totalTransactions) || 0,
                         avgOrder: Number(data.avgOrder) || 0,
+                        totalProfit: Number(data.totalProfit) || 0,
                         chartData: data.chartData || [],
                         categoryData: data.categoryData || [],
                         topProducts: data.topProducts || [],
@@ -217,7 +219,7 @@ const Dashboard = () => {
                 />
             </header>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 {canViewFinancials && (
                     <>
                         <InfoCard
@@ -225,6 +227,12 @@ const Dashboard = () => {
                             value={`Rp ${stats.totalSales.toLocaleString()}`}
                             icon={DollarSign}
                             variant="primary"
+                        />
+                        <InfoCard
+                            title="Laba Bersih"
+                            value={`Rp ${((dashboardStats.totalProfit || 0)).toLocaleString()}`}
+                            icon={TrendingUp}
+                            variant="success"
                         />
                         <InfoCard
                             title="Rata-rata Order"

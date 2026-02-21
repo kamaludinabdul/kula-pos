@@ -8,6 +8,18 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        version: "0.16.14",
+        date: "2026-02-22",
+        type: "patch",
+        title: "Dashboard Profit, OPEX Fixes & Scanner Stability",
+        changes: [
+            "Dashboard: Fixed 'Profit' calculation logic. Now accurately deducts total COGS and total OPEX from Sales.",
+            "Dashboard: Fixed OPEX charts in Owner and Store dashboards. 'Uang Keluar' for stock purchases (COGS) no longer inflates the OPEX chart.",
+            "Stock Management: Fixed 'Riwayat Stok' not loading. Recreated RPC with Security Definer to bypass restrictive RLS policies.",
+            "POS: Fixed Barcode Scanner duplicate input bug. Scanning a product while the search box is active now only adds 1 qty (prevented event bubbling)."
+        ]
+    },
+    {
         version: "0.16.13",
         date: "2026-02-20",
         type: "patch",

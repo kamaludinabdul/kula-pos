@@ -6,7 +6,7 @@ import { Switch } from '../../components/ui/switch';
 import { Label } from '../../components/ui/label';
 import { Input } from '../../components/ui/input';
 import { useToast } from '../../components/ui/use-toast';
-import { Loader2, RefreshCw, Calendar } from 'lucide-react';
+import { Loader2, RefreshCw, Calendar, Sparkles } from 'lucide-react';
 import AlertDialog from '../../components/AlertDialog';
 
 import { supabase } from '../../supabase';
@@ -33,6 +33,10 @@ const GeneralSettings = () => {
     const [enableSharedCustomers, setEnableSharedCustomers] = useState(false);
     const [isSavingSharedCustomers, setIsSavingSharedCustomers] = useState(false);
 
+    // AI Configuration State
+    const [geminiApiKey, setGeminiApiKey] = useState('');
+    const [isSavingAiKey, setIsSavingAiKey] = useState(false);
+
     // Load settings on mount
     useEffect(() => {
         if (currentStore) {
@@ -40,6 +44,7 @@ const GeneralSettings = () => {
             setEnableRental(currentStore.enableRental || false);
             setGracePeriod(currentStore.settings?.grace_period || 0);
             setEnableSharedCustomers(currentStore.settings?.enableSharedCustomers || false);
+            setGeminiApiKey(currentStore.settings?.geminiApiKey || '');
         }
     }, [currentStore]);
 
@@ -146,6 +151,41 @@ const GeneralSettings = () => {
             });
         } finally {
             setIsSavingSharedCustomers(false);
+        }
+    };
+
+    const handleAiKeySave = async () => {
+        if (!currentStore?.id) return;
+        setIsSavingAiKey(true);
+        try {
+            const { error } = await supabase
+                .from('stores')
+                .update({
+                    settings: {
+                        ...currentStore.settings,
+                        geminiApiKey: geminiApiKey,
+                        updatedAt: new Date().toISOString()
+                    }
+                })
+                .eq('id', currentStore.id);
+
+            if (error) throw error;
+            toast({
+                title: "Berhasil Menyimpan",
+                description: "API Key Gemini berhasil disimpan.",
+            });
+            updateStore(currentStore.id, {
+                settings: { ...currentStore.settings, geminiApiKey: geminiApiKey }
+            });
+        } catch (error) {
+            console.error('Error saving AI key:', error);
+            toast({
+                variant: "destructive",
+                title: "Gagal",
+                description: "Gagal menyimpan API Key Gemini.",
+            });
+        } finally {
+            setIsSavingAiKey(false);
         }
     };
 
@@ -269,6 +309,55 @@ const GeneralSettings = () => {
     return (
         <div className="space-y-6">
             <h2 className="text-2xl font-bold">Pengaturan Umum</h2>
+
+            {/* AI Configuration */}
+            <Card className="border-purple-200 bg-purple-50/30">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-purple-900">
+                        <Sparkles className="h-5 w-5 fill-purple-600 text-purple-600" />
+                        Konfigurasi AI (Gemini)
+                    </CardTitle>
+                    <CardDescription className="text-purple-700/70">
+                        Pengaturan fungsi kecerdasan buatan untuk fitur Enterprise POS.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="gemini-api-key" className="font-medium text-purple-900">
+                            Gemini API Key
+                        </Label>
+                        <div className="flex gap-2">
+                            <Input
+                                id="gemini-api-key"
+                                type="password"
+                                placeholder="Masukkan API Key Gemini Anda mulai dengan AIzaSy..."
+                                value={geminiApiKey}
+                                onChange={(e) => setGeminiApiKey(e.target.value)}
+                                className="bg-white"
+                            />
+                            <Button
+                                onClick={handleAiKeySave}
+                                disabled={isSavingAiKey}
+                                className="bg-purple-600 hover:bg-purple-700 text-white"
+                            >
+                                {isSavingAiKey ? 'Menyimpan...' : 'Simpan Key'}
+                            </Button>
+                        </div>
+                        <p className="text-xs text-purple-700/70 mt-2">
+                            Anda bisa mendapatkan API Key gratis di{' '}
+                            <a
+                                href="https://aistudio.google.com/app/apikey"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="font-bold underline text-purple-800"
+                            >
+                                Google AI Studio
+                            </a>.
+                            Fitur AI hanya akan berjalan jika key ini diisi dan valid.
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* POS Features */}
             <Card>

@@ -213,6 +213,7 @@ const POS = () => {
                 // If the buffer is long enough, treat as barcode
                 if (barcodeBufferRef.current.length >= 2) { // 2 chars min
                     e.preventDefault(); // Prevent default Enter behavior (like submitting forms)
+                    e.stopPropagation(); // Stop event from reaching focused inputs
                     const barcode = barcodeBufferRef.current;
                     barcodeBufferRef.current = '';
 

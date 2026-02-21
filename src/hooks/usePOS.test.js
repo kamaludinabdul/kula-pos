@@ -39,7 +39,12 @@ vi.mock('../utils/smartCashier', () => ({
     getSmartRecommendations: () => []
 }));
 
+import { afterEach } from 'vitest';
 
+afterEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+});
 
 describe('usePOS Hook', () => {
     it('should initialize with empty cart', () => {
