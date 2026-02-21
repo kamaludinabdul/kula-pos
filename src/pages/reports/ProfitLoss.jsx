@@ -295,7 +295,7 @@ const ProfitLoss = () => {
             ['Laba Kotor', `Rp ${(stats.totalSales - stats.totalCOGS).toLocaleString()}`],
             ['Biaya Operasional', `(Rp ${stats.totalExpenses.toLocaleString()})`],
             ['Pendapatan Lain', `Rp ${stats.otherIncome.toLocaleString()}`],
-            ['Laba Kotor (Gross)', `Rp ${stats.netProfit.toLocaleString()}`],
+            ['Laba Bersih', `Rp ${stats.netProfit.toLocaleString()}`],
         ];
 
         autoTable(doc, {
@@ -401,10 +401,15 @@ const ProfitLoss = () => {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <InfoCard
                     title="Laba Kotor"
+                    value={`Rp ${(stats.totalSales - stats.totalCOGS).toLocaleString()}`}
+                    icon={TrendingUp}
+                    variant="primary"
+                />
+                <InfoCard
+                    title="Laba Bersih"
                     value={`Rp ${stats.netProfit.toLocaleString()}`}
                     icon={TrendingUp}
                     variant="success"
-                    className="col-span-2 lg:col-span-1"
                 />
                 <InfoCard
                     title="Total Pemasukan"

@@ -8,6 +8,18 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        version: "0.16.16",
+        date: "2026-02-22",
+        type: "patch",
+        title: "Profit Metrics Separation (Gross vs Net)",
+        changes: [
+            "Dashboard: Added 'Laba Kotor' (Gross Profit) card to both Store and Owner dashboards.",
+            "Dashboard: Fixed 'Laba Bersih' chart to accurately reflect Net Profit (after OPEX).",
+            "Reports: Refined Profit & Loss report to show both Gross and Net Profit summaries.",
+            "Database: Updated RPCs (get_dashboard_stats, get_owner_financial_summary, etc.) to calculate dual profit metrics."
+        ]
+    },
+    {
         version: "0.16.15",
         date: "2026-02-22",
         type: "patch",

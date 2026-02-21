@@ -42,6 +42,8 @@ const OwnerDashboard = () => {
         avgOrder: 0,
         totalStores: 0,
         totalProfit: 0,
+        totalGrossProfit: 0,
+        totalNetProfit: 0,
         storeBreakdown: []
     });
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -112,7 +114,9 @@ const OwnerDashboard = () => {
                         totalTransactions: Number(data.totalTransactions) || 0,
                         avgOrder: Number(data.avgOrder) || 0,
                         totalStores: Number(data.totalStores) || ownerStores.length,
-                        totalProfit: Number(data.totalProfit) || 0,
+                        totalProfit: Number(data.totalNetProfit || data.totalProfit) || 0,
+                        totalGrossProfit: Number(data.totalGrossProfit) || 0,
+                        totalNetProfit: Number(data.totalNetProfit) || 0,
                         storeBreakdown: data.storeBreakdown || []
                     });
                 }
@@ -501,8 +505,14 @@ const OwnerDashboard = () => {
                     variant="primary"
                 />
                 <InfoCard
+                    title="Laba Kotor"
+                    value={`Rp ${(dashboardData.totalGrossProfit || 0).toLocaleString('en-US')}`}
+                    icon={TrendingUp}
+                    variant="primary"
+                />
+                <InfoCard
                     title="Laba Bersih"
-                    value={`Rp ${(dashboardData.totalProfit || 0).toLocaleString('en-US')}`}
+                    value={`Rp ${(dashboardData.totalNetProfit || 0).toLocaleString('en-US')}`}
                     icon={TrendingUp}
                     variant="success"
                 />

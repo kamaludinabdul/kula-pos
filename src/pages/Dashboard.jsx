@@ -78,6 +78,8 @@ const Dashboard = () => {
         totalTransactions: 0,
         avgOrder: 0,
         totalProfit: 0,
+        totalGrossProfit: 0,
+        totalNetProfit: 0,
         chartData: [],
         categoryData: [],
         topProducts: [],
@@ -129,7 +131,9 @@ const Dashboard = () => {
                         totalSales: Number(data.totalSales) || 0,
                         totalTransactions: Number(data.totalTransactions) || 0,
                         avgOrder: Number(data.avgOrder) || 0,
-                        totalProfit: Number(data.totalProfit) || 0,
+                        totalProfit: Number(data.totalNetProfit || data.totalProfit) || 0,
+                        totalGrossProfit: Number(data.totalGrossProfit) || 0,
+                        totalNetProfit: Number(data.totalNetProfit) || 0,
                         chartData: data.chartData || [],
                         categoryData: data.categoryData || [],
                         topProducts: data.topProducts || [],
@@ -229,8 +233,14 @@ const Dashboard = () => {
                             variant="primary"
                         />
                         <InfoCard
+                            title="Laba Kotor"
+                            value={`Rp ${(dashboardStats.totalGrossProfit || 0).toLocaleString()}`}
+                            icon={TrendingUp}
+                            variant="primary"
+                        />
+                        <InfoCard
                             title="Laba Bersih"
-                            value={`Rp ${((dashboardStats.totalProfit || 0)).toLocaleString()}`}
+                            value={`Rp ${(dashboardStats.totalNetProfit || 0).toLocaleString()}`}
                             icon={TrendingUp}
                             variant="success"
                         />
