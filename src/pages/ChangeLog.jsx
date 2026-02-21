@@ -8,6 +8,16 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        version: "0.16.15",
+        date: "2026-02-22",
+        type: "patch",
+        title: "Report Label Accuracy",
+        changes: [
+            "Reports: Changed 'Laba Bersih' to 'Laba Kotor' (Gross Profit) in Profit & Loss report to accurately reflect Sales - COGS calculation.",
+            "Reports: Updated PDF export layout for Profit & Loss to use correct naming."
+        ]
+    },
+    {
         version: "0.16.14",
         date: "2026-02-22",
         type: "patch",
