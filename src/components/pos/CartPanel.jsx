@@ -336,7 +336,7 @@ const CartPanel = ({
                                 >
                                     <div className="flex flex-col">
                                         <span className="text-xs font-bold">{promo.title}</span>
-                                        <span className="text-[10px] opacity-90">Hemat Rp {promo.potentialDiscount?.toLocaleString()}</span>
+                                        <span className="text-[10px] opacity-90">Hemat Rp {(promo.potentialDiscount || 0).toLocaleString()}</span>
                                     </div>
                                     <Button size="xs" variant="secondary" className="h-6 text-[10px] bg-white text-rose-600 hover:bg-white/90">
                                         Pakai

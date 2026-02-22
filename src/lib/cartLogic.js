@@ -66,7 +66,7 @@ export const calculateCartTotals = (cart, discountType, discountValue, taxRate =
 
 // Helper: Hitung Harga Satuan berdasarkan Grosir (Wholesale) atau Bundling (Paket)
 export const calculateWholesaleUnitPrice = (product, qty) => {
-    const basePrice = parseInt(product.sellPrice || product.price) || 0;
+    const basePrice = Number(product.sellPrice || product.price) || 0;
 
     // Safety check
     if (!product.pricingTiers || product.pricingTiers.length === 0) {
@@ -75,7 +75,7 @@ export const calculateWholesaleUnitPrice = (product, qty) => {
 
     // 1. Sort Tiers: Largest Qty (Duration) first
     const sortedTiers = [...product.pricingTiers]
-        .map(t => ({ minQty: parseFloat(t.duration), price: parseFloat(t.price) }))
+        .map(t => ({ minQty: Number(t.duration) || 0, price: Number(t.price) || 0 }))
         .sort((a, b) => b.minQty - a.minQty);
 
     if (product.isWholesale) {

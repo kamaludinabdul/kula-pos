@@ -252,12 +252,14 @@ export const usePOS = () => {
                     isApplicable = true;
                     const oneSetNormalPrice = targetIds.reduce((sum, id) => {
                         const product = products.find(p => p.id === id);
-                        return sum + (product ? parseInt(product.sellPrice || product.price || 0) : 0);
+                        const price = Number(product?.sellPrice || product?.price) || 0;
+                        return sum + price;
                     }, 0);
-                    const oneSetDiscount = oneSetNormalPrice - parseInt(promo.value || 0);
+                    const bundlePrice = Number(promo.value) || 0;
+                    const oneSetDiscount = Math.max(0, oneSetNormalPrice - bundlePrice);
                     const multiplier = (promo.allowMultiples === false) ? 1 : minSets;
                     potentialDiscount = oneSetDiscount * multiplier;
-                    if (isNaN(potentialDiscount) || potentialDiscount < 0) potentialDiscount = 0;
+                    if (isNaN(potentialDiscount)) potentialDiscount = 0;
                 } else {
                     missingItems = targetIds.filter(id => {
                         const item = cart.find(c => c.id === id);
@@ -267,24 +269,27 @@ export const usePOS = () => {
             }
             // 2. Percentage on Total Transaction
             else if (promo.type === 'percentage' && (!promo.targetType || promo.targetType === 'transaction')) {
-                if (rawTotal >= (promo.minPurchase || 0)) {
+                if (rawTotal >= (Number(promo.minPurchase) || 0)) {
                     isApplicable = true;
-                    potentialDiscount = rawTotal * (promo.value / 100);
+                    potentialDiscount = rawTotal * (Number(promo.value || 0) / 100);
                 }
             }
             // 3. Fixed Amount on Total
             else if (promo.type === 'fixed' && (!promo.targetType || promo.targetType === 'transaction')) {
-                const minPurchase = promo.minPurchase || 0;
+                const minPurchase = Number(promo.minPurchase) || 0;
+                const promoValue = Number(promo.value) || 0;
                 if (rawTotal >= minPurchase) {
                     isApplicable = true;
                     if (promo.allowMultiples && minPurchase > 0) {
                         const multiplier = Math.floor(rawTotal / minPurchase);
-                        potentialDiscount = promo.value * multiplier;
+                        potentialDiscount = promoValue * multiplier;
                     } else {
-                        potentialDiscount = promo.value;
+                        potentialDiscount = promoValue;
                     }
                 }
             }
+
+            if (potentialDiscount <= 0) isApplicable = false;
 
             return { ...promo, isApplicable, potentialDiscount, missingItems };
         }).filter(p => p.isActive);
