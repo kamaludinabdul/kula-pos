@@ -160,6 +160,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
     { icon: BadgePercent, label: 'Bundling Pintar', path: '/smart-insights/bundling', feature: 'smart_insights', requiredPlan: 'pro' },
     { icon: TrendingUp, label: 'Prediksi Omset', path: '/smart-insights/forecast', feature: 'smart_insights', requiredPlan: 'pro' },
     { icon: Users, label: 'Segmen Pelanggan', path: '/smart-insights/segmentation', feature: 'smart_insights', requiredPlan: 'pro' },
+    { icon: BrainCircuit, label: 'Analisis AI', path: '/smart-insights/analysis', feature: 'smart_insights', requiredPlan: 'pro' },
   ];
 
   const bottomItems = [

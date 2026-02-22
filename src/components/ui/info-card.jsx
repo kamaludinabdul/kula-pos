@@ -45,8 +45,13 @@ export const InfoCard = ({
     className,
     description,
     trend,
+    isCurrency = false,
     ...props
 }) => {
+    const displayValue = isCurrency && value !== undefined && value !== null
+        ? `Rp ${Number(value || 0).toLocaleString('en-US')}`
+        : value;
+
     return (
         <Card className={cn("rounded-2xl border-none shadow-sm bg-white overflow-hidden", className)} {...props}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
@@ -62,7 +67,7 @@ export const InfoCard = ({
             <CardContent className="p-4 pt-0">
                 <div className="flex items-baseline gap-2">
                     <div className="text-lg sm:text-2xl font-extrabold text-slate-900 break-words">
-                        {value}
+                        {displayValue}
                     </div>
                     {/* Optional Trend Indicator */}
                     {trend !== undefined && (

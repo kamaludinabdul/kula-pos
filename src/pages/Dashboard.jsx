@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { DollarSign, ShoppingBag, Users, TrendingUp, Eye, AlertTriangle, Package } from 'lucide-react';
+import { DollarSign, ShoppingBag, Users, TrendingUp, Eye, AlertTriangle, Package, BrainCircuit } from 'lucide-react';
 import ReceiptModal from '../components/ReceiptModal';
 import { useData } from '../context/DataContext';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
@@ -9,10 +9,7 @@ import DashboardCharts from './dashboard-components/DashboardCharts';
 import { safeSupabaseRpc } from '../utils/supabaseHelper';
 
 import { SmartDatePicker } from '../components/SmartDatePicker';
-
 import { useAuth } from '../context/AuthContext';
-
-// ... existing imports
 
 const formatCurrency = (val) => {
     if (val >= 1000000) return `${(val / 1000000).toFixed(1)} jt`;
@@ -20,10 +17,10 @@ const formatCurrency = (val) => {
     return `${val}`;
 };
 
+const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#8b5cf6'];
+
 const Dashboard = () => {
     const { user } = useAuth();
-
-    // Helper to get Timezone
     const userTimezone = useMemo(() => {
         try {
             return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta';
@@ -34,27 +31,19 @@ const Dashboard = () => {
 
     const [selectedTransaction, setSelectedTransaction] = useState(null);
     const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
-    const { currentStore, products: rawProducts, customers: rawCustomers, summary } = useData();
+    const { currentStore, products: rawProducts } = useData();
     const products = useMemo(() => Array.isArray(rawProducts) ? rawProducts : [], [rawProducts]);
-    const customers = useMemo(() => Array.isArray(rawCustomers) ? rawCustomers : [], [rawCustomers]);
 
-    // Helper to check permissions
     const hasPermission = (feature) => {
         if (!user) return false;
-
         const userRole = (user.role || '').toLowerCase();
-
         if (userRole === 'super_admin') return true;
         if (!currentStore) return userRole === 'owner' || userRole === 'super_admin';
-
-        // Admin always has access unless specifically restricted
         if (userRole === 'owner' || userRole === 'super_admin' || userRole === 'admin') return true;
-
         const perms = Array.isArray(user.permissions) ? user.permissions : [];
         return perms.includes(feature) || perms.some(p => p.startsWith(feature + '.'));
     };
 
-    // Permission Gates
     const canViewFinancials = hasPermission('dashboard.financials') || hasPermission('reports.profit_loss');
     const canViewStock = hasPermission('dashboard.stock') || hasPermission('products.stock');
 
@@ -63,7 +52,6 @@ const Dashboard = () => {
         setIsReceiptModalOpen(true);
     };
 
-    // SmartDatePicker date state: { from: Date, to: Date }
     const [dateRange, setDateRange] = useState(() => {
         const now = new Date();
         return {
@@ -72,7 +60,6 @@ const Dashboard = () => {
         };
     });
 
-    // Local State for Dashboard Data from RPC
     const [dashboardStats, setDashboardStats] = useState({
         totalSales: 0,
         totalTransactions: 0,
@@ -87,7 +74,6 @@ const Dashboard = () => {
     });
     const [isLoading, setIsLoading] = useState(false);
 
-    // Determine if single-day view (for hourly chart)
     const isSingleDay = useMemo(() => {
         if (!dateRange?.from || !dateRange?.to) return false;
         const from = new Date(dateRange.from);
@@ -97,23 +83,14 @@ const Dashboard = () => {
             from.getDate() === to.getDate();
     }, [dateRange]);
 
-    // Fetch Data Effect (RPC)
     useEffect(() => {
         const fetchDashboardData = async () => {
             if (!currentStore?.id) return;
-            if (!dateRange?.from || !dateRange?.to) return;
-
-            if (String(currentStore.id).length < 5) {
-                console.warn("Dashboard: Invalid store ID skipped:", currentStore.id);
-                return;
-            }
-
             setIsLoading(true);
             try {
                 const start = new Date(dateRange.from);
                 const end = new Date(dateRange.to);
 
-                // Call the RPC via Safe Helper
                 const data = await safeSupabaseRpc({
                     rpcName: 'get_dashboard_stats',
                     params: {
@@ -122,7 +99,6 @@ const Dashboard = () => {
                         p_end_date: end.toISOString(),
                         p_period: isSingleDay ? 'hour' : 'day',
                         p_timezone: userTimezone
-
                     }
                 });
 
@@ -140,7 +116,6 @@ const Dashboard = () => {
                         recentTransactions: data.recentTransactions || []
                     });
                 }
-
             } catch (error) {
                 console.error("Error fetching dashboard stats:", error);
             } finally {
@@ -151,61 +126,18 @@ const Dashboard = () => {
         fetchDashboardData();
     }, [dateRange, currentStore, isSingleDay, userTimezone]);
 
-    const chartData = useMemo(() => {
-        if (!canViewFinancials) return [];
-
-        let data = dashboardStats.chartData || [];
-
-        // If single day, fill in missing hours for a nice 0-23 graph
-        if (isSingleDay) {
-            const fullHours = Array.from({ length: 24 }, (_, i) => {
-                const hourLabel = `${i.toString().padStart(2, '0')}:00`;
-                const found = data.find(d => d.name === hourLabel);
-                return {
-                    name: hourLabel,
-                    total: found ? found.total : 0
-                };
-            });
-            return fullHours;
-        }
-
-        return data;
-    }, [dashboardStats.chartData, isSingleDay, canViewFinancials]);
-
-    const stats = useMemo(() => {
-        const { totalSales, totalTransactions, avgOrder } = dashboardStats;
-
-        let newCustomersCount = 0;
-        if (customers.length > 0 && dateRange?.from && dateRange?.to) {
-            newCustomersCount = customers.filter(c => {
-                const joined = new Date(c.createdAt || 0);
-                return joined >= dateRange.from && joined <= dateRange.to;
-            }).length;
-        }
-
-        return { totalSales, totalTransactions, avgOrder, newCustomers: newCustomersCount };
-    }, [dashboardStats, customers, dateRange]);
+    const stats = dashboardStats;
+    const chartData = stats.chartData || [];
+    const categoryData = stats.categoryData || [];
+    const topProducts = stats.topProducts || [];
+    const recentTransactions = stats.recentTransactions || [];
 
     const stockCounts = useMemo(() => {
-        // Use summary data if available (faster/optimized)
-        if (summary && typeof summary.outOfStock !== 'undefined') {
-            return {
-                outOfStock: summary.outOfStock || 0,
-                lowStock: summary.lowStock || 0
-            };
-        }
-
-        const outOfStock = products.filter(p => (p.stock || 0) <= 0).length;
-        const lowStock = products.filter(p => (p.stock || 0) > 0 && (p.stock || 0) <= (p.minStock || 10)).length;
-        return { outOfStock, lowStock };
-    }, [products, summary]);
-
-    const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
-
-    // Use data directly from RPC
-    const categoryData = dashboardStats.categoryData || [];
-    const recentTransactions = dashboardStats.recentTransactions || [];
-    const topProducts = dashboardStats.topProducts || [];
+        return {
+            outOfStock: products.filter(p => !p.manageStock ? false : Number(p.stock) <= 0).length,
+            lowStock: products.filter(p => !p.manageStock ? false : Number(p.stock) > 0 && Number(p.stock) <= (Number(p.minStock) || 5)).length
+        };
+    }, [products]);
 
     return (
         <div className="p-4 space-y-6">
@@ -217,38 +149,35 @@ const Dashboard = () => {
                         {canViewFinancials ? ' Berikut ringkasan bisnis Anda.' : ' Siap melayani pelanggan hari ini?'}
                     </p>
                 </div>
-                <SmartDatePicker
-                    date={dateRange}
-                    onDateChange={setDateRange}
-                />
+                <div className="flex items-center gap-3">
+                    <SmartDatePicker date={dateRange} onDateChange={setDateRange} />
+                </div>
             </header>
 
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* Top Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {canViewFinancials && (
                     <>
                         <InfoCard
                             title="Total Penjualan"
-                            value={`Rp ${stats.totalSales.toLocaleString()}`}
+                            value={stats.totalSales}
                             icon={DollarSign}
                             variant="primary"
-                        />
-                        <InfoCard
-                            title="Laba Kotor"
-                            value={`Rp ${(dashboardStats.totalGrossProfit || 0).toLocaleString()}`}
-                            icon={TrendingUp}
-                            variant="primary"
+                            isCurrency
                         />
                         <InfoCard
                             title="Laba Bersih"
-                            value={`Rp ${(dashboardStats.totalNetProfit || 0).toLocaleString()}`}
+                            value={stats.totalNetProfit}
                             icon={TrendingUp}
                             variant="success"
+                            isCurrency
                         />
                         <InfoCard
-                            title="Rata-rata Order"
-                            value={`Rp ${Math.round(stats.avgOrder).toLocaleString()}`}
+                            title="Laba Kotor"
+                            value={stats.totalGrossProfit}
                             icon={TrendingUp}
                             variant="warning"
+                            isCurrency
                         />
                     </>
                 )}

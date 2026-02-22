@@ -56,34 +56,46 @@ export const sendTransactionToTelegram = async (transaction, config = {}, store 
  * @returns {string} - Formatted message
  */
 const formatTransactionMessage = (transaction, store = null) => {
-    const date = new Date(transaction.date);
-    const formattedDate = date.toLocaleDateString('id-ID', {
+    const txDate = transaction.date ? new Date(transaction.date) : new Date();
+    const formattedDate = txDate.toLocaleDateString('id-ID', {
         day: '2-digit',
         month: 'long',
         year: 'numeric',
     });
-    const formattedTime = date.toLocaleTimeString('id-ID', {
+    const formattedTime = txDate.toLocaleTimeString('id-ID', {
         hour: '2-digit',
         minute: '2-digit',
     });
 
+    const txId = transaction.id ? String(transaction.id).slice(0, 8) : 'N/A';
+    const cashierName = transaction.cashier || 'Kasir Umum';
+    const payMethod = transaction.paymentMethod || '-';
+
     let message = `🧾 <b>TRANSAKSI BARU</b>\n\n`;
     message += `📅 <b>Tanggal:</b> ${formattedDate}\n`;
     message += `🕐 <b>Waktu:</b> ${formattedTime}\n`;
-    message += `👤 <b>Kasir:</b> ${transaction.cashier}\n`;
-    message += `🆔 <b>ID:</b> #${transaction.id.slice(0, 8)}\n`;
-    message += `💳 <b>Metode:</b> ${transaction.paymentMethod}\n\n`;
+    message += `👤 <b>Kasir:</b> ${cashierName}\n`;
+    message += `🆔 <b>ID:</b> #${txId}\n`;
+    message += `💳 <b>Metode:</b> ${payMethod}\n\n`;
 
     message += `📦 <b>Items:</b>\n`;
-    transaction.items.forEach((item, index) => {
-        message += `${index + 1}. ${item.name}\n`;
-        message += `   ${item.qty} x Rp ${item.price.toLocaleString()} = Rp ${item.total.toLocaleString()}\n`;
+    const items = Array.isArray(transaction.items) ? transaction.items : [];
+    items.forEach((item, index) => {
+        const itemPrice = Number(item.price) || 0;
+        const itemTotal = Number(item.total) || (itemPrice * (Number(item.qty) || 0));
+        message += `${index + 1}. ${item.name || 'Produk'}\n`;
+        message += `   ${item.qty || 0} x Rp ${itemPrice.toLocaleString()} = Rp ${itemTotal.toLocaleString()}\n`;
     });
 
+    const subtotal = Number(transaction.subtotal) || 0;
+    const tax = Number(transaction.tax) || 0;
+    const total = Number(transaction.total) || 0;
+    const taxRate = store?.taxRate || 0;
+
     message += `\n💰 <b>Ringkasan:</b>\n`;
-    message += `Subtotal: Rp ${transaction.subtotal.toLocaleString()}\n`;
-    message += `Pajak (${store?.taxRate || 0}%): Rp ${transaction.tax.toLocaleString()}\n`;
-    message += `<b>TOTAL: Rp ${transaction.total.toLocaleString()}</b>\n`;
+    message += `Subtotal: Rp ${subtotal.toLocaleString()}\n`;
+    message += `Pajak (${taxRate}%): Rp ${tax.toLocaleString()}\n`;
+    message += `<b>TOTAL: Rp ${total.toLocaleString()}</b>\n`;
 
     return message;
 };

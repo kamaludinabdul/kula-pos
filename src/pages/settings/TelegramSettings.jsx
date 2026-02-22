@@ -6,6 +6,7 @@ import { Label } from '../../components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Save, Send } from 'lucide-react';
 import { Switch } from '../../components/ui/switch';
+import { sendMessage } from '../../services/telegram';
 
 const TelegramSettings = () => {
     const { activeStoreId, currentStore, updateStore } = useData();
@@ -58,7 +59,6 @@ const TelegramSettings = () => {
         currentStore?.telegramChatId,
         currentStore?.telegramNotifyShift,
         currentStore?.telegramNotifyTransaction,
-        currentStore?.telegramNotifyTransaction,
         currentStore?.telegramNotifyLowStock,
         currentStore?.telegramNotifyShiftReminder,
         currentStore?.shiftOpenTime,
@@ -72,6 +72,35 @@ const TelegramSettings = () => {
 
     const handleSwitchChange = (name, checked) => {
         setFormData(prev => ({ ...prev, [name]: checked }));
+    };
+
+    const [isTesting, setIsTesting] = useState(false);
+    const handleTestMessage = async () => {
+        if (!formData.telegramBotToken || !formData.telegramChatId) {
+            alert('Harap isi Token dan Chat ID terlebih dahulu.');
+            return;
+        }
+
+        setIsTesting(true);
+        const testMsg = `🧪 <b>TES KONEKSI BOT</b>\n\nHalo dari Kasir Pro! Jika Anda menerima pesan ini, bot Anda sudah terkonfigurasi dengan benar.\n\n⏰ Waktu: ${new Date().toLocaleString('id-ID')}`;
+
+        try {
+            const success = await sendMessage(testMsg, {
+                token: formData.telegramBotToken,
+                chatId: formData.telegramChatId
+            });
+
+            if (success) {
+                alert('✅ Pesan tes berhasil terkirim! Silakan cek Telegram Anda.');
+            } else {
+                alert('❌ Gagal mengirim pesan tes. Pastikan Bot Token dan Chat ID benar, dan bot sudah ditambahkan ke chat tersebut.');
+            }
+        } catch (error) {
+            console.error('Telegram test error:', error);
+            alert('❌ Terjadi kesalahan saat mencoba mengirim pesan.');
+        } finally {
+            setIsTesting(false);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -130,6 +159,17 @@ const TelegramSettings = () => {
                                 ID Chat atau Grup tujuan notifikasi.
                             </p>
                         </div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="mt-2"
+                            onClick={handleTestMessage}
+                            disabled={isTesting}
+                        >
+                            <Send className="h-3.5 w-3.5 mr-2" />
+                            {isTesting ? 'Mencoba kirim...' : 'Tes Kirim Pesan'}
+                        </Button>
                     </div>
 
                     <div className="space-y-4">

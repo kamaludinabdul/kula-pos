@@ -39,16 +39,22 @@ const POS = () => {
     } = useData();
 
     // Ensure we have products for the POS (since DataContext no longer fetches them globally by default)
+    const lastFetchedStoreRef = useRef(null);
     useEffect(() => {
         if (!fetchAllProducts || !currentStore?.id) return;
 
         const hasProducts = products.length > 0;
         // Check if existing products belong to a different store (Stale Data)
-        const isWrongStore = hasProducts && products[0].storeId !== currentStore.id;
+        const isWrongStore = hasProducts && String(products[0].storeId) !== String(currentStore.id);
 
-        if (!hasProducts || isWrongStore) {
-            console.log("[POS] Fetching all products...", { reason: isWrongStore ? 'Stale Data (Wrong Store)' : 'Empty List' });
-            fetchAllProducts(currentStore.id);
+        // Prevent infinite loop if store has NO products
+        if ((!hasProducts || isWrongStore) && lastFetchedStoreRef.current !== currentStore.id) {
+            console.log("[POS] Fetching products for store:", currentStore.id);
+            lastFetchedStoreRef.current = currentStore.id; // Mark as fetched
+            fetchAllProducts(currentStore.id).catch(err => {
+                console.error("[POS] Fetch failed:", err);
+                lastFetchedStoreRef.current = null; // Allow retry on failure
+            });
         }
     }, [currentStore?.id, fetchAllProducts, products]);
 

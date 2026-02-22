@@ -300,3 +300,48 @@ Total Transaksi: ${data.count}
 _Gagal menghasilkan insight AI._`;
     }
 };
+
+/**
+ * Generates an in-depth sales performance analysis using AI.
+ * @param {Object} data - Financial data (current year/month, last year/month).
+ * @param {boolean} isMonthly - Whether the analysis is for a specific month (MoM) or full year (YoY).
+ * @param {string} [customApiKey] - Custom Gemini API key.
+ * @returns {Promise<string>} Detailed AI analysis and suggestions.
+ */
+export const getSalesPerformanceAnalysis = async (data, isMonthly = false, customApiKey = null) => {
+    const genAI = getGenAIInstance(customApiKey);
+    if (!genAI) return "API Key Gemini belum diatur. Silakan atur di Pengaturan Umum > Konfigurasi AI.";
+
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+        const prompt = `
+            Anda adalah Chief Business Officer (CBO) & Data Scientist Pakar Ritel untuk aplikasi Kula POS.
+            Analisis performa bisnis berdasarkan data keuangan ${isMonthly ? 'bulanan (Bulan Ini vs Bulan Lalu / Tahun Lalu)' : 'tahunan (Tahun Ini vs Tahun Lalu)'} berikut (Dalam Rupiah):
+
+            Data Periode Ini:
+            ${JSON.stringify(data.currentYear, null, 2)}
+
+            Data Pembanding:
+            ${JSON.stringify(data.lastYear, null, 2)}
+
+            Analisis yang diminta:
+            1. **Evaluasi Keamanan**: Apakah bisnis ini dalam kondisi aman, bertumbuh, atau kritis? (Bandingkan Laba Bersih vs Pengeluaran).
+            2. **Deteksi Kejanggalan**: Apakah ada anomali? (Contoh: Omset naik tapi laba turun, pengeluaran melonjak tiba-tiba).
+            3. **Pola Pertumbuhan**: ${isMonthly ? 'Bagaimana tren pertumbuhan bulan ini (MoM) dibandingkan bulan sebelumnya dan tahun lalu (YoY)?' : 'Bagaimana tren pertumbuhan tahun ini (YoY) dan apa pola musiman yang terlihat?'}
+            4. **Saran Strategis**: 3 langkah konkret yang harus dilakukan pemilik toko untuk mengoptimalkan profit dan menekan biaya (Anti-Boncos).
+
+            Format Jawaban:
+            - Gunakan Bahasa Indonesia yang sangat profesional, tajam, namun mudah dimengerti.
+            - Gunakan Markdown untuk format teks (bold, list, dsb).
+            - Jangan terlalu verbose, fokus pada insight yang bernilai uang.
+        `;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        return response.text().trim();
+    } catch (error) {
+        console.error("Gemini Performance Analysis Error:", error);
+        return "Gagal menghasilkan analisis AI. Silakan coba lagi nanti.";
+    }
+};

@@ -40,6 +40,7 @@ const PromotionForm = lazy(() => import('./pages/promotions/PromotionForm'));
 const MarketBasketAnalysis = React.lazy(() => import('./pages/smart-insights/MarketBasketAnalysis'));
 const SalesForecast = React.lazy(() => import('./pages/smart-insights/SalesForecast'));
 const CustomerSegmentation = React.lazy(() => import('./pages/smart-insights/CustomerSegmentation'));
+const SalesAnalysis = React.lazy(() => import('./pages/smart-insights/SalesAnalysis'));
 
 // Customer & Staff
 const Customers = lazy(() => import('./pages/Customers'));
@@ -399,6 +400,11 @@ const App = () => {
                       <Route path="segmentation" element={
                         <PrivateRoute feature="smart_insights" plan="pro">
                           <CustomerSegmentation />
+                        </PrivateRoute>
+                      } />
+                      <Route path="analysis" element={
+                        <PrivateRoute feature="smart_insights" plan="pro">
+                          <SalesAnalysis />
                         </PrivateRoute>
                       } />
 

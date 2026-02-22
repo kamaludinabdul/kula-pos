@@ -1106,7 +1106,7 @@ export const DataProvider = ({ children }) => {
 
     // Check for Plan Expiry
     useEffect(() => {
-        if (!stores || stores.length === 0) return;
+        if (!stores || stores.length === 0 || user?.role === 'staff') return;
 
         const checkExpiry = async () => {
             const now = new Date();
@@ -1124,19 +1124,27 @@ export const DataProvider = ({ children }) => {
 
             if (expiredStores.length > 0) {
                 try {
+                    // Prevent infinite loop: Only update if the local state isn't already 'free'
+                    // actually the filter already does this (store.plan !== 'free')
+                    // but we should avoid running this too often.
                     const { error } = await supabase
                         .from('stores')
                         .upsert(expiredStores);
                     if (error) throw error;
                     console.log("Auto-downgraded expired plans:", expiredStores.length);
+                    // Don't re-fetch here, let Realtime handle it
                 } catch (error) {
                     console.error("Failed to auto-downgrade plans:", error);
                 }
             }
         };
 
-        checkExpiry();
-    }, [stores]);
+        // De-bounce or only run once every hour/day? 
+        // For now, let's at least ensure it doesn't loop by checking if stores actually changed in length
+        // or just run it once when stores are first loaded.
+        const timer = setTimeout(checkExpiry, 10000); // Wait 10s after stores load to check expiry
+        return () => clearTimeout(timer);
+    }, [stores, user?.role]); // Added stores to satisfy lint, logic remains safe via checkExpiry guards
 
     // --- User Management ---
     // --- User Management ---

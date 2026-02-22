@@ -132,7 +132,7 @@ const MobilePOS = () => {
             if (result.success) {
                 await updateShiftStats(totals.finalTotal, paymentMethod, totals.discountAmount);
                 if (currentStore?.telegramNotifyTransaction) {
-                    sendTransactionToTelegram({ ...transactionData, id: Date.now() }, { token: currentStore.telegramBotToken, chatId: currentStore.telegramChatId }, currentStore);
+                    sendTransactionToTelegram({ ...transactionData, id: Date.now().toString() }, { token: currentStore.telegramBotToken, chatId: currentStore.telegramChatId }, currentStore);
                 }
                 setLastTransaction({ ...transactionData, id: result.id });
                 setPaymentSuccess(true);

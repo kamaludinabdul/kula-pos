@@ -8,6 +8,18 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        version: "0.16.18",
+        date: "2026-02-23",
+        type: "minor",
+        title: "AI Insights Persistence & UI Polish",
+        changes: [
+            "Smart Strategy: AI Insights are now saved to the database (ai_insights table), preventing constant re-triggering and quota limits.",
+            "Smart Strategy: Fixed '42P01: relation user_stores does not exist' by updating the Row Level Security (RLS) policy to correctly reference the profiles table.",
+            "Smart Strategy: Standardized formatting for 'Performa & Analisis AI' heading and text size to match the app's overall typography.",
+            "Sales Forecast: Redesigned the top summary cards to use the unified design system's InfoCard."
+        ]
+    },
+    {
         version: "0.16.16",
         date: "2026-02-22",
         type: "patch",

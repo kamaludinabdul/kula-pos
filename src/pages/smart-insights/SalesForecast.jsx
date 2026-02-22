@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { supabase } from '../../supabase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
-import { Loader2, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { Loader2, TrendingUp, TrendingDown, BrainCircuit } from 'lucide-react';
+import { InfoCard } from '../../components/ui/info-card';
 import {
     Area,
     AreaChart,
@@ -171,53 +172,29 @@ const SalesForecast = () => {
                 </p>
             </div>
 
-            <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Prediksi Omset 7 Hari Kedepan</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-green-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            Rp {prediction.nextWeekTotal.toLocaleString('id-ID')}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            Berdasarkan tren penjualan {chartData.filter(d => d.actual !== null).length} hari terakhir
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Akurasi Prediksi</CardTitle>
-                        <DollarSign className="h-4 w-4 text-blue-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {prediction.accuracy}%
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            Tingkat kecocokan data historis vs prediksi
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Tren</CardTitle>
-                        {prediction.trend === 'up' ? (
-                            <TrendingUp className="h-4 w-4 text-green-500" />
-                        ) : (
-                            <TrendingDown className="h-4 w-4 text-red-500" />
-                        )}
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold capitalize">
-                            {prediction.trend === 'up' ? 'Meningkat' : 'Menurun'}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            Dibandingkan 7 hari terakhir
-                        </p>
-                    </CardContent>
-                </Card>
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
+                <InfoCard
+                    title="Prediksi Omset"
+                    value={prediction.nextWeekTotal}
+                    icon={TrendingUp}
+                    variant="success"
+                    isCurrency
+                    description={`Berdasarkan tren penjualan ${chartData.filter(d => d.actual !== null).length} hari terakhir`}
+                />
+                <InfoCard
+                    title="Akurasi AI"
+                    value={`${prediction.accuracy}%`}
+                    icon={BrainCircuit}
+                    variant="primary"
+                    description="Kecocokan data historis vs prediksi AI"
+                />
+                <InfoCard
+                    title="Tren Penjualan"
+                    value={prediction.trend === 'up' ? 'Meningkat' : 'Menurun'}
+                    icon={prediction.trend === 'up' ? TrendingUp : TrendingDown}
+                    variant={prediction.trend === 'up' ? 'success' : 'danger'}
+                    description="Dibandingkan 7 hari sebelumnya"
+                />
             </div>
 
             <Card className="col-span-4">

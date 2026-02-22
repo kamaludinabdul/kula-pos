@@ -1103,13 +1103,13 @@ const ShoppingRecommendations = () => {
                                                             {item.trend === 'Trending Up' && (
                                                                 <div className="flex flex-col text-green-600">
                                                                     <div className="flex items-center gap-1">
-                                                                        <TrendingUp className="h-3 w-3" />
-                                                                        <span className="text-[10px]">{item.reasoning}</span>
+                                                                        <TrendingUp className="h-4 w-4" />
+                                                                        <span className="text-xs">{item.reasoning}</span>
                                                                     </div>
                                                                     {item.aiReason && (
                                                                         <div className="flex items-center gap-1 mt-1 text-primary">
-                                                                            <Sparkles className="h-3 w-3 fill-primary animate-pulse" />
-                                                                            <span className="text-[9px] italic font-semibold">{item.aiReason}</span>
+                                                                            <Sparkles className="h-4 w-4 fill-primary animate-pulse" />
+                                                                            <span className="text-xs italic font-semibold">{item.aiReason}</span>
                                                                         </div>
                                                                     )}
                                                                 </div>
@@ -1117,13 +1117,13 @@ const ShoppingRecommendations = () => {
                                                             {item.trend === 'Trending Down' && (
                                                                 <div className="flex flex-col text-red-500">
                                                                     <div className="flex items-center gap-1">
-                                                                        <TrendingDown className="h-3 w-3" />
-                                                                        <span className="text-[10px]">{item.reasoning}</span>
+                                                                        <TrendingDown className="h-4 w-4" />
+                                                                        <span className="text-xs">{item.reasoning}</span>
                                                                     </div>
                                                                     {item.aiReason && (
                                                                         <div className="flex items-center gap-1 mt-1 text-primary">
-                                                                            <Sparkles className="h-3 w-3 fill-primary animate-pulse" />
-                                                                            <span className="text-[9px] italic font-semibold">{item.aiReason}</span>
+                                                                            <Sparkles className="h-4 w-4 fill-primary animate-pulse" />
+                                                                            <span className="text-xs italic font-semibold">{item.aiReason}</span>
                                                                         </div>
                                                                     )}
                                                                 </div>
@@ -1137,18 +1137,18 @@ const ShoppingRecommendations = () => {
                                                                     {item.aiReason && (
                                                                         <div className="flex items-center gap-1 mt-1 text-primary">
                                                                             <Sparkles className="h-3 w-3 fill-primary animate-pulse" />
-                                                                            <span className="text-[9px] italic font-semibold">{item.aiReason}</span>
+                                                                            <span className="text-xs italic font-semibold">{item.aiReason}</span>
                                                                         </div>
                                                                     )}
                                                                 </div>
                                                             )}
                                                             {!item.trend && item.aiReason && (
                                                                 <div className="flex items-center gap-1 text-primary">
-                                                                    <Sparkles className="h-3 w-3 fill-primary animate-pulse" />
-                                                                    <span className="text-[9px] italic font-semibold">{item.aiReason}</span>
+                                                                    <Sparkles className="h-4 w-4 fill-primary animate-pulse" />
+                                                                    <span className="text-xs italic font-semibold">{item.aiReason}</span>
                                                                 </div>
                                                             )}
-                                                            {!item.trend && !item.aiReason && <span className="text-[10px] text-muted-foreground">-</span>}
+                                                            {!item.trend && !item.aiReason && <span className="text-xs text-muted-foreground">-</span>}
                                                         </TableCell>
                                                         <TableCell className="py-2 text-xs text-right">
                                                             <div>Rp {item.buyPrice.toLocaleString('id-ID')}</div>
@@ -1251,8 +1251,8 @@ const ShoppingRecommendations = () => {
 
                             {aiBudgetReason && (
                                 <div className="bg-indigo-50 border border-indigo-100 p-3 rounded-lg flex items-start gap-2 mt-2 animate-in fade-in zoom-in-95">
-                                    <Sparkles className="h-4 w-4 text-indigo-500 mt-0.5 shrink-0" />
-                                    <p className="text-xs text-indigo-900 leading-relaxed font-medium">
+                                    <Sparkles className="h-5 w-5 text-indigo-500 mt-0.5 shrink-0" />
+                                    <p className="text-sm text-indigo-900 leading-relaxed font-medium">
                                         "{aiBudgetReason}"
                                     </p>
                                 </div>
