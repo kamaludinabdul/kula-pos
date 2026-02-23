@@ -26,18 +26,27 @@ DECLARE
     v_other_income NUMERIC := 0;
     v_total_assets NUMERIC := 0;
     v_net_profit NUMERIC := 0;
+    v_total_cash NUMERIC := 0;
+    v_total_qris NUMERIC := 0;
+    v_total_transfer NUMERIC := 0;
 BEGIN
     -- Aggregate Sales, Discount, Tax, and Transactions
     SELECT 
         COALESCE(SUM(total), 0),
         COALESCE(SUM(discount), 0),
         COALESCE(SUM(tax), 0),
-        COUNT(*)
+        COUNT(*),
+        COALESCE(SUM(CASE WHEN payment_method ILIKE 'cash' OR payment_method ILIKE 'tunai' THEN total ELSE 0 END), 0),
+        COALESCE(SUM(CASE WHEN payment_method ILIKE 'qris' THEN total ELSE 0 END), 0),
+        COALESCE(SUM(CASE WHEN payment_method ILIKE 'transfer' THEN total ELSE 0 END), 0)
     INTO 
         v_total_sales, 
         v_total_discount, 
         v_total_tax, 
-        v_total_transactions
+        v_total_transactions,
+        v_total_cash,
+        v_total_qris,
+        v_total_transfer
     FROM transactions
     WHERE store_id = p_store_id
       AND date >= p_start_date
@@ -84,6 +93,7 @@ BEGIN
       AND cf.date >= p_start_date
       AND cf.date <= p_end_date
       AND cf.type IN ('in', 'income')
+      AND cf.category NOT IN ('Penjualan (Rekap)', 'Penjualan (Manual)', 'Modal Tambahan', 'Penjualan')
       AND COALESCE(cf.expense_group, 'operational') != 'asset'; -- Pastikan bukan origin lain jika ada
 
     -- Aggregate Capital Expenditure (Assets) - Tetap hanya di cash_flow
@@ -109,7 +119,10 @@ BEGIN
         'total_items', v_total_items,
         'total_tax', v_total_tax,
         'total_discount', v_total_discount,
-        'total_assets', v_total_assets
+        'total_assets', v_total_assets,
+        'total_cash', v_total_cash,
+        'total_qris', v_total_qris,
+        'total_transfer', v_total_transfer
     );
 END;
 $$;
