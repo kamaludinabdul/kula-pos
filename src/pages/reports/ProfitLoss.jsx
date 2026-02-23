@@ -107,7 +107,14 @@ const ProfitLoss = () => {
                 fallbackParams: `?store_id=eq.${currentStore.id}&date=gte.${startDateStr}&date=lte.${endDateStr}&order=date.desc&limit=100`
             });
 
-            setTransactions(transData || []);
+            // Map snake_case to camelCase for UI compatibility
+            const mappedTransData = (transData || []).map(t => ({
+                ...t,
+                paymentMethod: t.payment_method,
+                customerName: t.customer_name
+            }));
+
+            setTransactions(mappedTransData);
 
             // 2. Fetch Aggregated Stats via RPC
             const reportStats = await safeSupabaseRpc({
