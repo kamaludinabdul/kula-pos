@@ -628,6 +628,9 @@ export const DataProvider = ({ children }) => {
                     pricingTiers: p.pricing_tiers,
                     isBundlingEnabled: p.is_bundling_enabled,
                     isWholesale: p.is_wholesale,
+                    stockType: p.stock_type,
+                    overtime_hourly_penalty: p.overtime_hourly_penalty,
+                    overtime_trigger_hours: p.overtime_trigger_hours,
                     price: p.sell_price,
                     category: p.categories?.name || null
                 }))
@@ -1317,10 +1320,15 @@ export const DataProvider = ({ children }) => {
                 is_unlimited: product.isUnlimited || false,
                 category_id: product.categoryId || product.category_id || null,
                 image_url: product.image || product.imageUrl || null,
-                pricing_type: product.pricingType || 'standard',
+                pricing_type: product.pricingType || 'fixed',
                 pricing_tiers: product.pricingTiers || [],
                 is_bundling_enabled: product.isBundlingEnabled || false,
                 is_wholesale: product.isWholesale || false,
+                stock_type: product.stockType || 'Barang',
+                purchase_unit: product.purchaseUnit || null,
+                conversion_to_unit: product.conversionToUnit ? Number(product.conversionToUnit) : null,
+                overtime_hourly_penalty: Number(product.overtime_hourly_penalty) || 0,
+                overtime_trigger_hours: Number(product.overtime_trigger_hours) || 0,
                 rack_location: product.shelf || product.rackLocation || null,
                 weight: product.weight || 0,
                 is_deleted: false
@@ -1399,10 +1407,16 @@ export const DataProvider = ({ children }) => {
                 weight: rawData.weight,
                 rack_location: (rawData.shelf || rawData.rackLocation) ?? rawData.rack_location,
                 image_url: rawData.image || rawData.imageUrl,
-                pricing_type: rawData.pricingType || rawData.pricing_type,
+                pricing_type: (() => {
+                    const pt = rawData.pricingType || rawData.pricing_type || 'fixed';
+                    return pt === 'standard' ? 'fixed' : pt;
+                })(),
                 pricing_tiers: rawData.pricingTiers || rawData.pricing_tiers,
                 is_bundling_enabled: rawData.isBundlingEnabled || rawData.is_bundling_enabled,
                 is_wholesale: rawData.isWholesale ?? rawData.is_wholesale,
+                stock_type: rawData.stockType || rawData.stock_type || 'Barang',
+                overtime_hourly_penalty: Number(rawData.overtime_hourly_penalty) || 0,
+                overtime_trigger_hours: Number(rawData.overtime_trigger_hours) || 0,
                 category_id: rawData.categoryId ?? rawData.category_id
             };
 

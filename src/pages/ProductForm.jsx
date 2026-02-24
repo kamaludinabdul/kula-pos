@@ -157,7 +157,10 @@ const ProductForm = () => {
                         : (product.category ? [(typeof product.category === 'object' && product.category?.name) ? product.category.name : product.category] : []),
                     buyPrice: product.buyPrice || product.buy_price || '',
                     sellPrice: product.sellPrice || product.sell_price || product.price || '',
-                    stockType: product.stockType || product.stock_type || 'Barang',
+                    stockType: (() => {
+                        const st = product.stockType || product.stock_type || 'Barang';
+                        return st.toLowerCase() === 'jasa' ? 'Jasa' : 'Barang';
+                    })(),
                     stock: product.isUnlimited ? '' : (product.stock !== undefined ? product.stock : ''),
                     minStock: product.minStock || product.min_stock || '',
                     weight: product.weight || '',
@@ -168,7 +171,11 @@ const ProductForm = () => {
                     unit: product.unit || 'Pcs',
                     purchaseUnit: product.purchaseUnit || product.purchase_unit || '',
                     conversionToUnit: product.conversionToUnit || product.conversion_to_unit || '',
-                    pricingType: product.pricingType || product.pricing_type || 'fixed',
+                    pricingType: (() => {
+                        const pt = product.pricingType || product.pricing_type || 'fixed';
+                        if (pt === 'standard') return 'fixed';
+                        return ['fixed', 'hourly', 'minutely', 'daily'].includes(pt) ? pt : 'fixed';
+                    })(),
                     isUnlimited: product.isUnlimited || product.is_unlimited || false,
                     isBundlingEnabled: product.isBundlingEnabled || product.is_bundling_enabled || false,
                     isWholesale: product.isWholesale || product.is_wholesale || false,
@@ -331,7 +338,7 @@ const ProductForm = () => {
             discount: Number(formData.discount),
 
             price: Number(formData.sellPrice), // Legacy support
-            unit: formData.pricingType === 'hourly' ? 'Jam' : (formData.pricingType === 'daily' ? 'Hari' : formData.unit),
+            unit: formData.pricingType === 'hourly' ? 'Jam' : (formData.pricingType === 'daily' ? 'Hari' : (formData.pricingType === 'minutely' ? 'Menit' : formData.unit)),
             purchaseUnit: formData.purchaseUnit,
             conversionToUnit: formData.conversionToUnit ? Number(formData.conversionToUnit) : null,
             pricingType: formData.pricingType,
@@ -641,34 +648,33 @@ const ProductForm = () => {
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="fixed">Harga Tetap (Jual Putus)</SelectItem>
-                                                <SelectItem value="hourly">Rental / Durasi (Per Jam)</SelectItem>
-                                                <SelectItem value="daily">Rental / Durasi (Per Hari)</SelectItem>
+                                                <SelectItem value="hourly">Sewa (Per Jam)</SelectItem>
+                                                <SelectItem value="minutely">Sewa (Per Menit)</SelectItem>
+                                                <SelectItem value="daily">Sewa (Per Hari)</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
 
-                                    {formData.pricingType !== 'hourly' && (
-                                        <div className="space-y-2">
-                                            <div className="flex items-center h-6">
-                                                <Label htmlFor="buyPrice">Harga Beli</Label>
-                                            </div>
-                                            <div className="relative">
-                                                <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">Rp</span>
-                                                <Input
-                                                    id="buyPrice"
-                                                    name="buyPrice"
-                                                    type="number"
-                                                    className="pl-9"
-                                                    value={formData.buyPrice}
-                                                    onChange={handleChange}
-                                                    placeholder="0"
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
                                     <div className="space-y-2">
                                         <div className="flex items-center h-6">
-                                            <Label htmlFor="sellPrice">Harga Jual {formData.pricingType === 'hourly' ? '(Per Jam)' : (formData.pricingType === 'daily' ? '(Per Hari)' : '')} <span className="text-destructive">*</span></Label>
+                                            <Label htmlFor="buyPrice">Harga Beli {formData.pricingType !== 'fixed' && '(Modal Produk)'}</Label>
+                                        </div>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">Rp</span>
+                                            <Input
+                                                id="buyPrice"
+                                                name="buyPrice"
+                                                type="number"
+                                                className="pl-9"
+                                                value={formData.buyPrice}
+                                                onChange={handleChange}
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center h-6">
+                                            <Label htmlFor="sellPrice">Harga Jual {formData.pricingType === 'hourly' ? '(Per Jam)' : (formData.pricingType === 'daily' ? '(Per Hari)' : (formData.pricingType === 'minutely' ? '(Per Menit)' : ''))} <span className="text-destructive">*</span></Label>
                                         </div>
                                         <div className="relative">
                                             <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">Rp</span>
@@ -683,6 +689,20 @@ const ProductForm = () => {
                                                 required
                                             />
                                         </div>
+                                        {formData.pricingType === 'minutely' && formData.sellPrice && Number(formData.sellPrice) > 0 && (
+                                            <div className="text-xs text-indigo-600 bg-indigo-50 p-2 rounded-md border border-indigo-100 flex flex-col gap-1 mt-2">
+                                                <span className="font-bold flex items-center gap-1">💡 Simulasi Tarif Sewa:</span>
+                                                <span>30 Menit: <b>Rp {(Number(formData.sellPrice) * 30).toLocaleString('id-ID')}</b></span>
+                                                <span>1 Jam: <b>Rp {(Number(formData.sellPrice) * 60).toLocaleString('id-ID')}</b></span>
+                                            </div>
+                                        )}
+                                        {formData.pricingType === 'hourly' && formData.sellPrice && Number(formData.sellPrice) > 0 && (
+                                            <div className="text-xs text-indigo-600 bg-indigo-50 p-2 rounded-md border border-indigo-100 flex flex-col gap-1 mt-2">
+                                                <span className="font-bold flex items-center gap-1">💡 Simulasi Tarif Sewa:</span>
+                                                <span>30 Menit: <b>Rp {(Number(formData.sellPrice) * 0.5).toLocaleString('id-ID')}</b></span>
+                                                <span>1 Jam: <b>Rp {Number(formData.sellPrice).toLocaleString('id-ID')}</b></span>
+                                            </div>
+                                        )}
                                         {priceRecommendation && (
                                             <p className="text-xs text-muted-foreground flex items-center gap-1">
                                                 💡 Rekomendasi:
@@ -755,7 +775,7 @@ const ProductForm = () => {
                                         <div className="flex-1">
                                             <Label className="text-base font-semibold">Harga Bundling / Grosir</Label>
                                             <p className="text-sm text-muted-foreground mt-0.5">
-                                                {formData.pricingType === 'hourly' || formData.pricingType === 'daily'
+                                                {formData.pricingType === 'hourly' || formData.pricingType === 'daily' || formData.pricingType === 'minutely'
                                                     ? `Harga khusus untuk durasi tertentu (misal: 3 ${formData.pricingType === 'daily' ? 'Hari' : 'Jam'} = Rp 100rb).`
                                                     : 'Harga khusus untuk jumlah tertentu. Pilih strategi "Eceran" untuk diskon bertahap, atau "Grosir" untuk harga pukul rata.'
                                                 }
@@ -814,7 +834,7 @@ const ProductForm = () => {
                                     {formData.isBundlingEnabled && (
                                         <div className="bg-indigo-50/50 p-4 rounded-lg border border-indigo-100 space-y-3">
                                             <div className="flex items-center justify-between">
-                                                <Label className="text-indigo-700">Daftar Paket {formData.pricingType === 'hourly' ? 'Durasi' : 'Qty'}</Label>
+                                                <Label className="text-indigo-700">Daftar Paket {formData.pricingType === 'hourly' || formData.pricingType === 'minutely' || formData.pricingType === 'daily' ? 'Durasi' : 'Qty'}</Label>
                                                 <Button
                                                     type="button"
                                                     variant="outline"
@@ -844,7 +864,7 @@ const ProductForm = () => {
                                                                 <Label className="text-xs text-muted-foreground mb-1 block">
                                                                     {formData.isWholesale
                                                                         ? 'Minimal Qty (Mulai Dari)'
-                                                                        : (formData.pricingType === 'hourly' ? 'Durasi (Jam)' : (formData.pricingType === 'daily' ? 'Durasi (Hari)' : 'Jumlah (Qty)'))}
+                                                                        : (formData.pricingType === 'hourly' ? 'Durasi (Jam)' : (formData.pricingType === 'minutely' ? 'Durasi (Menit)' : (formData.pricingType === 'daily' ? 'Durasi (Hari)' : 'Jumlah (Qty)')))}
                                                                 </Label>
                                                                 <Input
                                                                     type="number"
@@ -857,7 +877,7 @@ const ProductForm = () => {
                                                                             return { ...prev, pricingTiers: newTiers };
                                                                         });
                                                                     }}
-                                                                    placeholder={formData.pricingType === 'hourly' ? '3' : (formData.pricingType === 'daily' ? '1' : '5')}
+                                                                    placeholder={formData.pricingType === 'hourly' ? '3' : (formData.pricingType === 'minutely' ? '60' : (formData.pricingType === 'daily' ? '1' : '5'))}
                                                                     className="h-9"
                                                                 />
                                                             </div>

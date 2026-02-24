@@ -6,7 +6,7 @@ import {
   ChevronDown, ChevronRight, Receipt, Store, Printer, UserCog, Layers, Shield, Percent,
   Gift, Sparkles, PanelLeftClose, PanelLeftOpen, Crown, ClipboardCheck, History, TrendingUp,
   Clock, TrendingDown, Send, Cloud, FileText, Copy, DollarSign, BrainCircuit, Lightbulb,
-  Key, BadgePercent, Factory, Ticket, Lock, Gamepad2, CheckCircle, Building2
+  Key, BadgePercent, Factory, Ticket, Lock, Gamepad2, CheckCircle, Building2, Wallet
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -138,6 +138,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
     { label: 'Notifikasi Telegram', path: '/settings/telegram', icon: Send, requiredPlan: 'pro', feature: 'settings.telegram' },
     { label: 'Keamanan', path: '/settings/security', icon: Lock, feature: 'settings.access' },
     { label: 'Hak Akses', path: '/settings/access', icon: Shield, feature: 'settings.access' },
+    { label: 'Fee Pet Hotel', path: '/settings/pet-hotel-fee', icon: Wallet, feature: 'settings.fees', requiredPlan: 'enterprise', checkSetting: 'petCareEnabled' },
   ];
 
   const reportsItems = [
@@ -150,6 +151,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
     { path: '/reports/expenses', icon: TrendingDown, label: 'Pengeluaran', feature: 'reports.expenses' },
     { path: '/reports/loyalty-points', icon: Gift, label: 'Laporan Poin', feature: 'reports.loyalty', requiredPlan: 'pro' },
     { path: '/reports/sales-performance', icon: TrendingUp, label: 'Laporan Target & Performa', feature: 'reports.performance', checkSetting: 'enableSalesPerformance', requiredPlan: 'pro' },
+    { path: '/reports/pet-hotel-fee', icon: Wallet, label: 'Fee Pet Hotel', feature: 'reports.shifts', requiredPlan: 'enterprise', checkSetting: 'petCareEnabled' },
   ];
 
   const financeItems = [
@@ -182,9 +184,13 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
     const isSuperAdmin = user?.role === 'super_admin';
     const hasPerm = hasPermission(item.feature);
     const settingEnabled = !item.checkSetting || currentStore?.[item.checkSetting];
+    const currentPlan = (currentStore?.plan || user?.plan || 'free').toLowerCase();
+
+    // Check requiredPlan
+    const planRequired = item.requiredPlan ? (currentPlan === item.requiredPlan || currentPlan === 'enterprise') : true;
 
     // Super Admin sees all reports, others need setting enabled
-    return hasPerm && (isSuperAdmin || settingEnabled);
+    return hasPerm && (isSuperAdmin || (settingEnabled && planRequired));
   });
 
 
@@ -192,8 +198,21 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
   const isSalesActive = visibleSalesItems.some(item => location.pathname.startsWith(item.path));
   const isReportsActive = visibleReportsItems.some(item => location.pathname.startsWith(item.path));
 
+  // Determine visible settings items based on checkSetting
+  const visibleSettingsItems = settingsItems.filter(item => {
+    const isSuperAdmin = user?.role === 'super_admin';
+    const hasPerm = hasPermission(item.feature);
+    const settingEnabled = !item.checkSetting || currentStore?.[item.checkSetting];
+    const currentPlan = (currentStore?.plan || user?.plan || 'free').toLowerCase();
 
-  const isSettingsActive = settingsItems.some(item => location.pathname.startsWith(item.path));
+    // Check requiredPlan
+    const planRequired = item.requiredPlan ? (currentPlan === item.requiredPlan || currentPlan === 'enterprise') : true;
+
+    // Super Admin sees everything based on checkSetting if applicable
+    return hasPerm && (isSuperAdmin || settingEnabled) && planRequired;
+  });
+
+  const isSettingsActive = visibleSettingsItems.some(item => location.pathname.startsWith(item.path));
 
   const renderNavItem = (item) => {
     const currentPlan = (currentStore?.plan || user?.plan || 'free').toLowerCase();
@@ -500,9 +519,9 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
                     {isSettingsOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </button>
 
-                  {isSettingsOpen && (
+                  {isSettingsActive && (
                     <div className="pl-9 space-y-1 mt-1">
-                      {settingsItems.filter(item => hasPermission(item.feature)).map(renderNavItem)}
+                      {visibleSettingsItems.map(renderNavItem)}
                     </div>
                   )}
                 </>

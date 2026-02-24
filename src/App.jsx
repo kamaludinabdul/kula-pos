@@ -59,6 +59,7 @@ const TelegramSettings = lazy(() => import('./pages/settings/TelegramSettings'))
 const SalesPerformanceSettings = lazy(() => import('./pages/settings/SalesPerformanceSettings'));
 const GeneralSettings = lazy(() => import('./pages/settings/GeneralSettings'));
 const SecuritySettings = lazy(() => import('./pages/settings/SecuritySettings'));
+const PetHotelFeeSettings = lazy(() => import('./pages/settings/PetHotelFeeSettings'));
 
 // Reports
 const ReportsLayout = lazy(() => import('./pages/reports/ReportsLayout'));
@@ -71,6 +72,7 @@ const ExpenseReport = lazy(() => import('./pages/reports/ExpenseReport'));
 const TopSellingProducts = lazy(() => import('./pages/reports/TopSellingProducts'));
 const LoyaltyPointsReport = lazy(() => import('./pages/reports/LoyaltyPointsReport'));
 const SalesPerformanceReport = lazy(() => import('./pages/reports/SalesPerformanceReport'));
+const PetHotelFeeReport = lazy(() => import('./pages/reports/PetHotelFeeReport'));
 
 // Sales & Finance
 const SalesTarget = lazy(() => import('./pages/sales/SalesTarget'));
@@ -477,6 +479,7 @@ const App = () => {
                       <Route path="telegram" element={<TelegramSettings />} />
                       <Route path="sales-performance" element={<SalesPerformanceSettings />} />
                       <Route path="security" element={<SecuritySettings />} />
+                      <Route path="pet-hotel-fee" element={<PetHotelFeeSettings />} />
                     </Route>
 
                     {/* Finance Routes */}
@@ -536,6 +539,11 @@ const App = () => {
                       <Route path="sales-performance" element={
                         <PrivateRoute feature="reports">
                           <SalesPerformanceReport />
+                        </PrivateRoute>
+                      } />
+                      <Route path="pet-hotel-fee" element={
+                        <PrivateRoute feature="reports">
+                          <PetHotelFeeReport />
                         </PrivateRoute>
                       } />
                     </Route>

@@ -69,7 +69,7 @@ const calculateBestPrice = (durationData, product) => {
         totalPrice += remainingDuration * basePrice;
     }
 
-    return totalPrice;
+    return parseFloat(totalPrice.toFixed(2));
 };
 
 // --- KOMPONEN KARTU UNIT ---
@@ -134,11 +134,16 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
             }
         } else {
             // OPEN Mode
-            durationInHours = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
             if (product && product.pricingType === 'daily') {
+                durationInHours = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
                 const days = Math.ceil(durationInHours / 24);
                 currentBill = days * product.sellPrice;
+            } else if (product && product.pricingType === 'minutely') {
+                const durationInMinutes = Math.max(1, Math.ceil(elapsed / (1000 * 60)));
+                currentBill = durationInMinutes * product.sellPrice;
+                durationInHours = durationInMinutes; // reusing variable name for rendering ease
             } else {
+                durationInHours = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
                 currentBill = product ? durationInHours * product.sellPrice : 0;
             }
             timerDisplay = formatDuration(elapsed);
@@ -197,7 +202,9 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
                                         ? (timeLeft > 0 ? `Selesai: ${new Date(session.target_end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Billing Terhenti (Fixed)')
                                         : (product?.pricingType === 'daily'
                                             ? `Durasi Billing: ${Math.ceil(durationInHours / 24)} Hari`
-                                            : `Durasi Billing: ${durationInHours} Jam`
+                                            : (product?.pricingType === 'minutely'
+                                                ? `Durasi Billing: ${durationInHours} Menit`
+                                                : `Durasi Billing: ${durationInHours} Jam`)
                                         )
                                     }
                                 </p>
@@ -205,7 +212,7 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
 
                             <div className="flex flex-col gap-2 text-sm bg-white/60 p-3 rounded border border-indigo-100/50">
                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Sewa {session.billing_mode === 'fixed' ? '(Fixed)' : `(${durationInHours} Jam)`}:</span>
+                                    <span className="text-muted-foreground">Sewa {session.billing_mode === 'fixed' ? '(Fixed)' : `(${durationInHours} ${product?.pricingType === 'minutely' ? 'Menit' : 'Jam'})`}:</span>
                                     <span className="font-semibold">Rp {currentBill.toLocaleString('id-ID')}</span>
                                 </div>
                                 <div className="flex justify-between items-center border-t pt-2 mt-1">
@@ -235,7 +242,7 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
                         <div className="text-center py-8 text-muted-foreground bg-slate-50 rounded-lg border border-dashed">
                             <p>Siap Digunakan</p>
                             <p className="text-xs font-medium text-slate-900 mt-1">
-                                Tarif: Rp {parseInt(product?.sellPrice || 0).toLocaleString('id-ID')} / {product?.pricingType === 'daily' ? 'hari' : 'jam'}
+                                Tarif: Rp {parseInt(product?.sellPrice || 0).toLocaleString('id-ID')} / {product?.pricingType === 'daily' ? 'hari' : (product?.pricingType === 'minutely' ? 'menit' : 'jam')}
 
                             </p>
                         </div>
@@ -277,7 +284,7 @@ const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products, onRefres
     const [unitToDelete, setUnitToDelete] = useState(null);
 
     // Filter produk yang tipe hourly
-    const hourlyProducts = products.filter(p => p.pricingType === 'hourly' || p.pricingType === 'daily');
+    const hourlyProducts = products.filter(p => p.pricingType === 'hourly' || p.pricingType === 'daily' || p.pricingType === 'minutely');
 
     const { toast } = useToast();
 
@@ -385,7 +392,7 @@ const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products, onRefres
                                             hourlyProducts.map(p => (
                                                 <SelectItem key={p.id} value={p.id} className="cursor-pointer focus:bg-indigo-50 py-3">
                                                     <span className="font-medium text-slate-700">{p.name}</span>
-                                                    <span className="ml-2 text-indigo-600 font-bold">- Rp {parseInt(p.sellPrice || 0).toLocaleString()}/{p.pricingType === 'daily' ? 'hari' : 'jam'}</span>
+                                                    <span className="ml-2 text-indigo-600 font-bold">- Rp {parseInt(p.sellPrice || 0).toLocaleString()}/{p.pricingType === 'minutely' ? 'menit' : (p.pricingType === 'daily' ? 'hari' : 'jam')}</span>
                                                 </SelectItem>
                                             ))
                                         )}
@@ -448,7 +455,7 @@ const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products, onRefres
                                                                 <>
                                                                     {product.name}
                                                                     <span className="text-slate-400 font-normal">・</span>
-                                                                    Rp {parseInt(product.sellPrice || 0).toLocaleString()}/jam
+                                                                    Rp {parseInt(product.sellPrice || 0).toLocaleString()}/{product.pricingType === 'minutely' ? 'menit' : (product.pricingType === 'daily' ? 'hari' : 'jam')}
                                                                 </>
                                                             ) : (
                                                                 <span className="text-red-500 italic">Produk tidak valid</span>
@@ -575,6 +582,7 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product, curren
         const elapsed = Date.now() - new Date(session.start_time).getTime();
         const totalMinutes = Math.floor(elapsed / (1000 * 60));
         const hrs = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
+        const minsRounded = Math.max(1, Math.ceil(elapsed / (1000 * 60)));
         const basePrice = product ? Number(product.sellPrice) : Number(session.product_price || 0);
         const graceMid = currentStore?.settings?.grace_period || 0;
 
@@ -609,21 +617,27 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product, curren
             return Math.max(1, totalDays) * basePrice;
         }
 
-        // --- HOURLY PRICING LOGIC (Simple Overtime) ---
+        // --- HOURLY & MINUTELY PRICING LOGIC ---
         // If fixed mode and NOT overtime, use agreed total
         if (session.billing_mode === 'fixed' && session.agreed_total !== null && session.agreed_total !== undefined) {
             const targetDuration = parseFloat(session.target_duration || 0);
 
             // Target minutes
-            const targetMin = targetDuration * 60;
+            const targetMin = product?.pricingType === 'minutely' ? targetDuration : (targetDuration * 60);
             if (totalMinutes <= targetMin + graceMid) {
                 return session.agreed_total;
             }
-            // Overtime hourly
+            // Overtime
+            if (product?.pricingType === 'minutely') {
+                return minsRounded * basePrice;
+            }
             return hrs * basePrice;
         }
 
-        // Open Billing Hourly
+        // Open Billing
+        if (product?.pricingType === 'minutely') {
+            return minsRounded * basePrice;
+        }
         return hrs * basePrice;
     });
 
@@ -1042,7 +1056,7 @@ const RentalDashboard = () => {
                     status: 'active',
                     billing_mode: billingMode,
                     target_duration: billingMode === 'fixed' ? finalDuration : null,
-                    target_end_time: billingMode === 'fixed' ? new Date(Date.now() + (finalDuration * (product.pricingType === 'daily' ? 24 : 1) * 60 * 60 * 1000)).toISOString() : null,
+                    target_end_time: billingMode === 'fixed' ? new Date(Date.now() + (finalDuration * (product.pricingType === 'daily' ? 24 * 60 * 60 * 1000 : (product.pricingType === 'minutely' ? 60 * 1000 : 60 * 60 * 1000)))).toISOString() : null,
                     agreed_total: billingMode === 'fixed' ? agreedTotal : null,
                     product_id: product.id,
                     product_price: Number(product.sellPrice || 0),
@@ -1080,7 +1094,7 @@ const RentalDashboard = () => {
         // Buat Item Rental
         const rentalItem = {
             id: session.product_id || 'rental-fee',
-            name: `Sewa ${session.unit_name || 'Unit'} (${finalDuration} ${product?.pricingType === 'daily' ? 'Hari' : 'Jam'})`,
+            name: `Sewa ${session.unit_name || 'Unit'} (${finalDuration} ${product?.pricingType === 'daily' ? 'Hari' : (product?.pricingType === 'minutely' ? 'Menit' : 'Jam')})`,
             price: finalPrice, // Harga FINAL setelah diskon
             qty: 1, // Kita set qty 1, karena harga sudah 'Total Harga Sewa'
             type: 'service'
@@ -1436,7 +1450,8 @@ const RentalDashboard = () => {
                                     {(() => {
                                         const prod = products.find(p => p.id === selectedUnit?.linked_product_id);
                                         const isDaily = prod?.pricingType === 'daily';
-                                        const label = isDaily ? 'Hari' : 'Jam';
+                                        const isMinutely = prod?.pricingType === 'minutely';
+                                        const label = isDaily ? 'Hari' : (isMinutely ? 'Menit' : 'Jam');
                                         return (
                                             <>
                                                 <SelectItem value="open">Open Billing (Per {label} - Berjalan)</SelectItem>
@@ -1453,8 +1468,9 @@ const RentalDashboard = () => {
                                 {(() => {
                                     const prod = products.find(p => p.id === selectedUnit?.linked_product_id);
                                     const isDaily = prod?.pricingType === 'daily';
-                                    const unitLabel = isDaily ? 'Hari' : 'Jam';
-                                    const unitValue = isDaily ? 24 : 1; // 1 unit = N hours
+                                    const isMinutely = prod?.pricingType === 'minutely';
+                                    const unitLabel = isDaily ? 'Hari' : (isMinutely ? 'Menit' : 'Jam');
+                                    const unitValue = isDaily ? 24 : 1; // 1 unit = N hours (ignored for minutely)
 
                                     return (
                                         <>
@@ -1462,8 +1478,8 @@ const RentalDashboard = () => {
                                             <div className="flex items-center gap-2">
                                                 <Input
                                                     type="number"
-                                                    min={isDaily ? "1" : "0.5"}
-                                                    step={isDaily ? "1" : "0.5"}
+                                                    min={isDaily ? "1" : (isMinutely ? "10" : "0.5")}
+                                                    step={isDaily ? "1" : (isMinutely ? "5" : "0.5")}
                                                     value={fixedDuration}
                                                     onChange={(e) => setFixedDuration(e.target.value)}
                                                     className="w-24 font-bold text-center"
@@ -1472,11 +1488,14 @@ const RentalDashboard = () => {
                                                 <div className="ml-auto text-sm font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
                                                     Selesai: {(() => {
                                                         const now = new Date();
-                                                        // Calculate hours to add: Duration * UnitValue (24 or 1)
-                                                        const hoursToAdd = parseFloat(fixedDuration || 0) * unitValue;
-                                                        now.setHours(now.getHours() + hoursToAdd);
+                                                        if (isMinutely) {
+                                                            now.setMinutes(now.getMinutes() + parseFloat(fixedDuration || 0));
+                                                        } else {
+                                                            const hoursToAdd = parseFloat(fixedDuration || 0) * unitValue;
+                                                            now.setHours(now.getHours() + hoursToAdd);
+                                                        }
 
-                                                        // If daily, show date + time. If hourly, just time.
+                                                        // If daily, show date + time. If hourly/minutely, just time.
                                                         const options = isDaily
                                                             ? { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }
                                                             : { hour: '2-digit', minute: '2-digit' };
@@ -1486,7 +1505,7 @@ const RentalDashboard = () => {
                                             </div>
                                             {/* Quick Presets */}
                                             <div className="flex gap-2 mt-2">
-                                                {[1, 2, 3, 4, 5].map(val => (
+                                                {(isMinutely ? [30, 60, 90, 120, 180] : [1, 2, 3, 4, 5]).map(val => (
                                                     <Button
                                                         key={val}
                                                         type="button"
@@ -1515,12 +1534,15 @@ const RentalDashboard = () => {
                                                 if (isCheaper) {
                                                     return (
                                                         <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md text-sm">
-                                                            <div className="flex justify-between items-center text-green-800 font-bold">
-                                                                <span>✨ Harga Paket (Hemat):</span>
-                                                                <span>Rp {bestPrice.toLocaleString()}</span>
+                                                            <div className="flex justify-between items-center text-green-800 font-bold mb-1">
+                                                                <span>✨ Harga Paket (Pintar):</span>
+                                                                <span>Rp {bestPrice.toLocaleString('id-ID')}</span>
+                                                            </div>
+                                                            <div className="text-xs text-green-700 leading-snug">
+                                                                (Kombinasi paket + tarif normal jika ada sisa durasi)
                                                             </div>
                                                             <div className="text-xs text-muted-foreground line-through mt-1 text-right">
-                                                                Normal: Rp {normalPrice.toLocaleString()}
+                                                                Normal: Rp {normalPrice.toLocaleString('id-ID')}
                                                             </div>
                                                         </div>
                                                     );

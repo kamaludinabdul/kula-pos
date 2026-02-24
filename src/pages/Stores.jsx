@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Badge } from '../components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import { Switch } from '../components/ui/switch';
 import AlertDialog from '../components/AlertDialog';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { PLANS } from '../utils/plans';
@@ -520,6 +521,27 @@ const Stores = () => {
                                 onChange={e => setStoreFormData({ ...storeFormData, address: e.target.value })}
                             />
                         </div>
+
+                        {user?.role === 'super_admin' && (
+                            <div className={`flex items-center justify-between p-3 rounded-lg border ${storeFormData.plan === 'enterprise' ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200 opacity-60'}`}>
+                                <div>
+                                    <Label className={`flex items-center gap-2 ${storeFormData.plan === 'enterprise' ? 'text-amber-900' : 'text-slate-500'}`}>
+                                        Aktifkan Fitur Pet Hotel
+                                    </Label>
+                                    <p className={`text-xs mt-1 ${storeFormData.plan === 'enterprise' ? 'text-amber-700/80' : 'text-slate-400'}`}>
+                                        {storeFormData.plan === 'enterprise'
+                                            ? 'Mengaktifkan Modul Pet Hotel & Laporan Fee'
+                                            : 'Fitur khusus paket Enterprise'}
+                                    </p>
+                                </div>
+                                <Switch
+                                    checked={storeFormData.petCareEnabled || false}
+                                    onCheckedChange={(checked) => setStoreFormData({ ...storeFormData, petCareEnabled: checked })}
+                                    disabled={storeFormData.plan !== 'enterprise'}
+                                    className="data-[state=checked]:bg-amber-600"
+                                />
+                            </div>
+                        )}
                         <div className="space-y-2">
                             <Label htmlFor="phone">Phone</Label>
                             <Input

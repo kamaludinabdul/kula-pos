@@ -328,7 +328,7 @@ const ProfitLoss = () => {
             }
             const tProfit = t.total - tCOGS;
             return [
-                t.id.slice(-6),
+                t.id.toUpperCase(),
                 new Date(t.date).toLocaleDateString('id-ID'),
                 t.customerName || 'Umum',
                 t.paymentMethod || '-',
@@ -621,7 +621,7 @@ const ProfitLoss = () => {
 
                                         return (
                                             <TableRow key={t.id} className={`${isVoid ? 'bg-slate-50 opacity-60' : 'hover:bg-slate-50 transition-colors'} border-b border-slate-100`}>
-                                                <TableCell className="font-mono text-[10px] text-slate-400">#{t.id.slice(-6).toUpperCase()}</TableCell>
+                                                <TableCell className="font-mono text-[10px] text-slate-500">#{t.id.toUpperCase()}</TableCell>
                                                 <TableCell>
                                                     <div className="flex flex-col">
                                                         <span className="font-bold text-slate-800">{new Date(t.date).toLocaleDateString('id-ID')}</span>
@@ -702,10 +702,11 @@ const ProfitLoss = () => {
                                 let tCOGS = 0;
                                 if (t.items) {
                                     t.items.forEach(i => {
-                                        let buyPrice = i.buyPrice;
+                                        // Check both camelCase AND snake_case
+                                        let buyPrice = i.buyPrice ?? i.buy_price;
                                         if (buyPrice === undefined || buyPrice === null) {
                                             const product = productMap.get(i.id) || productMap.get(i.name);
-                                            buyPrice = product ? product.buyPrice : 0;
+                                            buyPrice = product ? (product.buyPrice ?? product.buy_price ?? 0) : 0;
                                         }
                                         tCOGS += Number(buyPrice || 0) * i.qty;
                                     });
@@ -719,7 +720,7 @@ const ProfitLoss = () => {
                                         <div className="flex justify-between items-start pl-2">
                                             <div className="space-y-1 min-w-0">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="font-mono text-[10px] text-slate-400 font-bold uppercase tracking-widest">#{t.id.slice(-6)}</span>
+                                                    <span className="font-mono text-[9px] text-slate-500 font-bold uppercase tracking-widest break-all max-w-[120px]">#{t.id}</span>
                                                     {isVoid ? (
                                                         <span className="text-[9px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded uppercase tracking-tighter border border-red-100">VOID</span>
                                                     ) : (
@@ -797,7 +798,7 @@ const ProfitLoss = () => {
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <p className="text-sm text-muted-foreground">
-                            Apakah Anda yakin ingin membatalkan transaksi <strong>#{transactionToCancel?.id.slice(-6)}</strong>?
+                            Apakah Anda yakin ingin membatalkan transaksi <strong>#{transactionToCancel?.id}</strong>?
                             <br />
                             Stok produk akan dikembalikan dan transaksi akan ditandai sebagai batal.
                         </p>

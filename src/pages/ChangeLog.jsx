@@ -8,6 +8,19 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        version: "0.17.0",
+        date: "2026-02-24",
+        type: "minor",
+        title: "Rental Minutely & Pet Hotel Management",
+        changes: [
+            "Rental: Added 'Sewa Per Menit' (Minutely Pricing) support for precise duration-based billing (e.g., 30-minute intervals).",
+            "Pet Hotel: Centralized feature management — Superadmin can now enable/disable Pet Hotel features per store.",
+            "Pet Hotel: Restricted module and reports to Enterprise plan only, ensuring premium features are plan-locked.",
+            "UI System: Standardized Pet Hotel summary cards using InfoCard for design consistency across all reports.",
+            "Stability: Fixed a critical Sidebar crash issue where userPlan was undefined during logic filtering."
+        ]
+    },
+    {
         version: "0.16.18",
         date: "2026-02-23",
         type: "minor",

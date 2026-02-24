@@ -94,7 +94,7 @@ const POS = () => {
 
     // Wrapper to intercept rental products
     const handleProductClick = (product) => {
-        if (product.pricingType === 'hourly') {
+        if (product.pricingType === 'hourly' || product.pricingType === 'minutely') {
             setSelectedRentalProduct(product);
             setIsRentalDialogOpen(true);
         } else {
@@ -231,7 +231,7 @@ const POS = () => {
 
                     if (product) {
                         // Handle rental products
-                        if (product.pricingType === 'hourly') {
+                        if (product.pricingType === 'hourly' || product.pricingType === 'minutely') {
                             setSelectedRentalProduct(product);
                             setIsRentalDialogOpen(true);
                         } else {
