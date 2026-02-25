@@ -8,6 +8,20 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        version: "0.18.0",
+        date: "2026-02-25",
+        type: "minor",
+        title: "Rental Notes & UI Synchronization",
+        changes: [
+            "Rental: Added 'Catatan' (Notes) support for capturing extra info like Down Payments (DP) during sessions.",
+            "Rental: Synchronized search and filter UI styling with Transactions and Products pages for a unified design.",
+            "Rental: Enhanced unit visibility — notes are now displayed on unit cards, detail dialogs, and stop session reminders.",
+            "Unit Management: Optimized unit addition with internal state refresh, removing the need for full page reloads.",
+            "UI Polish: Fixed Select dropdown text alignment and moved checkmark indicators to the right for better visual balance.",
+            "Products: Fixed a bug where 'Stock Type' and 'Pricing Model' dropdowns would show incorrect values in Edit Mode."
+        ]
+    },
+    {
         version: "0.17.0",
         date: "2026-02-24",
         type: "minor",

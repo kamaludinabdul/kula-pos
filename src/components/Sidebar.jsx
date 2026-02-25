@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingCart, Package, BarChart3, Settings, LogOut, Users, Database,
@@ -15,6 +15,73 @@ import { Button } from './ui/button';
 import { APP_VERSION } from '../version';
 import { checkPlanAccess, hasFeatureAccess } from '../utils/plans';
 import UpgradeAlert from './UpgradeAlert';
+
+const NAV_ITEMS = [
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', feature: 'dashboard' },
+  { icon: Receipt, label: 'Transaksi', path: '/transactions', feature: 'transactions' },
+  { icon: ShoppingCart, label: 'Kasir (POS)', path: '/pos', feature: 'pos' },
+  { icon: Gamepad2, label: 'Rental', path: '/rental', feature: 'rental', permission: 'pos', requiredPlan: 'pro', checkSetting: 'enableRental' },
+  { icon: Ticket, label: 'Promosi', path: '/promotions', feature: 'products.read' },
+];
+
+const DATABASE_ITEMS = [
+  { icon: Package, label: 'Produk', path: '/products', feature: 'products.read' },
+  { icon: Layers, label: 'Kategori', path: '/categories', feature: 'categories.read' },
+  { icon: Factory, label: 'Supplier', path: '/suppliers', feature: 'suppliers.read' },
+  { icon: FileText, label: 'Purchase Order', path: '/purchase-orders', feature: 'products.purchase_orders' },
+  { icon: Database, label: 'Stok', path: '/stock-management', feature: 'products.stock' },
+  { icon: ClipboardCheck, label: 'Stock Opname', path: '/stock-opname', feature: 'products.stock_opname', requiredPlan: 'pro' },
+  { icon: Users, label: 'Pelanggan', path: '/customers', feature: 'customers.read', requiredPlan: 'pro' },
+];
+
+const SALES_ITEMS = [
+  { icon: TrendingUp, label: 'Target', path: '/sales/target', feature: 'sales.target', requiredPlan: 'pro' },
+];
+
+const SETTINGS_ITEMS = [
+  { label: 'Umum', path: '/settings/general', icon: Settings, feature: 'settings' },
+  { label: 'Profil Toko', path: '/settings/profile', icon: UserCog, feature: 'settings.profile' },
+  { label: 'Langganan', path: '/settings/subscription', icon: Crown, feature: 'settings.subscription' },
+  { label: 'Biaya & Pajak', path: '/settings/fees', icon: Percent, feature: 'settings.fees' },
+  { label: 'Printer & Struk', path: '/settings/printer', icon: Printer, feature: 'settings.printer' },
+  { label: 'Poin Loyalitas', path: '/settings/loyalty', icon: Gift, requiredPlan: 'pro', feature: 'settings.loyalty' },
+  { label: 'Sales Performance', path: '/settings/sales-performance', icon: TrendingUp, requiredPlan: 'pro', feature: 'settings.sales_performance' },
+  { label: 'Notifikasi Telegram', path: '/settings/telegram', icon: Send, requiredPlan: 'pro', feature: 'settings.telegram' },
+  { label: 'Keamanan', path: '/settings/security', icon: Lock, feature: 'settings.access' },
+  { label: 'Hak Akses', path: '/settings/access', icon: Shield, feature: 'settings.access' },
+  { label: 'Fee Pet Hotel', path: '/settings/pet-hotel-fee', icon: Wallet, feature: 'settings.fees', requiredPlan: 'enterprise', checkSetting: 'petCareEnabled' },
+];
+
+const REPORTS_ITEMS = [
+  { path: '/reports/profit-loss', icon: BarChart3, label: 'Laba Rugi', feature: 'reports.profit_loss', requiredPlan: 'pro' },
+  { path: '/reports/sales-items', icon: Package, label: 'Penjualan Barang', feature: 'reports.sales_items' },
+  { path: '/reports/top-selling', icon: TrendingUp, label: 'Produk Terlaris', feature: 'reports.top_selling', requiredPlan: 'pro' },
+  { path: '/reports/sales-categories', icon: Layers, label: 'Penjualan Kategori', feature: 'reports.sales_categories' },
+  { path: '/reports/inventory-value', icon: TrendingUp, label: 'Nilai Stok (Modal)', feature: 'reports.inventory_value', requiredPlan: 'pro' },
+  { path: '/reports/shifts', icon: Clock, label: 'Laporan Shift', feature: 'reports.shifts', requiredPlan: 'pro' },
+  { path: '/reports/expenses', icon: TrendingDown, label: 'Pengeluaran', feature: 'reports.expenses' },
+  { path: '/reports/loyalty-points', icon: Gift, label: 'Laporan Poin', feature: 'reports.loyalty', requiredPlan: 'pro' },
+  { path: '/reports/sales-performance', icon: TrendingUp, label: 'Laporan Target & Performa', feature: 'reports.performance', checkSetting: 'enableSalesPerformance', requiredPlan: 'pro' },
+  { path: '/reports/pet-hotel-fee', icon: Wallet, label: 'Fee Pet Hotel', feature: 'reports.shifts', requiredPlan: 'enterprise', checkSetting: 'petCareEnabled' },
+];
+
+const FINANCE_ITEMS = [
+  { path: '/finance/cash-flow', icon: DollarSign, label: 'Arus Kas', feature: 'finance.cash_flow', requiredPlan: 'pro' },
+];
+
+const SMART_STRATEGY_ITEMS = [
+  { icon: BadgePercent, label: 'Bundling Pintar', path: '/smart-insights/bundling', feature: 'smart_insights', requiredPlan: 'pro' },
+  { icon: TrendingUp, label: 'Prediksi Omset', path: '/smart-insights/forecast', feature: 'smart_insights', requiredPlan: 'pro' },
+  { icon: Users, label: 'Segmen Pelanggan', path: '/smart-insights/segmentation', feature: 'smart_insights', requiredPlan: 'pro' },
+  { icon: BrainCircuit, label: 'Analisis AI', path: '/smart-insights/analysis', feature: 'smart_insights', requiredPlan: 'pro' },
+];
+
+const BOTTOM_ITEMS = [
+  { icon: Sparkles, label: 'Rekomendasi', path: '/shopping-recommendations', feature: 'others.recommendations', requiredPlan: 'enterprise' },
+  { icon: Users, label: 'Staff', path: '/staff', feature: 'others.staff' },
+  { icon: History, label: 'Riwayat Login', path: '/login-history', feature: 'others.login_history', requiredPlan: 'pro' },
+];
+
 
 const NavItem = ({ item, isActive, onClick, className, isExpanded, isLocked }) => (
   <NavLink
@@ -73,20 +140,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
     setIsExpanded(!isExpanded);
   };
 
-  // We use checkPermission from AuthContext now, but we can wrap it if needed for special logic
-  // The Sidebar uses `hasPermission` locally. Let's alias it or repurpose it.
-  const hasPermission = (feature) => {
-    // Pet Care bypass preserved if needed? User previously removed it.
-    // We'll rely on checkPermission(feature) which handles:
-    // 1. Super Admin / Owner -> True
-    // 2. User permissions array (exact or parent match)
 
-    // However, Sidebar sometimes passes 'products' and expects true if user has 'products.list'.
-    // createPermission in AuthContext does: includes(feature) || perms.some(p => p.startsWith(feature + '.'))
-    // So if feature is 'products', and user has 'products.list', startsWith('products.') is True.
-    // So AuthContext checkPermission is sufficient!
-    return checkPermission(feature);
-  };
 
   const handleItemClick = (e, requiredPlan, feature) => {
     // Logic: Check user's plan if owner, otherwise fallback to store plan (for staff)
@@ -104,72 +158,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
     }
   };
 
-  const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', feature: 'dashboard' },
-    { icon: Receipt, label: 'Transaksi', path: '/transactions', feature: 'transactions' },
-    { icon: ShoppingCart, label: 'Kasir (POS)', path: '/pos', feature: 'pos' },
-    { icon: Gamepad2, label: 'Rental', path: '/rental', feature: 'rental', permission: 'pos', requiredPlan: 'pro', checkSetting: 'enableRental' },
-    { icon: Ticket, label: 'Promosi', path: '/promotions', feature: 'products.read' }, // Moved to top level
-  ];
 
-  const databaseItems = [
-    { icon: Package, label: 'Produk', path: '/products', feature: 'products.read' },
-    { icon: Layers, label: 'Kategori', path: '/categories', feature: 'categories.read' },
-    // { icon: Ticket, label: 'Promosi', path: '/promotions', feature: 'products.read' }, // Moved
-    { icon: Factory, label: 'Supplier', path: '/suppliers', feature: 'suppliers.read' },
-    { icon: FileText, label: 'Purchase Order', path: '/purchase-orders', feature: 'products.purchase_orders' },
-    { icon: Database, label: 'Stok', path: '/stock-management', feature: 'products.stock' },
-    { icon: ClipboardCheck, label: 'Stock Opname', path: '/stock-opname', feature: 'products.stock_opname', requiredPlan: 'pro' },
-    { icon: Users, label: 'Pelanggan', path: '/customers', feature: 'customers.read', requiredPlan: 'pro' },
-  ];
-
-  const salesItems = [
-    { icon: TrendingUp, label: 'Target', path: '/sales/target', feature: 'sales.target', requiredPlan: 'pro' },
-  ];
-
-  const settingsItems = [
-    { label: 'Umum', path: '/settings/general', icon: Settings, feature: 'settings' }, // Access check: basic settings
-    { label: 'Profil Toko', path: '/settings/profile', icon: UserCog, feature: 'settings.profile' },
-    { label: 'Langganan', path: '/settings/subscription', icon: Crown, feature: 'settings.subscription' },
-    { label: 'Biaya & Pajak', path: '/settings/fees', icon: Percent, feature: 'settings.fees' },
-    { label: 'Printer & Struk', path: '/settings/printer', icon: Printer, feature: 'settings.printer' },
-    { label: 'Poin Loyalitas', path: '/settings/loyalty', icon: Gift, requiredPlan: 'pro', feature: 'settings.loyalty' },
-    { label: 'Sales Performance', path: '/settings/sales-performance', icon: TrendingUp, requiredPlan: 'pro', feature: 'settings.sales_performance' },
-    { label: 'Notifikasi Telegram', path: '/settings/telegram', icon: Send, requiredPlan: 'pro', feature: 'settings.telegram' },
-    { label: 'Keamanan', path: '/settings/security', icon: Lock, feature: 'settings.access' },
-    { label: 'Hak Akses', path: '/settings/access', icon: Shield, feature: 'settings.access' },
-    { label: 'Fee Pet Hotel', path: '/settings/pet-hotel-fee', icon: Wallet, feature: 'settings.fees', requiredPlan: 'enterprise', checkSetting: 'petCareEnabled' },
-  ];
-
-  const reportsItems = [
-    { path: '/reports/profit-loss', icon: BarChart3, label: 'Laba Rugi', feature: 'reports.profit_loss', requiredPlan: 'pro' },
-    { path: '/reports/sales-items', icon: Package, label: 'Penjualan Barang', feature: 'reports.sales_items' },
-    { path: '/reports/top-selling', icon: TrendingUp, label: 'Produk Terlaris', feature: 'reports.top_selling', requiredPlan: 'pro' },
-    { path: '/reports/sales-categories', icon: Layers, label: 'Penjualan Kategori', feature: 'reports.sales_categories' },
-    { path: '/reports/inventory-value', icon: TrendingUp, label: 'Nilai Stok (Modal)', feature: 'reports.inventory_value', requiredPlan: 'pro' },
-    { path: '/reports/shifts', icon: Clock, label: 'Laporan Shift', feature: 'reports.shifts', requiredPlan: 'pro' },
-    { path: '/reports/expenses', icon: TrendingDown, label: 'Pengeluaran', feature: 'reports.expenses' },
-    { path: '/reports/loyalty-points', icon: Gift, label: 'Laporan Poin', feature: 'reports.loyalty', requiredPlan: 'pro' },
-    { path: '/reports/sales-performance', icon: TrendingUp, label: 'Laporan Target & Performa', feature: 'reports.performance', checkSetting: 'enableSalesPerformance', requiredPlan: 'pro' },
-    { path: '/reports/pet-hotel-fee', icon: Wallet, label: 'Fee Pet Hotel', feature: 'reports.shifts', requiredPlan: 'enterprise', checkSetting: 'petCareEnabled' },
-  ];
-
-  const financeItems = [
-    { path: '/finance/cash-flow', icon: DollarSign, label: 'Arus Kas', feature: 'finance.cash_flow', requiredPlan: 'pro' },
-  ];
-
-  const smartStrategyItems = [
-    { icon: BadgePercent, label: 'Bundling Pintar', path: '/smart-insights/bundling', feature: 'smart_insights', requiredPlan: 'pro' },
-    { icon: TrendingUp, label: 'Prediksi Omset', path: '/smart-insights/forecast', feature: 'smart_insights', requiredPlan: 'pro' },
-    { icon: Users, label: 'Segmen Pelanggan', path: '/smart-insights/segmentation', feature: 'smart_insights', requiredPlan: 'pro' },
-    { icon: BrainCircuit, label: 'Analisis AI', path: '/smart-insights/analysis', feature: 'smart_insights', requiredPlan: 'pro' },
-  ];
-
-  const bottomItems = [
-    { icon: Sparkles, label: 'Rekomendasi', path: '/shopping-recommendations', feature: 'others.recommendations', requiredPlan: 'enterprise' },
-    { icon: Users, label: 'Staff', path: '/staff', feature: 'others.staff' },
-    { icon: History, label: 'Riwayat Login', path: '/login-history', feature: 'others.login_history', requiredPlan: 'pro' },
-  ];
 
 
 
@@ -178,41 +167,45 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
     navigate('/login');
   };
 
-  const visibleDatabaseItems = databaseItems.filter(item => hasPermission(item.feature));
-  const visibleSalesItems = salesItems.filter(item => hasPermission(item.feature));
-  const visibleReportsItems = reportsItems.filter(item => {
+  const hasPermission = useCallback((feature) => {
+    return checkPermission(feature);
+  }, [checkPermission]);
+
+  const visibleDatabaseItems = useMemo(() => DATABASE_ITEMS.filter(item => hasPermission(item.feature)), [hasPermission]);
+  const visibleSalesItems = useMemo(() => SALES_ITEMS.filter(item => hasPermission(item.feature)), [hasPermission]);
+  const visibleReportsItems = useMemo(() => REPORTS_ITEMS.filter(item => {
     const isSuperAdmin = user?.role === 'super_admin';
     const hasPerm = hasPermission(item.feature);
     const settingEnabled = !item.checkSetting || currentStore?.[item.checkSetting];
     const currentPlan = (currentStore?.plan || user?.plan || 'free').toLowerCase();
-
-    // Check requiredPlan
     const planRequired = item.requiredPlan ? (currentPlan === item.requiredPlan || currentPlan === 'enterprise') : true;
-
-    // Super Admin sees all reports, others need setting enabled
     return hasPerm && (isSuperAdmin || (settingEnabled && planRequired));
-  });
+  }), [hasPermission, user?.role, user?.plan, currentStore]);
 
+  const visibleSettingsItems = useMemo(() => SETTINGS_ITEMS.filter(item => {
+    const isSuperAdmin = user?.role === 'super_admin';
+    const hasPerm = hasPermission(item.feature);
+    const settingEnabled = !item.checkSetting || currentStore?.[item.checkSetting];
+    const currentPlan = (currentStore?.plan || user?.plan || 'free').toLowerCase();
+    const planRequired = item.requiredPlan ? (currentPlan === item.requiredPlan || currentPlan === 'enterprise') : true;
+    return hasPerm && (isSuperAdmin || settingEnabled) && planRequired;
+  }), [hasPermission, user?.role, user?.plan, currentStore]);
 
   const isDatabaseActive = visibleDatabaseItems.some(item => location.pathname.startsWith(item.path));
   const isSalesActive = visibleSalesItems.some(item => location.pathname.startsWith(item.path));
   const isReportsActive = visibleReportsItems.some(item => location.pathname.startsWith(item.path));
-
-  // Determine visible settings items based on checkSetting
-  const visibleSettingsItems = settingsItems.filter(item => {
-    const isSuperAdmin = user?.role === 'super_admin';
-    const hasPerm = hasPermission(item.feature);
-    const settingEnabled = !item.checkSetting || currentStore?.[item.checkSetting];
-    const currentPlan = (currentStore?.plan || user?.plan || 'free').toLowerCase();
-
-    // Check requiredPlan
-    const planRequired = item.requiredPlan ? (currentPlan === item.requiredPlan || currentPlan === 'enterprise') : true;
-
-    // Super Admin sees everything based on checkSetting if applicable
-    return hasPerm && (isSuperAdmin || settingEnabled) && planRequired;
-  });
-
   const isSettingsActive = visibleSettingsItems.some(item => location.pathname.startsWith(item.path));
+  const [prevPath, setPrevPath] = useState(location.pathname);
+
+  // Auto-expand menus if active (State adjustment during render pattern)
+  if (location.pathname !== prevPath) {
+    setPrevPath(location.pathname);
+    if (isDatabaseActive && !isDatabaseOpen) setIsDatabaseOpen(true);
+    if (isSalesActive && !isSalesOpen) setIsSalesOpen(true);
+    if (isReportsActive && !isReportsOpen) setIsReportsOpen(true);
+    if (isSettingsActive && !isSettingsOpen) setIsSettingsOpen(true);
+    if (SMART_STRATEGY_ITEMS.some(item => location.pathname.startsWith(item.path)) && !isSmartStrategyOpen) setIsSmartStrategyOpen(true);
+  }
 
   const renderNavItem = (item) => {
     const currentPlan = (currentStore?.plan || user?.plan || 'free').toLowerCase();
@@ -337,14 +330,9 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
             />
           )}
 
-          {navItems.map((item) => {
+          {NAV_ITEMS.map((item) => {
             if (!hasPermission(item.permission || item.feature)) return null;
-
-            // Optional Setting Check (e.g. for Rental)
             if (item.checkSetting && !currentStore?.[item.checkSetting]) return null;
-
-
-
             return renderNavItem(item);
           })}
 
@@ -454,7 +442,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
 
           {/* Finance Menu Group */}
           <div className="space-y-1">
-            {financeItems.map((item) => {
+            {FINANCE_ITEMS.map((item) => {
               if (!hasPermission(item.feature)) return null;
               return renderNavItem(item);
             })}
@@ -469,7 +457,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
                   <button
                     className={cn(
                       "flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                      smartStrategyItems.some(item => location.pathname.startsWith(item.path)) ? "text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      SMART_STRATEGY_ITEMS.some(item => location.pathname.startsWith(item.path)) ? "text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
                     onClick={() => setIsSmartStrategyOpen(!isSmartStrategyOpen)}
                   >
@@ -482,20 +470,20 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
 
                   {isSmartStrategyOpen && (
                     <div className="pl-9 space-y-1 mt-1">
-                      {smartStrategyItems.map(renderNavItem)}
+                      {SMART_STRATEGY_ITEMS.map(renderNavItem)}
                     </div>
                   )}
                 </>
               ) : (
                 <>
                   <div className="h-px bg-slate-200 my-2 mx-2"></div>
-                  {renderNavItem({ ...smartStrategyItems[0], label: "Smart Strategy", path: '/smart-insights/bundling', icon: BrainCircuit })}
+                  {renderNavItem({ ...SMART_STRATEGY_ITEMS[0], label: "Smart Strategy", path: '/smart-insights/bundling', icon: BrainCircuit })}
                 </>
               )}
             </div>
           )}
 
-          {bottomItems.map((item) => {
+          {BOTTOM_ITEMS.map((item) => {
             if (!hasPermission(item.feature)) return null;
             return renderNavItem(item);
           })}
@@ -519,7 +507,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
                     {isSettingsOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                   </button>
 
-                  {isSettingsActive && (
+                  {isSettingsOpen && (
                     <div className="pl-9 space-y-1 mt-1">
                       {visibleSettingsItems.map(renderNavItem)}
                     </div>
@@ -528,7 +516,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
               ) : (
                 <>
                   <div className="h-px bg-slate-200 my-2 mx-2"></div>
-                  {renderNavItem(settingsItems[0])}
+                  {renderNavItem(SETTINGS_ITEMS[0])}
                 </>
               )}
             </div>

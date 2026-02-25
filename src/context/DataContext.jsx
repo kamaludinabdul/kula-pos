@@ -595,6 +595,36 @@ export const DataProvider = ({ children }) => {
 
 
 
+    // Helper to map snake_case products (from DB) to camelCase frontend objects
+    const mapProductData = useCallback((p) => {
+        if (!p) return null;
+        return {
+            ...p,
+            buyPrice: p.buy_price,
+            sellPrice: p.sell_price,
+            minStock: p.min_stock,
+            discountType: p.discount_type,
+            isUnlimited: p.is_unlimited,
+            purchaseUnit: p.purchase_unit,
+            conversionToUnit: p.conversion_to_unit,
+            rackLocation: p.rack_location,
+            imageUrl: p.image_url,
+            categoryId: p.category_id,
+            storeId: p.store_id,
+            isDeleted: p.is_deleted,
+            createdAt: p.created_at,
+            pricingType: p.pricing_type,
+            pricingTiers: p.pricing_tiers,
+            isBundlingEnabled: p.is_bundling_enabled,
+            isWholesale: p.is_wholesale,
+            stockType: p.stock_type,
+            overtime_hourly_penalty: p.overtime_hourly_penalty,
+            overtime_trigger_hours: p.overtime_trigger_hours,
+            price: p.sell_price,
+            category: p.categories?.name || p.category || null
+        };
+    }, []);
+
     const fetchAllProducts = useCallback(async (storeId = activeStoreId) => {
         if (!storeId) return [];
         const phase2Start = performance.now();
@@ -609,31 +639,7 @@ export const DataProvider = ({ children }) => {
                     .limit(2000),
                 timeout: 20000,
                 fallbackParams: `?store_id=eq.${storeId}&is_deleted=eq.false&select=*,categories(id,name)`,
-                processFn: (data) => (data || []).map(p => ({
-                    ...p,
-                    buyPrice: p.buy_price,
-                    sellPrice: p.sell_price,
-                    minStock: p.min_stock,
-                    discountType: p.discount_type,
-                    isUnlimited: p.is_unlimited,
-                    purchaseUnit: p.purchase_unit,
-                    conversionToUnit: p.conversion_to_unit,
-                    rackLocation: p.rack_location,
-                    imageUrl: p.image_url,
-                    categoryId: p.category_id,
-                    storeId: p.store_id,
-                    isDeleted: p.is_deleted,
-                    createdAt: p.created_at,
-                    pricingType: p.pricing_type,
-                    pricingTiers: p.pricing_tiers,
-                    isBundlingEnabled: p.is_bundling_enabled,
-                    isWholesale: p.is_wholesale,
-                    stockType: p.stock_type,
-                    overtime_hourly_penalty: p.overtime_hourly_penalty,
-                    overtime_trigger_hours: p.overtime_trigger_hours,
-                    price: p.sell_price,
-                    category: p.categories?.name || null
-                }))
+                processFn: (data) => (data || []).map(p => mapProductData(p))
             });
 
             // STALE CHECK: If the store changed while we were fetching products, discard this result
@@ -653,7 +659,7 @@ export const DataProvider = ({ children }) => {
             console.error('DataContext: Failed to fetch products:', e);
             return [];
         }
-    }, [activeStoreId, categories]);
+    }, [activeStoreId, categories, mapProductData]);
 
     // New RPC-based Pagination
     const fetchProductsPage = useCallback(async ({ page, pageSize, search = '', category = 'all', satuanPO = 'all', sortKey = 'name', sortDir = 'asc' }) => {
@@ -1376,8 +1382,9 @@ export const DataProvider = ({ children }) => {
                 ]);
             }
 
-            // Optimistic update
-            setProducts(prev => [...prev, newProductData]);
+            // Optimistic update with mapped data
+            const mappedNewProduct = mapProductData(newProductData);
+            setProducts(prev => [...prev, mappedNewProduct]);
 
             return { success: true };
         } catch (error) {
@@ -1460,17 +1467,28 @@ export const DataProvider = ({ children }) => {
 
             if (error) throw error;
 
-            // Optimistic update with camelCase for frontend
-            // Include the resolved category info
-            const optimisticData = { ...rawData };
-            if (updateData.category_id) {
-                optimisticData.categoryId = updateData.category_id;
-                const foundCat = categories.find(c => c.id === updateData.category_id);
-                if (foundCat) {
-                    optimisticData.category = foundCat.name;
+            // Perform a full re-fetch of the product to ensure state is absolutely correct
+            const { data: updatedProduct, error: fetchError } = await supabase
+                .from('products')
+                .select('*, categories(id, name)')
+                .eq('id', id)
+                .single();
+
+            if (!fetchError && updatedProduct) {
+                const mappedUpdatedProduct = mapProductData(updatedProduct);
+                setProducts(prev => prev.map(p => p.id === id ? mappedUpdatedProduct : p));
+            } else {
+                // Fallback to simple merge if re-fetch fails
+                const optimisticData = { ...rawData };
+                if (updateData.category_id) {
+                    optimisticData.categoryId = updateData.category_id;
+                    const foundCat = categories.find(c => c.id === updateData.category_id);
+                    if (foundCat) {
+                        optimisticData.category = foundCat.name;
+                    }
                 }
+                setProducts(prev => prev.map(prod => prod.id === id ? { ...prod, ...optimisticData } : prod));
             }
-            setProducts(prev => prev.map(prod => prod.id === id ? { ...prod, ...optimisticData } : prod));
 
             return { success: true };
         } catch (error) {

@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../compone
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import ProductSelectorDialog from '../components/ProductSelectorDialog';
-import { Play, Square, Plus, MonitorPlay, Coffee, Settings, Search, X, Trash2, Edit2, Link as LinkIcon, Check, Loader2, Eye, User, Bluetooth, RefreshCw } from 'lucide-react';
+import { Play, Square, Plus, MonitorPlay, Coffee, Settings, Search, X, Trash2, Edit2, Link as LinkIcon, Check, Loader2, Eye, User, Bluetooth, RefreshCw, StickyNote } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
 import { Label } from '../components/ui/label';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
@@ -178,6 +179,12 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
                                 {!session.customer_id && <span className="text-[10px] opacity-70 ml-1">(Guest)</span>}
                             </div>
                         )}
+                        {session?.notes && (
+                            <div className="flex items-start gap-1 mt-1 text-[11px] text-slate-500 bg-amber-50/50 border border-amber-100/50 px-1.5 py-0.5 rounded leading-tight">
+                                <StickyNote className="w-3 h-3 mt-0.5 shrink-0 text-amber-600" />
+                                <span className="line-clamp-2 italic">{session.notes}</span>
+                            </div>
+                        )}
                         {session?.billing_mode === 'fixed' && (
                             <Badge variant="outline" className="mt-1 bg-white border-indigo-200 text-indigo-700 text-[10px] h-5">
                                 Paket {session.target_duration} {product?.pricingType === 'daily' ? 'Hari' : 'Jam'}
@@ -311,17 +318,13 @@ const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products, onRefres
             // Immediate UI Refresh
             if (onRefresh) onRefresh();
 
-            // Feedback & Reload
+            // Feedback
             toast({
                 title: "Unit Berhasil Ditambahkan",
-                description: `${name} telah disimpan. Halaman akan dimuat ulang...`,
+                description: `${name} telah disimpan.`,
                 variant: "success",
                 duration: 2000
             });
-
-            setTimeout(() => {
-                window.location.reload();
-            }, 1500);
 
         } catch (error) {
             console.error("Error adding unit:", error);
@@ -520,12 +523,28 @@ const RentalSessionDetailsDialog = ({ isOpen, onClose, session, onRemoveItem }) 
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Detail Pesanan</DialogTitle>
+                    <DialogTitle className="flex items-center gap-2">
+                        Detail Sesi & Pesanan
+                    </DialogTitle>
                     <DialogDescription>
-                        Item F&B untuk sesi ini.
+                        Detail informasi dan pesanan F&B untuk sesi ini.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="py-4">
+
+                {session.notes && (
+                    <div className="mt-2 p-3 bg-amber-50 border border-amber-100 rounded-lg">
+                        <div className="flex items-center gap-2 text-xs font-bold text-amber-800 mb-1 uppercase tracking-wider">
+                            <StickyNote size={14} />
+                            <span>Catatan Sesi / DP</span>
+                        </div>
+                        <p className="text-sm text-slate-700 whitespace-pre-wrap italic">
+                            {session.notes}
+                        </p>
+                    </div>
+                )}
+
+                <div className="py-2">
+                    <div className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Daftar Menu</div>
                     {session.orders?.length > 0 ? (
                         <div className="space-y-2 border rounded-md p-2 max-h-[300px] overflow-y-auto">
                             {session.orders.map((item, idx) => (
@@ -698,6 +717,17 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product, curren
                         </div>
                     </div>
 
+                    {session.notes && (
+                        <div className="p-3 mb-4 bg-amber-50 border border-amber-200 rounded-lg animate-in fade-in zoom-in">
+                            <div className="flex items-center gap-2 text-xs font-bold text-amber-800 mb-1 uppercase tracking-wider">
+                                <StickyNote size={14} />
+                                <span>Catatan Sesi / DP</span>
+                            </div>
+                            <p className="text-sm text-slate-700 italic">
+                                {session.notes}
+                            </p>
+                        </div>
+                    )}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Durasi Billing ({product?.pricingType === 'daily' ? 'Hari' : 'Jam'})</Label>
@@ -816,6 +846,7 @@ const RentalDashboard = () => {
     const [selectedUnit, setSelectedUnit] = useState(null);
     const [customerName, setCustomerName] = useState('');
     const [selectedCustomer, setSelectedCustomer] = useState(null);
+    const [sessionNotes, setSessionNotes] = useState('');
 
     const [isOrderOpen, setIsOrderOpen] = useState(false);
     const [currentSessionId, setCurrentSessionId] = useState(null); // Ini sebenarnya Unit ID
@@ -840,6 +871,11 @@ const RentalDashboard = () => {
     // New States for Fixed Billing
     const [billingMode, setBillingMode] = useState('open'); // 'open' | 'fixed'
     const [fixedDuration, setFixedDuration] = useState(1); // Hours
+
+    // Filter States
+    const [filterStatus, setFilterStatus] = useState('all');
+    const [filterProduct, setFilterProduct] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Fetch Rental Units
     const fetchUnits = useCallback(async () => {
@@ -963,6 +999,31 @@ const RentalDashboard = () => {
         loadMissingProducts();
     }, [units, products, currentStore?.id]);
 
+    // Computed: Linked Products list for filtering
+    const linkedProducts = React.useMemo(() => {
+        const productIds = new Set(units.map(u => u.linked_product_id).filter(id => id));
+        return allProducts.filter(p => productIds.has(p.id));
+    }, [units, allProducts]);
+
+    // Computed: Filtered Units
+    const filteredUnits = React.useMemo(() => {
+        return units.filter(unit => {
+            const isActive = !!sessions[unit.id];
+
+            // Status Match (All / Available / Active)
+            const statusMatch = filterStatus === 'all' ||
+                (filterStatus === 'active' ? isActive : !isActive);
+
+            // Product Match
+            const productMatch = filterProduct === 'all' || unit.linked_product_id === filterProduct;
+
+            // Search Match (Name)
+            const searchMatch = unit.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+            return statusMatch && productMatch && searchMatch;
+        });
+    }, [units, sessions, filterStatus, filterProduct, searchQuery]);
+
     useEffect(() => {
         fetchSessions();
 
@@ -1024,6 +1085,7 @@ const RentalDashboard = () => {
         setSelectedUnit(unit);
         setCustomerName('');
         setSelectedCustomer(null);
+        setSessionNotes('');
         // Reset Billing Mode
         setBillingMode('open');
         setFixedDuration(1);
@@ -1061,6 +1123,7 @@ const RentalDashboard = () => {
                     product_id: product.id,
                     product_price: Number(product.sellPrice || 0),
                     unit_name: selectedUnit.name,
+                    notes: sessionNotes,
                     orders: []
                 }])
                 .select()
@@ -1316,6 +1379,66 @@ const RentalDashboard = () => {
                 </div>
             </div>
 
+            {/* Filter Bar */}
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+                <div className="flex items-center gap-2">
+                    {/* Reserved for future left-side filters or info */}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                        <SelectTrigger className="w-[150px] max-w-full flex-1 md:flex-none">
+                            <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Semua Status</SelectItem>
+                            <SelectItem value="available">Tersedia (Kosong)</SelectItem>
+                            <SelectItem value="active">Sedang Digunakan</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    <Select value={filterProduct} onValueChange={setFilterProduct}>
+                        <SelectTrigger className="w-[180px] max-w-full flex-1 md:flex-none">
+                            <SelectValue placeholder="Semua Produk" />
+                        </SelectTrigger>
+                        <SelectContent className="max-w-[300px]">
+                            <SelectItem value="all">Semua Produk</SelectItem>
+                            {linkedProducts.map(product => (
+                                <SelectItem key={product.id} value={product.id}>
+                                    <span className="truncate">{product.name}</span>
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    <div className="relative w-full md:w-64">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Cari nama unit..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-8 w-full"
+                        />
+                    </div>
+
+                    {(filterStatus !== 'all' || filterProduct !== 'all' || searchQuery) && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                                setFilterStatus('all');
+                                setFilterProduct('all');
+                                setSearchQuery('');
+                            }}
+                            className="text-slate-500 h-10 px-3"
+                        >
+                            <X className="w-4 h-4 mr-2" />
+                            Reset
+                        </Button>
+                    )}
+                </div>
+            </div>
+
             {/* Grid Kartu Unit */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {isLoadingUnits ? (
@@ -1323,15 +1446,19 @@ const RentalDashboard = () => {
                         <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
                         <p className="text-muted-foreground text-sm">Memuat unit...</p>
                     </div>
-                ) : units.length === 0 ? (
+                ) : filteredUnits.length === 0 ? (
                     <div className="col-span-full text-center py-12 bg-white rounded-lg border border-dashed">
                         <MonitorPlay className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                        <h3 className="text-lg font-medium">Belum ada Unit / Meja</h3>
-                        <p className="text-muted-foreground mb-4">Buat unit meja/ruangan terlebih dahulu dan tautkan dengan tarif produk.</p>
-                        <Button onClick={() => setIsManageOpen(true)}>Kelola Unit</Button>
+                        <h3 className="text-lg font-medium">Tidak ada unit ditemukan</h3>
+                        <p className="text-muted-foreground mb-4">Coba sesuaikan filter atau pencarian Anda.</p>
+                        <Button variant="outline" onClick={() => {
+                            setFilterStatus('all');
+                            setFilterProduct('all');
+                            setSearchQuery('');
+                        }}>Reset Filter</Button>
                     </div>
                 ) : (
-                    units.map(unit => {
+                    filteredUnits.map(unit => {
                         const product = allProducts.find(p => p.id === unit.linked_product_id);
                         return (
                             <RentalUnitCard
@@ -1463,6 +1590,17 @@ const RentalDashboard = () => {
                             </Select>
                         </div>
 
+                        <div className="space-y-2">
+                            <Label htmlFor="session-notes">Catatan (Opsional - misal: info DP)</Label>
+                            <Textarea
+                                id="session-notes"
+                                placeholder="Tulis catatan di sini..."
+                                value={sessionNotes}
+                                onChange={(e) => setSessionNotes(e.target.value)}
+                                className="resize-none h-20"
+                            />
+                        </div>
+
                         {billingMode === 'fixed' && (
                             <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
                                 {(() => {
@@ -1574,7 +1712,7 @@ const RentalDashboard = () => {
                 units={units}
                 storeId={currentStore?.id}
                 products={allProducts}
-                onRefresh={refreshData}
+                onRefresh={handleRefresh}
             />
 
             <ProductSelectorDialog

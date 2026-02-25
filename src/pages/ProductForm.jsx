@@ -158,7 +158,7 @@ const ProductForm = () => {
                     buyPrice: product.buyPrice || product.buy_price || '',
                     sellPrice: product.sellPrice || product.sell_price || product.price || '',
                     stockType: (() => {
-                        const st = product.stockType || product.stock_type || 'Barang';
+                        const st = product.stock_type || product.stockType || 'Barang';
                         return st.toLowerCase() === 'jasa' ? 'Jasa' : 'Barang';
                     })(),
                     stock: product.isUnlimited ? '' : (product.stock !== undefined ? product.stock : ''),
@@ -172,7 +172,7 @@ const ProductForm = () => {
                     purchaseUnit: product.purchaseUnit || product.purchase_unit || '',
                     conversionToUnit: product.conversionToUnit || product.conversion_to_unit || '',
                     pricingType: (() => {
-                        const pt = product.pricingType || product.pricing_type || 'fixed';
+                        const pt = product.pricing_type || product.pricingType || 'fixed';
                         if (pt === 'standard') return 'fixed';
                         return ['fixed', 'hourly', 'minutely', 'daily'].includes(pt) ? pt : 'fixed';
                     })(),
