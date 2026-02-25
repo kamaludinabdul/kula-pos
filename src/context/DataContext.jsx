@@ -1151,7 +1151,8 @@ export const DataProvider = ({ children }) => {
                     // but we should avoid running this too often.
                     const { error } = await supabase
                         .from('stores')
-                        .upsert(expiredStores);
+                        .update({ plan: 'free', plan_expiry_date: null })
+                        .in('id', expiredStores.map(s => s.id));
                     if (error) throw error;
                     console.log("Auto-downgraded expired plans:", expiredStores.length);
                     // Don't re-fetch here, let Realtime handle it
