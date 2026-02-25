@@ -164,17 +164,17 @@ const Stores = () => {
     const handleSaveStore = async (e) => {
         e.preventDefault();
 
-        // Map camelCase form fields to snake_case for Supabase
+        // Map camelCase form fields for updateStore/addStore
         let planData = {
             name: storeFormData.name,
             address: storeFormData.address,
             phone: storeFormData.phone,
             email: selectedOwner?.email || storeFormData.ownerEmail, // Priority to owner object
             plan: selectedOwner?.plan || storeFormData.plan,
-            telegram_bot_token: storeFormData.telegramBotToken,
-            telegram_chat_id: storeFormData.telegramChatId,
-            enable_sales_performance: storeFormData.enableSalesPerformance || false,
-            pet_care_enabled: storeFormData.petCareEnabled || false
+            telegramBotToken: storeFormData.telegramBotToken,
+            telegramChatId: storeFormData.telegramChatId,
+            enableSalesPerformance: storeFormData.enableSalesPerformance || false,
+            petCareEnabled: storeFormData.petCareEnabled || false
         };
 
         // Calculate Expiry 

@@ -286,12 +286,24 @@ export const DataProvider = ({ children }) => {
                 }
             }
 
+            // Map camelCase fields to snake_case for DB
+            const dbStoreData = {
+                name: storeData.name,
+                address: storeData.address,
+                phone: storeData.phone,
+                email: storeData.email,
+                plan: storeData.plan,
+                plan_expiry_date: storeData.plan_expiry_date || storeData.planExpiryDate,
+                telegram_bot_token: storeData.telegram_bot_token || storeData.telegramBotToken,
+                telegram_chat_id: storeData.telegram_chat_id || storeData.telegramChatId,
+                enable_sales_performance: storeData.enable_sales_performance || storeData.enableSalesPerformance || false,
+                pet_care_enabled: storeData.pet_care_enabled || storeData.petCareEnabled || false,
+                owner_id: storeData.owner_id || user?.id
+            };
+
             const { data, error } = await supabase
                 .from('stores')
-                .insert({
-                    ...storeData,
-                    owner_id: storeData.owner_id || user?.id // Allow override for Super Admin
-                })
+                .insert(dbStoreData)
                 .select()
                 .single();
 
@@ -338,7 +350,8 @@ export const DataProvider = ({ children }) => {
             if (typeof updates.enableSalesPerformance !== 'undefined') dbUpdates.enable_sales_performance = updates.enableSalesPerformance;
             if (typeof updates.enableRental !== 'undefined') dbUpdates.enable_rental = updates.enableRental;
             if (typeof updates.enableDiscount !== 'undefined') dbUpdates.enable_discount = updates.enableDiscount;
-            if (typeof updates.petCareEnabled !== 'undefined') dbUpdates.pet_care_enabled = updates.pet_care_enabled;
+            if (typeof updates.petCareEnabled !== 'undefined') dbUpdates.pet_care_enabled = updates.petCareEnabled;
+            if (typeof updates.pet_care_enabled !== 'undefined') dbUpdates.pet_care_enabled = updates.pet_care_enabled;
 
             // Values
             if (updates.discountPin) dbUpdates.discount_pin = updates.discountPin;
