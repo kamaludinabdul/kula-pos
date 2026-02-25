@@ -517,8 +517,25 @@ const ManageUnitsDialog = ({ isOpen, onClose, units, storeId, products, onRefres
 };
 
 // --- DIALOG DETAIL SESI (F&B LIST) ---
-const RentalSessionDetailsDialog = ({ isOpen, onClose, session, onRemoveItem }) => {
+const RentalSessionDetailsDialog = ({ isOpen, onClose, session, onRemoveItem, onUpdateNotes }) => {
+    const [localNotes, setLocalNotes] = useState(session?.notes || '');
+    const [prevNotes, setPrevNotes] = useState(session?.notes || '');
+    const [isSavingNotes, setIsSavingNotes] = useState(false);
+
+    // Sync state if session data changed from outside
+    if (session?.notes !== prevNotes) {
+        setPrevNotes(session?.notes || '');
+        setLocalNotes(session?.notes || '');
+    }
+
     if (!session) return null;
+
+    const handleSaveLocalNotes = async () => {
+        setIsSavingNotes(true);
+        await onUpdateNotes(session, localNotes);
+        setIsSavingNotes(false);
+    };
+
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-md">
@@ -531,17 +548,32 @@ const RentalSessionDetailsDialog = ({ isOpen, onClose, session, onRemoveItem }) 
                     </DialogDescription>
                 </DialogHeader>
 
-                {session.notes && (
-                    <div className="mt-2 p-3 bg-amber-50 border border-amber-100 rounded-lg">
-                        <div className="flex items-center gap-2 text-xs font-bold text-amber-800 mb-1 uppercase tracking-wider">
+                <div className="mt-2 space-y-2">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
                             <StickyNote size={14} />
                             <span>Catatan Sesi / DP</span>
                         </div>
-                        <p className="text-sm text-slate-700 whitespace-pre-wrap italic">
-                            {session.notes}
-                        </p>
+                        {localNotes !== (session.notes || '') && (
+                            <Button
+                                size="xs"
+                                className="h-7 text-[10px] bg-indigo-600 hover:bg-indigo-700"
+                                onClick={handleSaveLocalNotes}
+                                disabled={isSavingNotes}
+                            >
+                                {isSavingNotes ? <Loader2 size={10} className="animate-spin mr-1" /> : <Check size={10} className="mr-1" />}
+                                Simpan Catatan
+                            </Button>
+                        )}
                     </div>
-                )}
+                    <Textarea
+                        placeholder="Tambahkan catatan atau DP di sini..."
+                        className="text-sm bg-amber-50/50 border-amber-100 focus:border-amber-200 focus:ring-amber-200"
+                        value={localNotes}
+                        onChange={(e) => setLocalNotes(e.target.value)}
+                        rows={3}
+                    />
+                </div>
 
                 <div className="py-2">
                     <div className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Daftar Menu</div>
@@ -571,8 +603,8 @@ const RentalSessionDetailsDialog = ({ isOpen, onClose, session, onRemoveItem }) 
                         <div className="text-center py-8 text-muted-foreground">Belum ada pesanan F&B</div>
                     )}
                 </div>
-                <DialogFooter>
-                    <Button onClick={onClose}>Tutup</Button>
+                <DialogFooter className="flex flex-col sm:flex-row gap-2">
+                    <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">Tutup</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -1329,6 +1361,33 @@ const RentalDashboard = () => {
         }
     };
 
+    const handleUpdateNotes = async (session, newNotes) => {
+        try {
+            const { error } = await supabase
+                .from('rental_sessions')
+                .update({ notes: newNotes })
+                .eq('id', session.id);
+
+            if (error) throw error;
+
+            // Update local state
+            setSessions(prev => ({
+                ...prev,
+                [session.unit_id]: {
+                    ...prev[session.unit_id],
+                    notes: newNotes
+                }
+            }));
+
+            toast({ title: "Catatan Diperbarui", description: "Catatan sesi berhasil disimpan." });
+            return true;
+        } catch (error) {
+            console.error("Failed to update notes:", error);
+            toast({ title: "Gagal Update Catatan", description: error.message, variant: "destructive" });
+            return false;
+        }
+    };
+
     const handleRefresh = async () => {
         setIsLoadingUnits(true);
         await Promise.all([
@@ -1483,10 +1542,12 @@ const RentalDashboard = () => {
 
             {/* Dialogs */}
             <RentalSessionDetailsDialog
+                key={detailSession?.id || 'none'}
                 isOpen={isDetailOpen}
                 onClose={() => setIsDetailOpen(false)}
                 session={detailSession ? sessions[detailSession.unit_id] : null} // Use LIVE data from sessions map
                 onRemoveItem={handleRemoveItem}
+                onUpdateNotes={handleUpdateNotes}
             />
 
             <StopRentalDialog
