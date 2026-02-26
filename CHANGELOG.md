@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.18.4] - 2026-02-26
+
+### Changed
+
+- **Telegram**: Added Customer Name to the transaction receipt template for better clarity.
+- **Telegram**: Included AI-generated shift analysis summaries in the shift closing notification messages.
+- **Stability**: Fixed a double-submission bug when opening or closing shifts that caused duplicate Telegram alerts.
+- **Smart Restock**: Resolved a mathematical error (`Infinity` budget) that occurred when the product recommendation list was empty.
+- Bumped version to 0.18.4
+
 ## [0.18.3] - 2026-02-26
 
 ### Changed

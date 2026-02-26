@@ -14,7 +14,7 @@ import { SmartDatePicker } from '../../components/SmartDatePicker';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
 const LoyaltyPointsReport = () => {
-    const { customers, transactions, currentStore } = useData();
+    const { customers, currentStore } = useData();
     const [viewMode, setViewMode] = useState('leaderboard'); // 'leaderboard' or 'history'
     const [historyTransactions, setHistoryTransactions] = useState([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);

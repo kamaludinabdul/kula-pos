@@ -13,6 +13,13 @@ import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 
 export const StartShiftDialog = ({ isOpen, onClose, onStart, initialCash, setInitialCash }) => {
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+    const handleStart = async () => {
+        setIsSubmitting(true);
+        try { await onStart(); } finally { setIsSubmitting(false); }
+    };
+
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent>
@@ -33,8 +40,10 @@ export const StartShiftDialog = ({ isOpen, onClose, onStart, initialCash, setIni
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={onClose}>Batal</Button>
-                    <Button onClick={onStart}>Buka Shift</Button>
+                    <Button variant="outline" onClick={onClose} disabled={isSubmitting}>Batal</Button>
+                    <Button onClick={handleStart} disabled={isSubmitting}>
+                        {isSubmitting ? 'Memproses...' : 'Buka Shift'}
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -49,6 +58,13 @@ export const EndShiftDialog = ({
     currentShift,
     isLoading // Add Loading Prop
 }) => {
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+    const handleEnd = async () => {
+        setIsSubmitting(true);
+        try { await onEnd(); } finally { setIsSubmitting(false); }
+    };
+
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent>
@@ -144,8 +160,10 @@ export const EndShiftDialog = ({
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" onClick={onClose}>Batal</Button>
-                            <Button variant="destructive" onClick={onEnd}>Tutup Shift</Button>
+                            <Button variant="outline" onClick={onClose} disabled={isSubmitting}>Batal</Button>
+                            <Button variant="destructive" onClick={handleEnd} disabled={isSubmitting || isLoading}>
+                                {isSubmitting ? 'Memproses...' : 'Tutup Shift'}
+                            </Button>
                         </DialogFooter>
                     </>
                 )}

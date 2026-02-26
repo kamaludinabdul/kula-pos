@@ -449,8 +449,13 @@ const ShoppingRecommendations = () => {
             }
 
             if (shoppingList.length === 0) {
-                const minPrice = Math.min(...scoredProducts.filter(p => (Number(p.buyPrice) || (Number(p.sellPrice) * 0.7)) > 0).map(p => Number(p.buyPrice) || (Number(p.sellPrice) * 0.7)));
-                if (rawBudget < minPrice) {
+                const validPrices = scoredProducts
+                    .map(p => Number(p.buyPrice) || (Number(p.sellPrice) * 0.7) || 0)
+                    .filter(price => price > 0);
+
+                const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : 0;
+
+                if (minPrice > 0 && rawBudget < minPrice) {
                     showAlert("Budget Kurang", `Budget Rp ${rawBudget.toLocaleString()} terlalu kecil. Minimal Rp ${minPrice.toLocaleString()} untuk membeli 1 unit barang terlaris.`);
                 } else {
                     showAlert("Info", "Tidak ada produk yang cocok untuk dibeli dengan budget ini. Coba cek apakah harga beli produk sudah diatur.");

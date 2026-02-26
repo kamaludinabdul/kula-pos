@@ -70,13 +70,15 @@ const formatTransactionMessage = (transaction, store = null) => {
     const txId = transaction.id ? String(transaction.id).slice(0, 8) : 'N/A';
     const cashierName = transaction.cashier || 'Kasir Umum';
     const payMethod = transaction.paymentMethod || '-';
+    const customerName = transaction.customerName || transaction.customer_name || transaction.customer?.name || 'Guest';
 
     let message = `🧾 <b>TRANSAKSI BARU</b>\n\n`;
     message += `📅 <b>Tanggal:</b> ${formattedDate}\n`;
     message += `🕐 <b>Waktu:</b> ${formattedTime}\n`;
     message += `👤 <b>Kasir:</b> ${cashierName}\n`;
     message += `🆔 <b>ID:</b> #${txId}\n`;
-    message += `💳 <b>Metode:</b> ${payMethod}\n\n`;
+    message += `💳 <b>Metode:</b> ${payMethod}\n`;
+    message += `👥 <b>Pelanggan:</b> ${customerName}\n\n`;
 
     message += `📦 <b>Items:</b>\n`;
     const items = Array.isArray(transaction.items) ? transaction.items : [];

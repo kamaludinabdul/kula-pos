@@ -5,6 +5,7 @@ import { sendMessage } from '../services/telegram';
 import { useAuth } from './AuthContext';
 import { useData } from './DataContext';
 import { safeSupabaseQuery, safeSupabaseRpc } from '../utils/supabaseHelper';
+import { getShiftClosingInsight } from '../utils/ai';
 
 const ShiftContext = createContext(null);
 
@@ -293,6 +294,20 @@ export const ShiftProvider = ({ children }) => {
                 msg += `📊 Selisih Tunai: ${cashDifference < 0 ? '🔴' : '🟢'} Rp ${cashDifference.toLocaleString()}\n`;
                 if (nonCashDifference !== 0) msg += `📊 Selisih Transfer: ${nonCashDifference < 0 ? '🔴' : '🟢'} Rp ${nonCashDifference.toLocaleString()}\n`;
                 if (notes) msg += `📝 Catatan: ${notes}\n`;
+
+                try {
+                    const aiInsight = await getShiftClosingInsight({
+                        initial_cash: shiftData.initial_cash,
+                        totalSales: shiftData.totalSales,
+                        transactions: shiftData.transactions
+                    }, currentStore?.geminiApiKey || user?.settings?.gemini_api_key);
+
+                    if (aiInsight) {
+                        msg += `\n🤖 <b>AI Insight:</b>\n<i>${aiInsight}</i>\n`;
+                    }
+                } catch (e) {
+                    console.error("Failed to generate AI shift insight:", e);
+                }
 
                 sendMessage(msg, { token: currentStore?.telegramBotToken, chatId: currentStore?.telegramChatId });
             }
