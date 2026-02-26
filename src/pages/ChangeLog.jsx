@@ -15,6 +15,7 @@ const CHANGELOG_DATA = [
         changes: [
             "AI Recommendation: Fixed empty shopping list bug by explicitly fetching product data on page load.",
             "Stability: Performed global audit and fixed missing product data fetching in Dashboard, Market Basket Analysis, and Profit & Loss pages.",
+            "Purchase Order: Fixed 'ReferenceError: DropdownMenu is not defined' due to missing imports.",
             "Dashboard: Corrected chart labels from 'Laba Bersih' to 'Laba Kotor' (Gross Profit) to accurately reflect actual data calculations (Sales - COGS).",
             "Dashboard: Added 'Laba Kotor' prefix to average daily profit chart for better metric clarity."
         ]

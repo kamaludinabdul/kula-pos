@@ -6,6 +6,7 @@
 
 - **AI Recommendation**: Fixed empty shopping list bug by explicitly fetching product data on page load.
 - **Dashboard**: Corrected chart labels from 'Laba Bersih' to 'Laba Kotor' (Gross Profit) to reflect actual data.
+- **Purchase Order**: Fixed 'ReferenceError: DropdownMenu is not defined' due to missing imports.
 - **Stability**: Performed global audit and fixed missing product data fetching in Dashboard, Market Basket Analysis, and Profit & Loss pages.
 - Bumped version to 0.18.5
 
