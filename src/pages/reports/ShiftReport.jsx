@@ -141,7 +141,7 @@ const ShiftReport = () => {
                 </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-4">
                 <SmartDatePicker
                     date={datePickerDate}
                     onDateChange={setDatePickerDate}

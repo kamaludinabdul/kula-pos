@@ -354,17 +354,15 @@ const SalesPerformanceReport = () => {
 
                 <TabsContent value="ranking" className="mt-4 space-y-4">
                     {/* Filters for Ranking */}
-                    <div className="flex flex-col md:flex-row gap-4 items-end md:items-center bg-card p-4 rounded-lg border shadow-sm">
-                        <div className="w-full md:w-64">
-                            <div className="relative">
-                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Cari Sales..."
-                                    value={rankingSearchTerm}
-                                    onChange={(e) => setRankingSearchTerm(e.target.value)}
-                                    className="pl-8"
-                                />
-                            </div>
+                    <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                        <div className="relative w-full md:w-96">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Cari Sales..."
+                                value={rankingSearchTerm}
+                                onChange={(e) => setRankingSearchTerm(e.target.value)}
+                                className="pl-10"
+                            />
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -440,44 +438,44 @@ const SalesPerformanceReport = () => {
 
                 <TabsContent value="target" className="mt-4 space-y-4">
                     {/* Filters for Target */}
-                    <div className="flex flex-col md:flex-row gap-4 items-end md:items-center bg-card p-4 rounded-lg border shadow-sm">
-                        <div className="w-full md:w-64">
-                            <div className="relative">
-                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Cari Staff..."
-                                    value={targetSearchTerm}
-                                    onChange={(e) => setTargetSearchTerm(e.target.value)}
-                                    className="pl-8"
-                                />
-                            </div>
+                    <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                        <div className="relative w-full md:w-96">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Cari Staff..."
+                                value={targetSearchTerm}
+                                onChange={(e) => setTargetSearchTerm(e.target.value)}
+                                className="pl-10"
+                            />
                         </div>
 
-                        <Select value={String(targetMonth)} onValueChange={(v) => setTargetMonth(parseInt(v))}>
-                            <SelectTrigger className="w-[150px]">
-                                <SelectValue placeholder="Pilih Bulan" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                                    <SelectItem key={month} value={String(month)}>
-                                        {new Date(0, month - 1).toLocaleString('id-ID', { month: 'long' })}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Select value={String(targetMonth)} onValueChange={(v) => setTargetMonth(parseInt(v))}>
+                                <SelectTrigger className="w-full md:w-[150px] rounded-[10px] px-3">
+                                    <SelectValue placeholder="Pilih Bulan" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                                        <SelectItem key={month} value={String(month)}>
+                                            {new Date(0, month - 1).toLocaleString('id-ID', { month: 'long' })}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
 
-                        <Select value={String(targetYear)} onValueChange={(v) => setTargetYear(parseInt(v))}>
-                            <SelectTrigger className="w-[120px]">
-                                <SelectValue placeholder="Pilih Tahun" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {yearOptions.map((year) => (
-                                    <SelectItem key={year} value={String(year)}>
-                                        {year}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            <Select value={String(targetYear)} onValueChange={(v) => setTargetYear(parseInt(v))}>
+                                <SelectTrigger className="w-full md:w-[120px] rounded-[10px] px-3">
+                                    <SelectValue placeholder="Pilih Tahun" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {yearOptions.map((year) => (
+                                        <SelectItem key={year} value={String(year)}>
+                                            {year}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
 
                     <Card>

@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.18.8] - 2026-02-27
+
+### Changed
+
+- **UI Standardization**: Unified component rounding to `rounded-[10px]` (10px) across the entire application.
+- **Design System**: Integrated rounding defaults into core `Button`, `Input`, and `Select` components for better maintainability.
+- **Search Precision**: Implemented standardized search styling with `pl-10` padding and precisely centered icons (`left-3.5`).
+- **Alignment**: Right-aligned `SmartDatePicker` in Shift and Expense reports for improved layout balance.
+- **Cleanup**: Removed redundant `rounded-full` and explicit styling overrides from Transactions, Products, Customers, Suppliers, and Report pages.
+- Bumped version to 0.18.8
+
 ## [0.18.7] - 2026-02-27
 
 ### Added

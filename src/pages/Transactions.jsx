@@ -675,16 +675,19 @@ const Transactions = () => {
             </div>
 
             <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
-                <div className="flex items-center gap-2">
-                    <SmartDatePicker
-                        date={datePickerDate}
-                        onDateChange={setDatePickerDate}
+                <div className="relative w-full md:w-96">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Cari ID Transaksi..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 w-full rounded-[10px]"
                     />
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-[130px] max-w-full flex-1 md:flex-none">
+                        <SelectTrigger className="w-[140px] max-w-full flex-1 md:flex-none rounded-[10px] px-3">
                             <SelectValue placeholder="Status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -695,7 +698,7 @@ const Transactions = () => {
                     </Select>
 
                     <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
-                        <SelectTrigger className="w-[150px] max-w-full flex-1 md:flex-none">
+                        <SelectTrigger className="w-[160px] max-w-full flex-1 md:flex-none rounded-[10px] px-3">
                             <SelectValue placeholder="Tipe Bayar" />
                         </SelectTrigger>
                         <SelectContent>
@@ -706,15 +709,10 @@ const Transactions = () => {
                         </SelectContent>
                     </Select>
 
-                    <div className="relative w-full md:w-64">
-                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Cari ID Transaksi..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-8 w-full"
-                        />
-                    </div>
+                    <SmartDatePicker
+                        date={datePickerDate}
+                        onDateChange={setDatePickerDate}
+                    />
                 </div>
             </div>
 

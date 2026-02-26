@@ -91,7 +91,7 @@ export function SmartDatePicker({
                 popoverDirection="down"
                 isSecure={false}
                 displayFormat={isMobile ? "DD/MM/YY" : "DD/MM/YYYY"}
-                inputClassName="w-full h-10 px-4 py-2 text-sm font-bold bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all cursor-pointer placeholder:text-slate-400"
+                inputClassName="w-full h-10 px-4 py-2 text-sm font-bold bg-white border border-slate-200 rounded-[10px] shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all cursor-pointer placeholder:text-slate-400"
                 toggleClassName="absolute top-1/2 right-3 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
                 containerClassName="relative w-full z-[100]"
                 configs={{

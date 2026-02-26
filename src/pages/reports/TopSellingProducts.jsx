@@ -115,15 +115,15 @@ const TopSellingProducts = () => {
                 </div>
                 <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-2">
                     <div className="flex gap-2 w-full lg:w-auto">
-                        <Button variant="outline" onClick={fetchTopProducts} disabled={loading} className="flex-1 lg:flex-none">
+                        <Button variant="outline" onClick={fetchTopProducts} disabled={loading} className="flex-1 lg:flex-none rounded-[10px]">
                             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                             Refresh
                         </Button>
-                        <Button variant="outline" onClick={handleExportPDF} className="flex-1 lg:flex-none">
+                        <Button variant="outline" onClick={handleExportPDF} className="flex-1 lg:flex-none rounded-[10px]">
                             <Download className="mr-2 h-4 w-4" />
                             PDF
                         </Button>
-                        <Button variant="outline" onClick={handleExport} className="flex-1 lg:flex-none">
+                        <Button variant="outline" onClick={handleExport} className="flex-1 lg:flex-none rounded-[10px]">
                             <Download className="mr-2 h-4 w-4" />
                             CSV
                         </Button>
@@ -141,7 +141,7 @@ const TopSellingProducts = () => {
                 <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Urutkan:</span>
                     <Select value={sortBy} onValueChange={setSortBy}>
-                        <SelectTrigger className="w-[160px] h-9 border-none bg-slate-100 font-bold text-slate-700">
+                        <SelectTrigger className="w-[160px] h-9 border-none bg-slate-100 font-bold text-slate-700 rounded-[10px] px-3">
                             <SelectValue placeholder="Urutkan" />
                         </SelectTrigger>
                         <SelectContent>

@@ -151,19 +151,19 @@ const PurchaseOrders = () => {
             {/* Metrics Cards could go here */}
 
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 items-center bg-white p-4 rounded-lg border shadow-sm">
-                <div className="relative flex-1 w-full">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <div className="relative w-full sm:w-96">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Cari No. PO atau Supplier..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-8"
+                        className="pl-10"
                     />
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-full sm:w-[180px] px-3">
                             <SelectValue placeholder="Status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -332,6 +332,7 @@ const PurchaseOrders = () => {
                 onPageChange={handlePageChange}
                 onItemsPerPageChange={handleItemsPerPageChange}
             />
+
         </div>
     );
 };

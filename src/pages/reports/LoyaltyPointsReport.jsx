@@ -213,40 +213,34 @@ const LoyaltyPointsReport = () => {
             </div>
 
             {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 items-end md:items-center bg-card p-4 rounded-lg border shadow-sm">
-                <div className="w-full md:w-64">
-                    <div className="relative">
-                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Cari Pelanggan..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-8"
-                        />
-                    </div>
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div className="relative w-full md:w-96">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Cari Pelanggan..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 rounded-[10px]"
+                    />
                 </div>
 
                 {viewMode === 'history' && (
-                    <>
-                        <div className="flex items-center gap-2">
-                            <SmartDatePicker
-                                date={datePickerDate}
-                                onDateChange={setDatePickerDate}
-                            />
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={fetchHistoryTransactions}
-                                disabled={isLoadingHistory}
-                                title="Refresh data"
-                            >
-                                <RefreshCw className={cn("h-4 w-4", isLoadingHistory && "animate-spin")} />
-                            </Button>
-                        </div>
-
-
-
-                    </>
+                    <div className="flex items-center gap-2">
+                        <SmartDatePicker
+                            date={datePickerDate}
+                            onDateChange={setDatePickerDate}
+                        />
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={fetchHistoryTransactions}
+                            disabled={isLoadingHistory}
+                            className="rounded-[10px]"
+                            title="Refresh data"
+                        >
+                            <RefreshCw className={cn("h-4 w-4", isLoadingHistory && "animate-spin")} />
+                        </Button>
+                    </div>
                 )}
             </div>
 

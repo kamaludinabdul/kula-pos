@@ -143,19 +143,19 @@ const Suppliers = () => {
                 )}
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center bg-white p-4 rounded-xl border shadow-sm">
-                <div className="relative flex-1">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
+                <div className="relative w-full md:w-96">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Cari supplier..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-8"
+                        className="pl-10"
                     />
                 </div>
                 <div className="flex gap-2">
                     <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                        <SelectTrigger className="flex-1 md:w-[140px]">
+                        <SelectTrigger className="flex-1 md:w-[140px] px-3">
                             <SelectValue placeholder="Bulan" />
                         </SelectTrigger>
                         <SelectContent className="max-h-[200px]">

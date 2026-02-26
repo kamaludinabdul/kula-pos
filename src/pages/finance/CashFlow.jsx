@@ -348,7 +348,7 @@ const CashFlow = () => {
                         onDateChange={setDatePickerDate}
                     />
 
-                    <Button variant="outline" size="icon" onClick={fetchTransactions} disabled={loading} className="h-9 w-9">
+                    <Button variant="outline" size="icon" onClick={fetchTransactions} disabled={loading} className="h-9 w-9 rounded-full">
                         <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
 
@@ -545,12 +545,11 @@ const CashFlow = () => {
             </div>
 
             {/* Filter Bar */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-                <div className="space-y-1.5">
-                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Grup Pengeluaran</Label>
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-end">
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <Select value={filterGroup} onValueChange={setFilterGroup}>
-                        <SelectTrigger className="h-9">
-                            <SelectValue />
+                        <SelectTrigger className="h-10 w-full sm:w-[150px] px-3">
+                            <SelectValue placeholder="Grup" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Semua Grup</SelectItem>
@@ -558,12 +557,10 @@ const CashFlow = () => {
                             <SelectItem value="non_operational">CAPEX (Aset/Modal)</SelectItem>
                         </SelectContent>
                     </Select>
-                </div>
-                <div className="space-y-1.5">
-                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Jenis</Label>
+
                     <Select value={filterType} onValueChange={(v) => { setFilterType(v); setFilterCategory('all'); }}>
-                        <SelectTrigger className="h-9">
-                            <SelectValue />
+                        <SelectTrigger className="h-10 w-full sm:w-[150px] px-3">
+                            <SelectValue placeholder="Jenis" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Semua Jenis</SelectItem>
@@ -571,12 +568,10 @@ const CashFlow = () => {
                             <SelectItem value="out">Pengeluaran (Out)</SelectItem>
                         </SelectContent>
                     </Select>
-                </div>
-                <div className="space-y-1.5">
-                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Kategori</Label>
+
                     <Select value={filterCategory} onValueChange={setFilterCategory}>
-                        <SelectTrigger className="h-9">
-                            <SelectValue />
+                        <SelectTrigger className="h-10 w-full sm:w-[150px] px-3">
+                            <SelectValue placeholder="Kategori" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Semua Kategori</SelectItem>

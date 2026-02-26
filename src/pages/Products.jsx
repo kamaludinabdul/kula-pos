@@ -603,17 +603,17 @@ const Products = () => {
 
             <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
                 <div className="relative w-full sm:w-96">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Search products..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-8"
+                        className="pl-10"
                     />
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                        <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectTrigger className="w-full sm:w-[180px] px-3">
                             <SelectValue placeholder="Category" />
                         </SelectTrigger>
                         <SelectContent>
@@ -627,7 +627,7 @@ const Products = () => {
                         </SelectContent>
                     </Select>
                     <Select value={filterSatuanPO} onValueChange={setFilterSatuanPO}>
-                        <SelectTrigger className="w-full sm:w-[150px]">
+                        <SelectTrigger className="w-full sm:w-[150px] px-3">
                             <SelectValue placeholder="Satuan PO" />
                         </SelectTrigger>
                         <SelectContent>

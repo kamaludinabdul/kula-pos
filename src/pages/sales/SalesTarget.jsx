@@ -220,36 +220,32 @@ const SalesTarget = () => {
             </div>
 
             {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4 items-end md:items-center bg-card p-4 rounded-lg border shadow-sm">
-                <div className="space-y-1">
-                    <Select value={String(filterMonth)} onValueChange={(v) => setFilterMonth(parseInt(v))}>
-                        <SelectTrigger className="w-[150px]">
-                            <SelectValue placeholder="Pilih Bulan" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {MONTHS.map((month) => (
-                                <SelectItem key={month.value} value={String(month.value)}>
-                                    {month.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-end">
+                <Select value={String(filterMonth)} onValueChange={(v) => setFilterMonth(parseInt(v))}>
+                    <SelectTrigger className="w-full md:w-[150px] px-3">
+                        <SelectValue placeholder="Pilih Bulan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {MONTHS.map((month) => (
+                            <SelectItem key={month.value} value={String(month.value)}>
+                                {month.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
 
-                <div className="space-y-1">
-                    <Select value={String(filterYear)} onValueChange={(v) => setFilterYear(parseInt(v))}>
-                        <SelectTrigger className="w-[120px]">
-                            <SelectValue placeholder="Pilih Tahun" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {yearOptions.map((year) => (
-                                <SelectItem key={year} value={String(year)}>
-                                    {year}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+                <Select value={String(filterYear)} onValueChange={(v) => setFilterYear(parseInt(v))}>
+                    <SelectTrigger className="w-full md:w-[120px] px-3">
+                        <SelectValue placeholder="Pilih Tahun" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {yearOptions.map((year) => (
+                            <SelectItem key={year} value={String(year)}>
+                                {year}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
             <div className="rounded-md border bg-card">
