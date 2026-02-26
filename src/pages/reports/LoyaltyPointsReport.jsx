@@ -1,20 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useData } from '../../context/DataContext';
+import { supabase } from '../../supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Search, ArrowUpDown, Trophy, Calendar, Settings2, History } from 'lucide-react';
-import { getDateRange } from '../../lib/utils';
+import { Search, ArrowUpDown, Trophy, Calendar, Settings2, History, Loader2, RefreshCw } from 'lucide-react';
+import { getDateRange, cn } from '../../lib/utils';
 import PointAdjustmentDialog from '../../components/PointAdjustmentDialog';
 import PointHistoryDialog from '../../components/PointHistoryDialog';
 import { SmartDatePicker } from '../../components/SmartDatePicker';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
 const LoyaltyPointsReport = () => {
-    const { customers, transactions } = useData();
+    const { customers, transactions, currentStore } = useData();
     const [viewMode, setViewMode] = useState('leaderboard'); // 'leaderboard' or 'history'
+    const [historyTransactions, setHistoryTransactions] = useState([]);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
     const [datePickerDate, setDatePickerDate] = useState(() => {
         const { startDate, endDate } = getDateRange('today');
@@ -27,17 +30,55 @@ const LoyaltyPointsReport = () => {
     const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
 
     // --- Helper Functions ---
-    const getFilteredTransactions = () => {
-        if (!datePickerDate?.from) return [];
-        const startDate = datePickerDate.from;
-        const endDate = datePickerDate.to || datePickerDate.from;
+    const fetchHistoryTransactions = useCallback(async () => {
+        if (!currentStore?.id || !datePickerDate?.from) return;
 
-        return transactions.filter(t => {
-            const tDate = new Date(t.date);
-            // Include both valid purchases (success) and voided ones (status 'void')
-            // We want to show history of deductions too
-            return tDate >= startDate && tDate <= endDate;
-        });
+        setIsLoadingHistory(true);
+        try {
+            const startDate = new Date(datePickerDate.from);
+            startDate.setHours(0, 0, 0, 0);
+
+            const endDate = new Date(datePickerDate.to || datePickerDate.from);
+            endDate.setHours(23, 59, 59, 999);
+
+            const { data, error } = await supabase
+                .from('transactions')
+                .select('*')
+                .eq('store_id', currentStore.id)
+                .gte('date', startDate.toISOString())
+                .lte('date', endDate.toISOString())
+                .order('date', { ascending: false });
+
+            if (error) throw error;
+
+            // Map data to include fallbacks, same as DataContext/Transactions
+            const mapped = (data || []).map(t => ({
+                ...t,
+                customerId: t.customer_id,
+                customerName: t.customer_name,
+                pointsEarned: t.points_earned !== undefined ? Number(t.points_earned || 0) : Number(t.payment_details?.points_earned || 0),
+                customerTotalPoints: Number(t.payment_details?.customer_remaining_points || 0),
+                voidedAt: t.voided_at,
+                amountPaid: Number(t.payment_details?.amount_paid || t.amount_paid || t.total || 0),
+                pointsSpent: Number(t.payment_details?.redeemed_points || 0)
+            }));
+
+            setHistoryTransactions(mapped);
+        } catch (error) {
+            console.error("Error fetching loyalty history:", error);
+        } finally {
+            setIsLoadingHistory(false);
+        }
+    }, [currentStore?.id, datePickerDate]);
+
+    useEffect(() => {
+        if (viewMode === 'history') {
+            fetchHistoryTransactions();
+        }
+    }, [viewMode, fetchHistoryTransactions]);
+
+    const getFilteredTransactions = () => {
+        return historyTransactions;
     };
 
     // --- Data Processing ---
@@ -101,10 +142,10 @@ const LoyaltyPointsReport = () => {
         let data = [];
 
         filteredTrans.forEach(t => {
-            // Filter: Only include transactions with a customer AND points earned
-            // We also handle legacy/migration data where pointsEarned might be 0 but we want to show it if there's a customer?
-            // User requested: "hanya memunculkan yang ad pelanggan dan dapat poin saja"
-            if (!t.customerId || !(t.pointsEarned > 0)) return;
+            // Filter: Only include transactions with a customer AND points interaction
+            // We show points earned OR points spent
+            const hasPointsInteraction = (t.pointsEarned > 0) || (t.pointsSpent > 0);
+            if (!t.customerId || !hasPointsInteraction) return;
 
             // Lookup customer name if the transaction record doesn't have it (denormalization insurance)
             const cName = t.customerName || customers.find(c => c.id === t.customerId)?.name || 'Pelanggan';
@@ -116,9 +157,9 @@ const LoyaltyPointsReport = () => {
                 customerName: cName,
                 customerId: t.customerId,
                 total: t.total,
-                pointsEarned: t.pointsEarned,
+                pointsEarned: t.pointsEarned > 0 ? t.pointsEarned : -t.pointsSpent,
                 status: t.status,
-                type: 'earning'
+                type: t.pointsEarned > 0 ? 'earning' : 'deduction'
             });
 
             // 2. Cancellation Record (if void)
@@ -192,6 +233,15 @@ const LoyaltyPointsReport = () => {
                                 date={datePickerDate}
                                 onDateChange={setDatePickerDate}
                             />
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={fetchHistoryTransactions}
+                                disabled={isLoadingHistory}
+                                title="Refresh data"
+                            >
+                                <RefreshCw className={cn("h-4 w-4", isLoadingHistory && "animate-spin")} />
+                            </Button>
                         </div>
 
 
@@ -304,7 +354,16 @@ const LoyaltyPointsReport = () => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {historyData.length === 0 ? (
+                                {isLoadingHistory ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center py-12">
+                                            <div className="flex flex-col items-center justify-center gap-2">
+                                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                                <p className="text-muted-foreground animate-pulse">Memuat riwayat poin...</p>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : historyData.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                                             Tidak ada transaksi poin pada periode ini.

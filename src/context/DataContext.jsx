@@ -803,10 +803,12 @@ export const DataProvider = ({ children }) => {
                             ...t,
                             customerId: t.customer_id,
                             customerName: t.customer_name,
-                            pointsEarned: t.points_earned,
+                            pointsEarned: t.points_earned !== undefined ? Number(t.points_earned || 0) : Number(t.payment_details?.points_earned || 0),
+                            customerTotalPoints: Number(t.payment_details?.customer_remaining_points || 0),
                             voidedAt: t.voided_at,
                             shiftId: t.shift_id,
-                            amountPaid: t.amount_paid
+                            amountPaid: Number(t.payment_details?.amount_paid || t.amount_paid || t.total || 0),
+                            change: Number(t.payment_details?.change || t.change || 0)
                         }))
                     }),
                     (currentStore?.settings?.enableSharedCustomers && user?.role === 'owner')
