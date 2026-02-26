@@ -523,9 +523,10 @@ const RentalSessionDetailsDialog = ({ isOpen, onClose, session, onRemoveItem, on
     const [isSavingNotes, setIsSavingNotes] = useState(false);
 
     // Sync state if session data changed from outside
-    if (session?.notes !== prevNotes) {
-        setPrevNotes(session?.notes || '');
-        setLocalNotes(session?.notes || '');
+    const currentNotes = session?.notes || '';
+    if (currentNotes !== prevNotes) {
+        setPrevNotes(currentNotes);
+        setLocalNotes(currentNotes);
     }
 
     if (!session) return null;
@@ -548,31 +549,37 @@ const RentalSessionDetailsDialog = ({ isOpen, onClose, session, onRemoveItem, on
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="mt-2 space-y-2">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                            <StickyNote size={14} />
-                            <span>Catatan Sesi / DP</span>
-                        </div>
+                <div className="mt-2 space-y-3">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        <StickyNote size={14} />
+                        <span>Catatan Sesi / DP</span>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Textarea
+                            placeholder="Tambahkan catatan atau DP di sini..."
+                            className="text-sm bg-amber-50/50 border-amber-100 focus:border-amber-200 focus:ring-amber-200"
+                            value={localNotes}
+                            onChange={(e) => setLocalNotes(e.target.value)}
+                            rows={3}
+                        />
+
                         {localNotes !== (session.notes || '') && (
                             <Button
-                                size="xs"
-                                className="h-7 text-[10px] bg-indigo-600 hover:bg-indigo-700"
+                                size="sm"
+                                className="w-full bg-indigo-600 hover:bg-indigo-700 shadow-sm"
                                 onClick={handleSaveLocalNotes}
                                 disabled={isSavingNotes}
                             >
-                                {isSavingNotes ? <Loader2 size={10} className="animate-spin mr-1" /> : <Check size={10} className="mr-1" />}
+                                {isSavingNotes ? (
+                                    <Loader2 size={16} className="animate-spin mr-2" />
+                                ) : (
+                                    <Check size={16} className="mr-2" />
+                                )}
                                 Simpan Catatan
                             </Button>
                         )}
                     </div>
-                    <Textarea
-                        placeholder="Tambahkan catatan atau DP di sini..."
-                        className="text-sm bg-amber-50/50 border-amber-100 focus:border-amber-200 focus:ring-amber-200"
-                        value={localNotes}
-                        onChange={(e) => setLocalNotes(e.target.value)}
-                        rows={3}
-                    />
                 </div>
 
                 <div className="py-2">

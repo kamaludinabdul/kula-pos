@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.18.2] - 2026-02-26
+### Changed
+- **Rental Dashboard**: Refined Note Save UI by moving the 'Save' button below the input field for better accessibility.
+- **Stability**: Fixed 'Too many re-renders' infinite loop in Rental Session Details Dialog by consistent null-check logic.
+- **Rental**: Added 'Catatan' (Notes) support for capturing extra info like Down Payments (DP) during sessions.
+- **Store Management**: Fixed Pet Hotel toggle persistence by correcting database columns and frontend mapping.
+- **Stability**: Resolved 400 errors during auto-downgrade by switching from upsert to update logic.
+- **UI Polish**: Fixed Select dropdown text alignment and moved checkmark indicators to the right for better visual balance.
+- Bumped version to 0.18.2
+
+## [0.18.1] - 2026-02-26
+### Changed
+- **Rental**: Added 'Catatan' (Notes) support for capturing extra info like Down Payments (DP) during sessions.
+- **Rental Dashboard**: Added ability to edit notes/DP for active rental sessions directly from the details dialog.
+- **Rental Dashboard**: Synchronized search and filter UI styling with Transactions and Products pages for a unified design.
+- **Store Management**: Fixed Pet Hotel toggle persistence by correcting database columns and frontend mapping.
+- **Stability**: Resolved 400 errors during auto-downgrade by switching from upsert to update logic.
+- **UI Polish**: Fixed Select dropdown text alignment and moved checkmark indicators to the right for better visual balance.
+- **Products**: Fixed a bug where 'Stock Type' and 'Pricing Model' dropdowns would show incorrect values in Edit Mode.
+- Bumped version to 0.18.1
+
 ## [0.17.0] - 2026-02-24
 ### Changed
 - Bumped version to 0.17.0

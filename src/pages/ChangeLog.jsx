@@ -8,17 +8,17 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
-        version: "0.18.0",
-        date: "2026-02-25",
-        type: "minor",
-        title: "Rental Notes & UI Synchronization",
+        version: "0.18.2",
+        date: "2026-02-26",
+        type: "patch",
+        title: "Rental UI Refinement & Stability",
         changes: [
+            "Rental Dashboard: Refined Note Save UI by moving the 'Save' button below the input field for better accessibility.",
+            "Stability: Fixed 'Too many re-renders' infinite loop in Rental Session Details Dialog by consistent null-check logic.",
             "Rental: Added 'Catatan' (Notes) support for capturing extra info like Down Payments (DP) during sessions.",
-            "Rental: Synchronized search and filter UI styling with Transactions and Products pages for a unified design.",
-            "Rental: Enhanced unit visibility — notes are now displayed on unit cards, detail dialogs, and stop session reminders.",
-            "Unit Management: Optimized unit addition with internal state refresh, removing the need for full page reloads.",
-            "UI Polish: Fixed Select dropdown text alignment and moved checkmark indicators to the right for better visual balance.",
-            "Products: Fixed a bug where 'Stock Type' and 'Pricing Model' dropdowns would show incorrect values in Edit Mode."
+            "Store Management: Fixed Pet Hotel toggle persistence by correcting database columns and frontend mapping.",
+            "Stability: Resolved 400 errors during auto-downgrade by switching from upsert to update logic.",
+            "UI Polish: Fixed Select dropdown text alignment and moved checkmark indicators to the right for better visual balance."
         ]
     },
     {
