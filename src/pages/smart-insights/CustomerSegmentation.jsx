@@ -42,14 +42,16 @@ const CustomerSegmentation = () => {
         setLoading(true);
 
         try {
-            const sixMonthsAgo = new Date();
-            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+            const lookbackDate = new Date();
+            lookbackDate.setMonth(lookbackDate.getMonth() - 24);
 
             const { data: txList, error } = await supabase
                 .from('transactions')
                 .select('customer_id,date,total')
                 .eq('store_id', currentStore.id)
-                .gte('date', sixMonthsAgo.toISOString());
+                .gte('date', lookbackDate.toISOString())
+                .order('date', { ascending: false })
+                .limit(5000);
 
             if (error) throw error;
             const customerStats = {};
@@ -78,18 +80,20 @@ const CustomerSegmentation = () => {
             const tempSegments = { champions: [], loyal: [], atRisk: [], lost: [], new: [] };
 
             customers.forEach(cust => {
-                const stat = customerStats[cust.id];
-                if (!stat) {
-                    return;
+                const stat = customerStats[cust.id] || { count: 0, total: 0, lastDate: null };
+
+                let daysSinceLast = 999; // Default if no transactions
+                if (stat.lastDate) {
+                    daysSinceLast = Math.floor((now - stat.lastDate) / (1000 * 60 * 60 * 24));
                 }
 
-                const daysSinceLast = Math.floor((now - stat.lastDate) / (1000 * 60 * 60 * 24));
                 const frequency = stat.count;
                 const monetary = stat.total;
 
                 const customerData = { ...cust, ...stat, daysSinceLast };
 
-                if (daysSinceLast > 90) {
+                if (frequency === 0 || daysSinceLast > 180) {
+                    // No transactions or dormant for > 6 months
                     tempSegments.lost.push(customerData);
                 } else if (daysSinceLast > 60) {
                     tempSegments.atRisk.push(customerData);
@@ -170,7 +174,7 @@ const CustomerSegmentation = () => {
                     <TableRow>
                         <TableHead>Nama Pelanggan</TableHead>
                         <TableHead>Terakhir Belanja</TableHead>
-                        <TableHead>Total Belanja (6 Bln)</TableHead>
+                        <TableHead>Total Belanja (2 Thn)</TableHead>
                         <TableHead className="text-right">Frekuensi</TableHead>
                         <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
@@ -183,7 +187,7 @@ const CustomerSegmentation = () => {
                                 <div className="text-xs text-muted-foreground">{c.phone || '-'}</div>
                             </TableCell>
                             <TableCell>
-                                {c.daysSinceLast} hari lalu
+                                {c.count === 0 ? 'Belum bayar' : `${c.daysSinceLast} hari lalu`}
                             </TableCell>
                             <TableCell>
                                 Rp {c.total.toLocaleString('id-ID')}

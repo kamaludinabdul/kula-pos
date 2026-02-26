@@ -1,6 +1,10 @@
 # Changelog
 
 ## [0.18.4] - 2026-02-26
+### Changed
+- Bumped version to 0.18.4
+
+## [0.18.4] - 2026-02-26
 
 ### Changed
 
