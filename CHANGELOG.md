@@ -5,6 +5,7 @@
 ### Changed
 
 - **Algorithm Improvement**: Excluded dead stock (no sales in 90 days) from shopping recommendations.
+- **Stock Sufficiency**: Products with stock lasting >14 days are no longer recommended for restock.
 - **Restock AI**: Refined 'Below Min Stock' logic to prioritize items with active sales history.
 - Bumped version to 0.18.6
 

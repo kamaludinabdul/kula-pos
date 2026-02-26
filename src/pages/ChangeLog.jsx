@@ -12,6 +12,7 @@ const CHANGELOG_DATA = [
         date: "2026-02-26",
         changes: [
             "Shopping Recommendations: Improved algorithm to exclude 'Dead Stock' (items with no sales in the last 90 days).",
+            "Shopping Recommendations: Added stock sufficiency check — products with stock lasting >14 days are no longer recommended.",
             "Restock AI: Fixed dead stock items being recommended back when they hit minimum stock threshold.",
             "Purchase Order: Improved 'Below Min Stock' logic to only recommend items with actual sales history."
         ]
