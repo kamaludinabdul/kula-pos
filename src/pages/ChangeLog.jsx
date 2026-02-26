@@ -8,6 +8,18 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        version: "0.18.5",
+        date: "2026-02-26",
+        type: "patch",
+        title: "AI Recommendation & Dashboard Accuracy Fixes",
+        changes: [
+            "AI Recommendation: Fixed empty shopping list bug by explicitly fetching product data on page load.",
+            "Stability: Performed global audit and fixed missing product data fetching in Dashboard, Market Basket Analysis, and Profit & Loss pages.",
+            "Dashboard: Corrected chart labels from 'Laba Bersih' to 'Laba Kotor' (Gross Profit) to accurately reflect actual data calculations (Sales - COGS).",
+            "Dashboard: Added 'Laba Kotor' prefix to average daily profit chart for better metric clarity."
+        ]
+    },
+    {
         version: "0.18.2",
         date: "2026-02-26",
         type: "patch",

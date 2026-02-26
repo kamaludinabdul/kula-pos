@@ -177,7 +177,7 @@ const DashboardCharts = ({ currentStore }) => {
                 {/* 2. Tren Laba (Bar) */}
                 <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden">
                     <CardHeader className="p-4 lg:p-6 pb-0">
-                        <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Laba Rata-rata Harian</CardTitle>
+                        <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Laba Kotor Rata-rata Harian</CardTitle>
                     </CardHeader>
                     <CardContent className="p-4 lg:p-6">
                         <div className="h-[250px] w-full">
@@ -255,7 +255,7 @@ const DashboardCharts = ({ currentStore }) => {
                 {/* 5. Laba Bersih Bulanan (Bar) */}
                 <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden md:col-span-2">
                     <CardHeader className="p-4 lg:p-6 pb-0">
-                        <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Laba Bersih Bulanan</CardTitle>
+                        <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Laba Kotor Bulanan</CardTitle>
                     </CardHeader>
                     <CardContent className="p-4 lg:p-6">
                         <div className="h-[250px] w-full">

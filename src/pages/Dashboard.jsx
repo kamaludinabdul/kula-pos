@@ -31,8 +31,16 @@ const Dashboard = () => {
 
     const [selectedTransaction, setSelectedTransaction] = useState(null);
     const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
-    const { currentStore, products: rawProducts } = useData();
+    const { currentStore, products: rawProducts, fetchAllProducts, activeStoreId } = useData();
     const products = useMemo(() => Array.isArray(rawProducts) ? rawProducts : [], [rawProducts]);
+
+    // Products are not loaded by default (Phase 2 removed from DataContext).
+    // We need them for stock counts (out of stock / low stock).
+    useEffect(() => {
+        if (activeStoreId && rawProducts.length === 0) {
+            fetchAllProducts(activeStoreId);
+        }
+    }, [activeStoreId, rawProducts.length, fetchAllProducts]);
 
     const hasPermission = (feature) => {
         if (!user) return false;

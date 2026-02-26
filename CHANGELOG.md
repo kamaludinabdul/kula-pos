@@ -1,7 +1,18 @@
 # Changelog
 
-## [0.18.4] - 2026-02-26
+## [0.18.5] - 2026-02-26
+
 ### Changed
+
+- **AI Recommendation**: Fixed empty shopping list bug by explicitly fetching product data on page load.
+- **Dashboard**: Corrected chart labels from 'Laba Bersih' to 'Laba Kotor' (Gross Profit) to reflect actual data.
+- **Stability**: Performed global audit and fixed missing product data fetching in Dashboard, Market Basket Analysis, and Profit & Loss pages.
+- Bumped version to 0.18.5
+
+## [0.18.4] - 2026-02-26
+
+### Changed
+
 - Bumped version to 0.18.4
 
 ## [0.18.4] - 2026-02-26

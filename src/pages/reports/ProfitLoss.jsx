@@ -20,8 +20,16 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const ProfitLoss = () => {
-    const { products, currentStore, voidTransaction } = useData();
+    const { products, currentStore, voidTransaction, fetchAllProducts, activeStoreId } = useData();
     const { user } = useAuth();
+
+    // Products are not loaded by default (Phase 2 removed from DataContext).
+    // We need them as fallback for buy price lookup on older transactions.
+    useEffect(() => {
+        if (activeStoreId && products.length === 0) {
+            fetchAllProducts(activeStoreId);
+        }
+    }, [activeStoreId, products.length, fetchAllProducts]);
     const [transactions, setTransactions] = useState([]); // Local state for report data
     const [isLoading, setIsLoading] = useState(false);
     // Initial state: This Month

@@ -44,7 +44,7 @@ import { getRecommendationReasoning, getAutoBudgetRecommendation } from '../util
 
 const ShoppingRecommendations = () => {
     const navigate = useNavigate();
-    const { activeStoreId, products, categories, currentStore } = useData();
+    const { activeStoreId, products, categories, currentStore, fetchAllProducts } = useData();
     const [recommendations, setRecommendations] = useState([]);
 
     // Unified Config State
@@ -112,8 +112,13 @@ const ShoppingRecommendations = () => {
     useEffect(() => {
         if (activeStoreId) {
             fetchRecommendations();
+            // Products are not loaded by default (Phase 2 removed from DataContext).
+            // We must explicitly fetch them for the recommendation engine.
+            if (products.length === 0) {
+                fetchAllProducts(activeStoreId);
+            }
         }
-    }, [activeStoreId, fetchRecommendations]);
+    }, [activeStoreId, fetchRecommendations, fetchAllProducts, products.length]);
 
     const handleOpenConfig = (mode) => {
         setConfigMode(mode);
@@ -241,7 +246,7 @@ const ShoppingRecommendations = () => {
     };
 
     const generateRecommendation = async () => {
-        const rawBudget = Number(budget.replace(/\./g, ''));
+        const rawBudget = Number(budget.replace(/[.,]/g, ''));
         if (!budget || isNaN(rawBudget) || rawBudget <= 0) {
             showAlert("Invalid Input", "Masukkan budget yang valid.");
             return;
@@ -356,10 +361,17 @@ const ShoppingRecommendations = () => {
             let totalWeightAcc = 0;
             let totalItemsAcc = 0;
 
+            console.log("BUDGET:", rawBudget);
+            console.log("Scored Products Count:", scoredProducts.length);
+            if (scoredProducts.length > 0) {
+                console.log("Top Scored Product Sample:", scoredProducts[0]);
+            }
+
             for (const product of scoredProducts) {
                 if (remainingBudget <= 0) break;
 
                 const cost = Number(product.buyPrice) || (Number(product.sellPrice) * 0.7) || 0;
+                console.log(`Checking ${product.name} | Cost: ${cost} | Remaining: ${remainingBudget}`);
 
                 if (cost > 0 && cost <= remainingBudget) {
                     let qtyToBuy = 10; // Default fallback (Base Units)
@@ -444,7 +456,11 @@ const ShoppingRecommendations = () => {
                         remainingBudget -= totalCost;
                         totalWeightAcc += itemTotalWeight;
                         totalItemsAcc += displayQty;
+                    } else {
+                        console.log(`Skipped ${product.name} because displayQty = ${displayQty}`);
                     }
+                } else {
+                    console.log(`Skipped ${product.name} because cost (${cost}) > budget (${remainingBudget}) or cost is 0`);
                 }
             }
 
@@ -587,7 +603,7 @@ const ShoppingRecommendations = () => {
     };
 
     const processExcelRecommendation = async () => {
-        const rawBudget = Number(budget.replace(/\./g, ''));
+        const rawBudget = Number(budget.replace(/[.,]/g, ''));
         if (isNaN(rawBudget) || rawBudget <= 0) {
             showAlert("Invalid Input", "Budget tidak valid.");
             return;

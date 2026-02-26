@@ -13,7 +13,7 @@ import { Sparkles, TrendingUp, Lock, ShoppingBag, Lightbulb, ShieldAlert, Loader
 import { useNavigate } from 'react-router-dom';
 
 const MarketBasketAnalysis = () => {
-    const { currentStore, products } = useData();
+    const { currentStore, products, fetchAllProducts, activeStoreId } = useData();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [bundles, setBundles] = useState([]);
@@ -111,9 +111,16 @@ const MarketBasketAnalysis = () => {
         }
     }, [currentStore, products, hasAiAccess]);
 
+    // Products are not loaded by default (Phase 2 removed from DataContext).
+    // We need them for product name resolution in bundle pairs.
+    useEffect(() => {
+        if (activeStoreId && products.length === 0) {
+            fetchAllProducts(activeStoreId);
+        }
+    }, [activeStoreId, products.length, fetchAllProducts]);
+
     useEffect(() => {
         analyzeBundles();
-
     }, [analyzeBundles]);
 
     return (
