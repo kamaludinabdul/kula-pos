@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.6] - 2026-02-26
+
+### Changed
+
+- **Algorithm Improvement**: Excluded dead stock (no sales in 90 days) from shopping recommendations.
+- **Restock AI**: Refined 'Below Min Stock' logic to prioritize items with active sales history.
+- Bumped version to 0.18.6
+
 ## [0.18.5] - 2026-02-26
 
 ### Changed

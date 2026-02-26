@@ -185,6 +185,7 @@ const PurchaseOrderForm = () => {
                     }
                     // Criteria B: Below manual minStock setting
                     else if (minStock > 0 && currentStock <= minStock) {
+                        if (soldLast30 <= 0) return null; // Skip dead stock
                         reason = `Stok di bawah minimum(${minStock})`;
                         // Target: 2x Min Stock or 30 days rate, whichever is higher
                         const targetByMin = minStock * 2;
