@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.7] - 2026-02-27
+
+### Added
+
+- **Margin Priority**: Scoring now gives a boost to products with higher profit margins.
+- **Urgency Badges**: Visual indicators for items that are 'Kritis' (<3 days) or 'Menipis' (<7 days).
+- **Supplier Filter**: Users can now filter recommendations to specific suppliers based on purchase history.
+
 ## [0.18.6] - 2026-02-26
 
 ### Changed

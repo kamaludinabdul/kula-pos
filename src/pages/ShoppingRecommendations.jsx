@@ -44,7 +44,7 @@ import { getRecommendationReasoning, getAutoBudgetRecommendation } from '../util
 
 const ShoppingRecommendations = () => {
     const navigate = useNavigate();
-    const { activeStoreId, products, categories, currentStore, fetchAllProducts } = useData();
+    const { activeStoreId, products, categories, suppliers, currentStore, fetchAllProducts } = useData();
     const [recommendations, setRecommendations] = useState([]);
 
     // Unified Config State
@@ -52,6 +52,7 @@ const ShoppingRecommendations = () => {
     const [configMode, setConfigMode] = useState(null); // 'ai' or 'excel'
     const [budget, setBudget] = useState('');
     const [selectedCategories, setSelectedCategories] = useState([]);
+    const [selectedSupplierId, setSelectedSupplierId] = useState('all');
 
     const [loading, setLoading] = useState(false);
     const [expandedCardId, setExpandedCardId] = useState(null);
@@ -125,6 +126,7 @@ const ShoppingRecommendations = () => {
         // Default values
         setBudget('5.000.000');
         setSelectedCategories([]); // Empty means ALL
+        setSelectedSupplierId('all');
         setAiBudgetReason(null);
         setIsConfigModalOpen(true);
     };
@@ -254,6 +256,20 @@ const ShoppingRecommendations = () => {
 
         setLoading(true);
         try {
+            // 0. Filter products by supplier if selected
+            let targetProductIds = null;
+            if (selectedSupplierId && selectedSupplierId !== 'all') {
+                const { data: poItems, error: poError } = await supabase
+                    .from('purchase_order_items')
+                    .select('product_id, purchase_orders!inner(supplier_id)')
+                    .eq('purchase_orders.supplier_id', selectedSupplierId);
+
+                if (poError) throw poError;
+                if (poItems) {
+                    targetProductIds = new Set(poItems.map(item => item.product_id));
+                }
+            }
+
             // 1. Fetch transactions from last 90 days
             const startDate = new Date();
             startDate.setDate(startDate.getDate() - 90);
@@ -344,6 +360,9 @@ const ShoppingRecommendations = () => {
                         reasoning = 'Produk mulai populer';
                     }
 
+                    const margin = (p.sellPrice > 0 && p.buyPrice > 0) ? (p.sellPrice - p.buyPrice) / p.sellPrice : 0;
+                    const marginBoost = 1 + (margin * 0.5); // Up to 50% boost for high margin
+
                     return {
                         ...p,
                         velocity: stats.totalQty,
@@ -351,9 +370,13 @@ const ShoppingRecommendations = () => {
                         trendScore,
                         trendLabel,
                         reasoning,
-                        score: stats.totalQty * trendScore // Weighted score
+                        margin,
+                        score: stats.totalQty * trendScore * marginBoost // Weighted score with margin boost
                     };
-                }).filter(p => p.velocity > 0).sort((a, b) => b.score - a.score);
+                })
+                .filter(p => p.velocity > 0)
+                .filter(p => !targetProductIds || targetProductIds.has(p.id)) // Filter by Supplier if active
+                .sort((a, b) => b.score - a.score);
 
             // 4. Build Shopping List based on Budget
             let remainingBudget = rawBudget;
@@ -455,7 +478,9 @@ const ShoppingRecommendations = () => {
                             total: totalCost,
                             weight: itemTotalWeight,
                             reasoning: product.reasoning,
-                            trend: product.trendLabel
+                            trend: product.trendLabel,
+                            daysOfStock: daysOfStock,
+                            currentStock: currentStock
                         });
 
                         remainingBudget -= totalCost;
@@ -1124,7 +1149,28 @@ const ShoppingRecommendations = () => {
                                             <TableBody>
                                                 {rec.items.map((item, idx) => (
                                                     <TableRow key={idx} className="hover:bg-slate-50/50">
-                                                        <TableCell className="py-2 text-xs font-medium">{item.name}</TableCell>
+                                                        <TableCell className="py-2 text-xs font-medium">
+                                                            <div className="flex flex-col gap-1">
+                                                                <span>{item.name}</span>
+                                                                <div className="flex gap-1">
+                                                                    {item.daysOfStock < 3 && (
+                                                                        <Badge className="bg-red-100 text-red-700 hover:bg-red-200 border-red-200 text-[10px] h-4 py-0 px-1">
+                                                                            Kritis
+                                                                        </Badge>
+                                                                    )}
+                                                                    {item.daysOfStock >= 3 && item.daysOfStock < 7 && (
+                                                                        <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-200 text-[10px] h-4 py-0 px-1">
+                                                                            Menipis
+                                                                        </Badge>
+                                                                    )}
+                                                                    {item.currentStock === 0 && (
+                                                                        <Badge className="bg-slate-100 text-slate-700 border-slate-200 text-[10px] h-4 py-0 px-1">
+                                                                            Habis
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </TableCell>
                                                         <TableCell className="py-2 text-xs">
                                                             {item.trend === 'Trending Up' && (
                                                                 <div className="flex flex-col text-green-600">
@@ -1287,6 +1333,24 @@ const ShoppingRecommendations = () => {
                         </div>
 
                         <div className="space-y-3">
+                            <Label>Filter Supplier (Opsional)</Label>
+                            <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
+                                <SelectTrigger className="bg-slate-50">
+                                    <SelectValue placeholder="Pilih Supplier" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Semua Supplier</SelectItem>
+                                    {suppliers.map(s => (
+                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold opacity-60">
+                                Hanya menampilkan produk yang pernah dibeli dari supplier ini.
+                            </p>
+                        </div>
+
+                        <div className="space-y-3">
                             <div className="flex justify-between items-center">
                                 <Label>Filter Kategori (Opsional)</Label>
                                 <Button
@@ -1299,7 +1363,7 @@ const ShoppingRecommendations = () => {
                                 </Button>
                             </div>
 
-                            <div className="border rounded-md p-3 h-48 overflow-y-auto space-y-2 bg-slate-50">
+                            <div className="border rounded-md p-3 h-32 overflow-y-auto space-y-2 bg-slate-50">
                                 {categories.length === 0 ? (
                                     <p className="text-xs text-muted-foreground text-center py-4">Belum ada kategori.</p>
                                 ) : (

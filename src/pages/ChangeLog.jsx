@@ -8,6 +8,15 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        version: "0.18.7",
+        date: "2026-02-27",
+        changes: [
+            "Shopping Recommendations: Added Margin-Priority scoring to prioritize high-profit items.",
+            "Shopping Recommendations: Added urgency badges ('Kritis', 'Menipis') based on stock runway.",
+            "Shopping Recommendations: Added Supplier Filter to generate recommendations for specific suppliers via PO history."
+        ]
+    },
+    {
         version: "0.18.6",
         date: "2026-02-26",
         changes: [
