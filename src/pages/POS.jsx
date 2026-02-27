@@ -491,16 +491,11 @@ const POS = () => {
 
     const [isCartCollapsed, setIsCartCollapsed] = useState(false);
 
-    // Auto-collapse cart on mobile for better UX (Product Grid first)
+    // Default to collapsed cart on mobile/tablet for first-time view
     useEffect(() => {
-        const checkMobile = () => {
-            if (window.innerWidth < 1024) { // Collapse on mobile and tablet
-                setIsCartCollapsed(true);
-            }
-        };
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
+        if (window.innerWidth < 1024) {
+            setIsCartCollapsed(true);
+        }
     }, []);
 
     // Recalculate shift stats when End Shift dialog opens

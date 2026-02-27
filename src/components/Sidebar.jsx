@@ -210,19 +210,13 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
   const renderNavItem = (item) => {
     const currentPlan = (currentStore?.plan || user?.plan || 'free').toLowerCase();
 
-    // Dynamically change POS path for mobile users
-    let itemPath = item.path;
-    if (item.path === '/pos' && window.innerWidth < 1024) {
-      itemPath = '/mobile-pos';
-    }
-
     const isLocked = item.requiredPlan && !hasFeatureAccess(currentPlan, item.feature || item.path, contextPlans);
 
     return (
       <NavItem
         key={item.path}
-        item={{ ...item, path: itemPath }}
-        isActive={location.pathname === item.path || location.pathname === itemPath}
+        item={item}
+        isActive={location.pathname === item.path}
         isExpanded={isExpanded}
         isLocked={isLocked}
         onClick={(e) => handleItemClick(e, item.requiredPlan, item.feature)}
