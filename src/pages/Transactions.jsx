@@ -236,18 +236,16 @@ const Transactions = () => {
 
     // Effect: Trigger fetch on filters change
     useEffect(() => {
+        setCurrentPage(1);
+    }, [storeId, searchTerm, statusFilter, paymentMethodFilter, dateFromStr, dateToStr, itemsPerPage]);
+
+    useEffect(() => {
         const timer = setTimeout(() => {
-            console.log("Transactions: Fetching List due to filter change");
-            if (searchTerm) {
-                setTransactionsList([]);
-                fetchTransactions(1, true);
-            } else {
-                setCurrentPage(1);  // Reset page
-                fetchTransactions(1, true);
-            }
+            console.log("Transactions: Fetching List");
+            fetchTransactions(currentPage);
         }, 600);
         return () => clearTimeout(timer);
-    }, [storeId, searchTerm, statusFilter, paymentMethodFilter, dateFromStr, dateToStr, itemsPerPage, fetchTransactions]);
+    }, [currentPage, fetchTransactions]);
 
     const handlePageChange = (page) => {
         setCurrentPage(page);

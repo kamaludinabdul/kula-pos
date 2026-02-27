@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.18.9] - 2026-02-27
+
+### Fixed
+
+- **Finance**: Replaced native `window.confirm` with custom `ConfirmDialog` in Cash Flow for better stability and UI consistency.
+- **UI**: Fixed calendar icon alignment in date and time inputs by removing `flex` display for those input types.
+- **Stability**: Standardized pagination reset logic across Stock Management, Transactions, Customers, and Purchase Orders to ensure the current page resets to 1 upon search or filter changes.
+- Bumped version to 0.18.9
+
 ## [0.18.8] - 2026-02-27
 
 ### Changed

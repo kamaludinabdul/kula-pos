@@ -19,6 +19,8 @@ import { id } from 'date-fns/locale';
 import { SmartDatePicker } from '../../components/SmartDatePicker';
 import { getDateRange } from '../../lib/utils';
 import FormattedNumberInput from '../../components/ui/FormattedNumberInput';
+import ConfirmDialog from '../../components/ConfirmDialog';
+
 
 
 const CashFlow = () => {
@@ -32,6 +34,11 @@ const CashFlow = () => {
         const { startDate, endDate } = getDateRange('thisMonth');
         return { from: startDate, to: endDate };
     });
+
+    // Delete Confirmation State
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+    const [transactionToDelete, setTransactionToDelete] = useState(null);
+
 
     // Form State
     const [formData, setFormData] = useState({
@@ -220,16 +227,17 @@ const CashFlow = () => {
         }
     };
 
-    const handleDelete = async (transaction) => {
-        if (!window.confirm("Yakin ingin menghapus data ini?")) return;
+    const handleDelete = (transaction) => {
+        setTransactionToDelete(transaction);
+        setIsDeleteConfirmOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!transactionToDelete) return;
 
         try {
             let error;
-
-            // Determine source based on property presence or specific flags
-            // Based on fetchTransactions map:
-            // Back Office: source = 'Back Office' (default from item)
-            // POS: source = 'Kasir (POS)'
+            const transaction = transactionToDelete;
 
             if (transaction.source === 'Kasir (POS)') {
                 const { error: deleteError } = await supabase
@@ -238,7 +246,6 @@ const CashFlow = () => {
                     .eq('id', transaction.id);
                 error = deleteError;
             } else {
-                // Default to cash_flow table
                 const { error: deleteError } = await supabase
                     .from('cash_flow')
                     .delete()
@@ -247,12 +254,15 @@ const CashFlow = () => {
             }
 
             if (error) throw error;
+            setIsDeleteConfirmOpen(false);
+            setTransactionToDelete(null);
             fetchTransactions();
         } catch (error) {
             console.error("Error deleting transaction:", error);
             alert("Gagal menghapus data: " + (error.message || "Unknown error"));
         }
     };
+
 
     const stats = React.useMemo(() => displayTransactions.reduce((acc, curr) => {
         if (curr.type === 'in') {
@@ -740,7 +750,19 @@ const CashFlow = () => {
                 )
                 }
             </div>
+
+            <ConfirmDialog
+                isOpen={isDeleteConfirmOpen}
+                onClose={() => setIsDeleteConfirmOpen(false)}
+                onConfirm={confirmDelete}
+                title="Hapus Riwayat Kas"
+                description="Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan."
+                confirmText="Hapus"
+                cancelText="Batal"
+                variant="destructive"
+            />
         </div >
+
     );
 };
 

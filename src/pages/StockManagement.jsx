@@ -45,6 +45,11 @@ const StockManagement = () => {
     const [isReduceModalOpen, setIsReduceModalOpen] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
+    // Reset to page 1 when search or filter changes
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, filterCategory]);
+
     // Add stock form
     const [addQuantity, setAddQuantity] = useState('');
     const [newBuyPrice, setNewBuyPrice] = useState('');

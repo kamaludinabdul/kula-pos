@@ -97,11 +97,16 @@ const PurchaseOrders = () => {
         // Let's add it to the dependency array of the existing useEffect.
     };
 
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [statusFilter, itemsPerPage, sortConfig, searchTerm]);
+
     // Fetch Data
     useEffect(() => {
         fetchPOs(currentPage);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentStore, statusFilter, itemsPerPage, sortConfig, searchTerm]);
+    }, [currentStore, currentPage]);
 
     const handlePageChange = (page) => {
         setCurrentPage(page);

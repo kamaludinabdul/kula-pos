@@ -30,6 +30,11 @@ const Customers = () => {
     const [isAlertOpen, setIsAlertOpen] = useState(false);
     const [alertData, setAlertData] = useState({ title: '', message: '' });
 
+    // Reset to page 1 when search changes
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
+
     // Sorting State
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
