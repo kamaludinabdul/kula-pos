@@ -66,6 +66,7 @@ const ShoppingRecommendations = () => {
     // Auto-Budgeting State
     const [isAutoBudgeting, setIsAutoBudgeting] = useState(false);
     const [aiBudgetReason, setAiBudgetReason] = useState(null);
+    const [isAiBudget, setIsAiBudget] = useState(false);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [confirmData, setConfirmData] = useState({ title: '', message: '', onConfirm: null });
 
@@ -129,6 +130,7 @@ const ShoppingRecommendations = () => {
         setSelectedCategories([]); // Empty means ALL
         setSelectedSupplierId('all');
         setAiBudgetReason(null);
+        setIsAiBudget(false);
         setIsConfigModalOpen(true);
     };
 
@@ -201,6 +203,7 @@ const ShoppingRecommendations = () => {
                 const formatted = aiResponse.recommendedBudget.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                 setBudget(formatted);
                 setAiBudgetReason(aiResponse.reason);
+                setIsAiBudget(true);
             } else {
                 showAlert("Oops", aiResponse?.reason || "Gagal mendapatkan rekomendasi budget dari AI.");
             }
@@ -385,113 +388,188 @@ const ShoppingRecommendations = () => {
             let totalWeightAcc = 0;
             let totalItemsAcc = 0;
 
-            console.log("BUDGET:", rawBudget);
+            console.log("BUDGET:", rawBudget, "| Mode:", isAiBudget ? 'AI (Conservative)' : 'Manual (Maximize)');
             console.log("Scored Products Count:", scoredProducts.length);
             if (scoredProducts.length > 0) {
                 console.log("Top Scored Product Sample:", scoredProducts[0]);
             }
 
-            for (const product of scoredProducts) {
-                if (remainingBudget <= 0) break;
+            // Helper: Calculate PO display values for a product
+            const calcDisplayValues = (product, qtyToBuy, cost, budgetLeft) => {
+                let displayQty = qtyToBuy;
+                let displayUnit = product.unit || 'Pcs';
+                let displayPrice = cost;
+                let isPO = false;
 
-                const cost = Number(product.buyPrice) || (Number(product.sellPrice) * 0.7) || 0;
-                console.log(`Checking ${product.name} | Cost: ${cost} | Remaining: ${remainingBudget}`);
+                if (product.purchaseUnit && product.conversionToUnit && Number(product.conversionToUnit) > 1) {
+                    const conversion = Number(product.conversionToUnit);
+                    const poQtyNeeded = Math.ceil(qtyToBuy / conversion);
+                    const poCost = cost * conversion;
 
-                if (cost > 0 && cost <= remainingBudget) {
-                    // Only recommend products with actual recent sales (No Dead Stock)
-                    if (product.recentRate <= 0) continue;
+                    if (poCost <= budgetLeft) {
+                        displayQty = poQtyNeeded;
+                        displayUnit = product.purchaseUnit;
+                        displayPrice = poCost;
+                        isPO = true;
 
-                    // Stock Sufficiency Check: Skip if current stock lasts > 14 days
-                    const currentStock = Number(product.stock) || 0;
-                    const daysOfStock = product.recentRate > 0 ? currentStock / product.recentRate : 999;
-                    if (daysOfStock > 14) continue; // Stock is sufficient, no need to restock
-
-                    // Smart Quantity Calculation (Base Units)
-                    // Base: Aim for 14 days of stock based on RECENT velocity
-                    let baseQty = Math.ceil(product.recentRate * 14) - currentStock;
-                    if (baseQty <= 0) continue; // Already have enough
-
-                    // Apply AI Trend Adjustment
-                    let qtyToBuy = Math.ceil(baseQty * product.trendScore);
-
-                    // --- Satuan PO Logic ---
-                    let displayQty = qtyToBuy;
-                    let displayUnit = product.unit || 'Pcs';
-                    let displayPrice = cost;
-                    let isPO = false;
-
-                    if (product.purchaseUnit && product.conversionToUnit && Number(product.conversionToUnit) > 1) {
-                        const conversion = Number(product.conversionToUnit);
-                        // Convert needed base qty to PO units (Round UP to ensure enough stock)
-                        const poQtyNeeded = Math.ceil(qtyToBuy / conversion);
-
-                        // Recalculate cost for PO Unit
-                        const poCost = cost * conversion;
-
-                        // Check if we can afford at least 1 PO Unit
-                        if (poCost <= remainingBudget) {
-                            displayQty = poQtyNeeded;
-                            displayUnit = product.purchaseUnit;
-                            displayPrice = poCost;
-                            isPO = true;
-
-                            // Budget Constraint Check for PO Units
-                            if (displayPrice * displayQty > remainingBudget) {
-                                displayQty = Math.floor(remainingBudget / displayPrice);
-                            }
-                        } else {
-                            // Cannot afford even 1 PO Unit, fallback to Pcs logic?
-                            // Or just skip? Let's fallback to max Pcs we can buy
-                            displayQty = Math.floor(remainingBudget / cost);
-                            // Keep displayUnit as base unit (Pcs)
-                            // displayPrice is already base cost
+                        if (displayPrice * displayQty > budgetLeft) {
+                            displayQty = Math.floor(budgetLeft / displayPrice);
                         }
                     } else {
-                        // Standard Base Unit Logic
-                        if (displayPrice * displayQty > remainingBudget) {
-                            displayQty = Math.floor(remainingBudget / displayPrice);
-                        }
-                    }
-
-                    if (displayQty > 0) {
-                        const totalCost = displayPrice * displayQty;
-                        // Weight calculation needs careful handling. 
-                        // product.weight is usually per Base Unit.
-                        const weightPerBaseUnit = Number(product.weight) || 0;
-                        let itemTotalWeight = 0;
-
-                        if (isPO) {
-                            // Total Weight = Weight per Pcs * Conversion * Qty PO
-                            itemTotalWeight = weightPerBaseUnit * Number(product.conversionToUnit) * displayQty;
-                        } else {
-                            itemTotalWeight = weightPerBaseUnit * displayQty;
-                        }
-
-                        shoppingList.push({
-                            id: product.id,
-                            name: product.name,
-                            buyPrice: displayPrice,
-                            qty: displayQty,
-                            unit: displayUnit,
-                            isPO: isPO,
-                            conversion: Number(product.conversionToUnit) || 1,
-                            purchaseUnit: product.purchaseUnit || null,
-                            total: totalCost,
-                            weight: itemTotalWeight,
-                            reasoning: product.reasoning,
-                            trend: product.trendLabel,
-                            daysOfStock: daysOfStock,
-                            currentStock: currentStock
-                        });
-
-                        remainingBudget -= totalCost;
-                        totalWeightAcc += itemTotalWeight;
-                        totalItemsAcc += displayQty;
-                    } else {
-                        console.log(`Skipped ${product.name} because displayQty = ${displayQty}`);
+                        displayQty = Math.floor(budgetLeft / cost);
                     }
                 } else {
-                    console.log(`Skipped ${product.name} because cost (${cost}) > budget (${remainingBudget}) or cost is 0`);
+                    if (displayPrice * displayQty > budgetLeft) {
+                        displayQty = Math.floor(budgetLeft / displayPrice);
+                    }
+                }
+                return { displayQty, displayUnit, displayPrice, isPO };
+            };
+
+            // Helper: Add item to shopping list
+            const addToShoppingList = (product, displayQty, displayUnit, displayPrice, isPO, cost, daysOfStock, currentStock) => {
+                if (displayQty <= 0 || remainingBudget <= 0) return false;
+                const totalCost = displayPrice * displayQty;
+                if (totalCost > remainingBudget) return false;
+
+                const weightPerBaseUnit = Number(product.weight) || 0;
+                let itemTotalWeight = isPO
+                    ? weightPerBaseUnit * Number(product.conversionToUnit) * displayQty
+                    : weightPerBaseUnit * displayQty;
+
+                // Check if item already in list (for multi-pass)
+                const existingIdx = shoppingList.findIndex(i => i.id === product.id);
+                if (existingIdx >= 0) {
+                    shoppingList[existingIdx].qty += displayQty;
+                    shoppingList[existingIdx].total += totalCost;
+                    shoppingList[existingIdx].weight += itemTotalWeight;
+                } else {
+                    shoppingList.push({
+                        id: product.id,
+                        name: product.name,
+                        buyPrice: displayPrice,
+                        qty: displayQty,
+                        unit: displayUnit,
+                        isPO: isPO,
+                        conversion: Number(product.conversionToUnit) || 1,
+                        purchaseUnit: product.purchaseUnit || null,
+                        total: totalCost,
+                        weight: itemTotalWeight,
+                        reasoning: product.reasoning,
+                        trend: product.trendLabel,
+                        daysOfStock: daysOfStock,
+                        currentStock: currentStock
+                    });
+                }
+
+                remainingBudget -= totalCost;
+                totalWeightAcc += itemTotalWeight;
+                totalItemsAcc += displayQty;
+                return true;
+            };
+
+            if (isAiBudget) {
+                // ========== AI BUDGET MODE: Conservative (14 days, skip sufficient stock) ==========
+                for (const product of scoredProducts) {
+                    if (remainingBudget <= 0) break;
+
+                    const cost = Number(product.buyPrice) || (Number(product.sellPrice) * 0.7) || 0;
+                    if (cost <= 0 || cost > remainingBudget) continue;
+                    if (product.recentRate <= 0) continue;
+
+                    const currentStock = Number(product.stock) || 0;
+                    const daysOfStock = product.recentRate > 0 ? currentStock / product.recentRate : 999;
+                    if (daysOfStock > 14) continue;
+
+                    let baseQty = Math.ceil(product.recentRate * 14) - currentStock;
+                    if (baseQty <= 0) continue;
+
+                    let qtyToBuy = Math.ceil(baseQty * product.trendScore);
+                    const { displayQty, displayUnit, displayPrice, isPO } = calcDisplayValues(product, qtyToBuy, cost, remainingBudget);
+                    addToShoppingList(product, displayQty, displayUnit, displayPrice, isPO, cost, daysOfStock, currentStock);
+                }
+            } else {
+                // ========== MANUAL BUDGET MODE: Maximize spending for transport efficiency ==========
+                // Target days escalation: 14 → 30 → 60 days, then proportional distribution
+                const targetDaysPasses = [14, 30, 60];
+
+                for (const targetDays of targetDaysPasses) {
+                    if (remainingBudget <= 0) break;
+                    console.log(`[Manual Mode] Pass: ${targetDays} days | Remaining Budget: ${remainingBudget}`);
+
+                    for (const product of scoredProducts) {
+                        if (remainingBudget <= 0) break;
+
+                        const cost = Number(product.buyPrice) || (Number(product.sellPrice) * 0.7) || 0;
+                        if (cost <= 0 || cost > remainingBudget) continue;
+                        if (product.recentRate <= 0) continue;
+
+                        const currentStock = Number(product.stock) || 0;
+                        const daysOfStock = product.recentRate > 0 ? currentStock / product.recentRate : 999;
+
+                        // Calculate how much already allocated in previous passes
+                        const existingItem = shoppingList.find(i => i.id === product.id);
+                        const alreadyAllocatedQty = existingItem ? existingItem.qty * (existingItem.isPO ? (Number(product.conversionToUnit) || 1) : 1) : 0;
+
+                        // Total base qty needed for this target
+                        let totalBaseQtyNeeded = Math.ceil(product.recentRate * targetDays * product.trendScore) - currentStock;
+                        if (totalBaseQtyNeeded <= 0) continue;
+
+                        // Subtract already allocated
+                        let additionalQty = totalBaseQtyNeeded - alreadyAllocatedQty;
+                        if (additionalQty <= 0) continue;
+
+                        const { displayQty, displayUnit, displayPrice, isPO } = calcDisplayValues(product, additionalQty, cost, remainingBudget);
+                        addToShoppingList(product, displayQty, displayUnit, displayPrice, isPO, cost, daysOfStock, currentStock);
+                    }
+                }
+
+                // Pass 4: Proportional distribution of remaining budget to top scored products
+                if (remainingBudget > 0 && shoppingList.length > 0) {
+                    console.log(`[Manual Mode] Pass: Proportional Distribution | Remaining Budget: ${remainingBudget}`);
+                    const totalScore = scoredProducts.filter(p => p.recentRate > 0).reduce((sum, p) => sum + p.score, 0);
+
+                    for (const product of scoredProducts) {
+                        if (remainingBudget <= 0) break;
+                        if (product.recentRate <= 0) continue;
+
+                        const cost = Number(product.buyPrice) || (Number(product.sellPrice) * 0.7) || 0;
+                        if (cost <= 0 || cost > remainingBudget) continue;
+
+                        // Allocate proportional to score
+                        const proportion = product.score / totalScore;
+                        const budgetForProduct = remainingBudget * proportion;
+
+                        const currentStock = Number(product.stock) || 0;
+                        const daysOfStock = product.recentRate > 0 ? currentStock / product.recentRate : 999;
+
+                        let additionalQty = Math.floor(budgetForProduct / cost);
+                        if (additionalQty <= 0) continue;
+
+                        const { displayQty, displayUnit, displayPrice, isPO } = calcDisplayValues(product, additionalQty, cost, remainingBudget);
+                        addToShoppingList(product, displayQty, displayUnit, displayPrice, isPO, cost, daysOfStock, currentStock);
+                    }
+                }
+
+                // Pass 5: Fill any remaining budget with top product
+                if (remainingBudget > 0 && scoredProducts.length > 0) {
+                    console.log(`[Manual Mode] Pass: Fill remaining | Remaining Budget: ${remainingBudget}`);
+                    for (const product of scoredProducts) {
+                        if (remainingBudget <= 0) break;
+                        if (product.recentRate <= 0) continue;
+
+                        const cost = Number(product.buyPrice) || (Number(product.sellPrice) * 0.7) || 0;
+                        if (cost <= 0 || cost > remainingBudget) continue;
+
+                        const currentStock = Number(product.stock) || 0;
+                        const daysOfStock = product.recentRate > 0 ? currentStock / product.recentRate : 999;
+
+                        let additionalQty = Math.floor(remainingBudget / cost);
+                        if (additionalQty <= 0) continue;
+
+                        const { displayQty, displayUnit, displayPrice, isPO } = calcDisplayValues(product, additionalQty, cost, remainingBudget);
+                        addToShoppingList(product, displayQty, displayUnit, displayPrice, isPO, cost, daysOfStock, currentStock);
+                    }
                 }
             }
 
@@ -1309,6 +1387,7 @@ const ShoppingRecommendations = () => {
                                         const formatted = val.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                                         setBudget(formatted);
                                         setAiBudgetReason(null); // Clear reason on manual edit
+                                        setIsAiBudget(false); // Mark as manual budget
                                     }}
                                     placeholder="Contoh: 5.000.000"
                                     className="pl-10 font-bold text-lg h-12"

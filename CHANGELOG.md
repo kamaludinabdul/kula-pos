@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.18.10] - 2026-02-28
+
+### Added
+
+- **Smart Strategy**: Introduced a dual-mode algorithm for "Rekomendasi Belanja" (Shopping Recommendations). Manual budget input now aggressively maximizes spending to optimize transport layout, while the AI budget maintains a conservative 14-day stock approach.
+
+### Fixed
+
+- **Finance**: Fixed a critical timezone casting bug (`::DATE`) in the Profit & Loss RPC (`get_profit_loss_report`) that caused phantom operational expenses from previous days to bleed into the current month's report.
+- Bumped version to 0.18.10
+
 ## [0.18.9] - 2026-02-27
 
 ### Fixed

@@ -1,0 +1,2 @@
+SELECT SUM(amount) as total_cf FROM cash_flow WHERE date::date >= '2026-03-01' AND date::date <= '2026-03-31' AND type = 'out' AND store_id = (SELECT id FROM stores WHERE email = 'rhpetshop25@gmail.com');
+SELECT SUM(amount) as total_sm FROM shift_movements WHERE date::date >= '2026-03-01' AND date::date <= '2026-03-31' AND type = 'out' AND store_id = (SELECT id FROM stores WHERE email = 'rhpetshop25@gmail.com');
