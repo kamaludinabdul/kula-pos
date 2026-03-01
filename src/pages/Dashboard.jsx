@@ -142,8 +142,8 @@ const Dashboard = () => {
 
     const stockCounts = useMemo(() => {
         return {
-            outOfStock: products.filter(p => !p.manageStock ? false : Number(p.stock) <= 0).length,
-            lowStock: products.filter(p => !p.manageStock ? false : Number(p.stock) > 0 && Number(p.stock) <= (Number(p.minStock) || 5)).length
+            outOfStock: products.filter(p => p.isUnlimited ? false : Number(p.stock) <= 0).length,
+            lowStock: products.filter(p => p.isUnlimited ? false : Number(p.stock) > 0 && Number(p.stock) <= (Number(p.minStock) || 5)).length
         };
     }, [products]);
 
