@@ -263,14 +263,23 @@ const ShoppingRecommendations = () => {
             // 0. Filter products by supplier if selected
             let targetProductIds = null;
             if (selectedSupplierId && selectedSupplierId !== 'all') {
-                const { data: poItems, error: poError } = await supabase
-                    .from('purchase_order_items')
-                    .select('product_id, purchase_orders!inner(supplier_id)')
-                    .eq('purchase_orders.supplier_id', selectedSupplierId);
+                const { data: poList, error: poError } = await supabase
+                    .from('purchase_orders')
+                    .select('items')
+                    .eq('store_id', activeStoreId)
+                    .eq('supplier_id', selectedSupplierId);
 
                 if (poError) throw poError;
-                if (poItems) {
-                    targetProductIds = new Set(poItems.map(item => item.product_id));
+                if (poList) {
+                    const ids = new Set();
+                    poList.forEach(po => {
+                        if (po.items && Array.isArray(po.items)) {
+                            po.items.forEach(item => {
+                                if (item.id) ids.add(item.id);
+                            });
+                        }
+                    });
+                    targetProductIds = ids;
                 }
             }
 
