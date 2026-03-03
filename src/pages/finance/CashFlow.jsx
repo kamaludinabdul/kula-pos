@@ -51,8 +51,8 @@ const CashFlow = () => {
     });
 
     const categories = React.useMemo(() => ({
-        in: ['Penjualan (Manual)', 'Penjualan (Rekap)', 'Modal Tambahan', 'Pendapatan Lain-lain'],
-        out: ['Operasional', 'Gaji Karyawan', 'Sewa Tempat', 'Listrik & Air', 'Internet', 'Maintenance', 'Perlengkapan', 'Belanja Pakan', 'Lain-lain']
+        in: ['Penjualan (Manual)', 'Penjualan (Rekap)', 'Modal Tambahan', 'Selisih Stok (Opname)', 'Pendapatan Lain-lain'],
+        out: ['Operasional', 'Gaji Karyawan', 'Sewa Tempat', 'Listrik & Air', 'Internet', 'Maintenance', 'Perlengkapan', 'Belanja Pakan', 'Selisih Stok (Opname)', 'Lain-lain']
     }), []);
 
 

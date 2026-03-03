@@ -6,7 +6,7 @@ import {
   ChevronDown, ChevronRight, Receipt, Store, Printer, UserCog, Layers, Shield, Percent,
   Gift, Sparkles, PanelLeftClose, PanelLeftOpen, Crown, ClipboardCheck, History, TrendingUp,
   Clock, TrendingDown, Send, Cloud, FileText, Copy, DollarSign, BrainCircuit, Lightbulb,
-  Key, BadgePercent, Factory, Ticket, Lock, Gamepad2, CheckCircle, Building2, Wallet
+  Key, BadgePercent, Factory, Ticket, Lock, Gamepad2, CheckCircle, Building2, Wallet, UserCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -63,6 +63,7 @@ const REPORTS_ITEMS = [
   { path: '/reports/loyalty-points', icon: Gift, label: 'Laporan Poin', feature: 'reports.loyalty', requiredPlan: 'pro' },
   { path: '/reports/sales-performance', icon: TrendingUp, label: 'Laporan Target & Performa', feature: 'reports.performance', checkSetting: 'enableSalesPerformance', requiredPlan: 'pro' },
   { path: '/reports/pet-hotel-fee', icon: Wallet, label: 'Fee Pet Hotel', feature: 'reports.shifts', requiredPlan: 'enterprise', checkSetting: 'petCareEnabled' },
+  { path: '/reports/customer-profiling', icon: UserCircle, label: 'Profil Pelanggan', feature: 'reports.customer_profiling', requiredPlan: 'pro' },
 ];
 
 const FINANCE_ITEMS = [

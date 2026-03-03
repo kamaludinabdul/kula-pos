@@ -7,7 +7,9 @@ import { Calendar, ShoppingBag, CreditCard } from 'lucide-react';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { useData } from '../context/DataContext';
+import CustomerStampCards from './customers/CustomerStampCards';
 
 const CustomerTransactionHistory = ({ isOpen, onClose, customer }) => {
     const { processDebtPayment } = useData();
@@ -91,103 +93,117 @@ const CustomerTransactionHistory = ({ isOpen, onClose, customer }) => {
                     </DialogDescription>
                 </DialogHeader>
 
-                {/* Stats Summary */}
-                <div className="grid grid-cols-4 gap-4 py-4">
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                        <div className="text-sm text-blue-600 font-medium">Total Transaksi</div>
-                        <div className="text-2xl font-bold text-blue-700">{stats.totalTransactions}</div>
-                    </div>
-                    <div className="bg-green-50 p-4 rounded-lg">
-                        <div className="text-sm text-green-600 font-medium">Total Belanja</div>
-                        <div className="text-2xl font-bold text-green-700">Rp {stats.totalSpent.toLocaleString()}</div>
-                    </div>
-                    <div className="bg-purple-50 p-4 rounded-lg">
-                        <div className="text-sm text-purple-600 font-medium">Total Poin</div>
-                        <div className="text-2xl font-bold text-purple-700">{stats.totalPoints}</div>
-                    </div>
-                    <div className="bg-red-50 p-4 rounded-lg">
-                        <div className="text-sm text-red-600 font-medium">Hutang</div>
-                        <div className="text-2xl font-bold text-red-700">Rp {(customer.debt || 0).toLocaleString()}</div>
-                    </div>
-                </div>
+                {/* Tabs for History and Stamps */}
+                <Tabs defaultValue="history" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 mb-4">
+                        <TabsTrigger value="history">Riwayat Transaksi</TabsTrigger>
+                        <TabsTrigger value="stamps">Kartu Stamp</TabsTrigger>
+                    </TabsList>
 
-                {/* Transactions Table */}
-                <div className="rounded-md border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Tanggal</TableHead>
-                                <TableHead>ID Transaksi</TableHead>
-                                <TableHead>Items</TableHead>
-                                <TableHead>Metode</TableHead>
-                                <TableHead className="text-right">Total</TableHead>
-                                <TableHead className="text-right">Poin</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {loading ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-8">
-                                        Memuat data...
-                                    </TableCell>
-                                </TableRow>
-                            ) : transactions.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                                        Belum ada transaksi
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                transactions.map(tx => (
-                                    <TableRow key={tx.id}>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2 text-sm">
-                                                <Calendar className="h-4 w-4 text-muted-foreground" />
-                                                <div>
-                                                    <div>{new Date(tx.date).toLocaleDateString('id-ID')}</div>
-                                                    <div className="text-xs text-muted-foreground">
-                                                        {new Date(tx.date).toLocaleTimeString('id-ID')}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="font-mono text-xs">
-                                            #{tx.id}
-                                        </TableCell>
-                                        <TableCell>
-                                            {tx.type === 'debt_payment' ? (
-                                                <span className="text-sm italic text-muted-foreground">Pembayaran Hutang</span>
-                                            ) : (
-                                                <div className="flex items-center gap-2">
-                                                    <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-                                                    <span className="text-sm">
-                                                        {tx.items?.length || 0} item(s)
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className="capitalize">
-                                                <CreditCard className="h-3 w-3 mr-1" />
-                                                {tx.payment_method}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right font-medium">
-                                            Rp {tx.total?.toLocaleString() || 0}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            {tx.points_earned ? (
-                                                <Badge variant="secondary">
-                                                    +{tx.points_earned} pts
-                                                </Badge>
-                                            ) : '-'}
-                                        </TableCell>
+                    <TabsContent value="history" className="space-y-4">
+                        {/* Stats Summary */}
+                        <div className="grid grid-cols-4 gap-4 py-4 mt-0">
+                            <div className="bg-blue-50 p-4 rounded-lg">
+                                <div className="text-sm text-blue-600 font-medium">Total Transaksi</div>
+                                <div className="text-2xl font-bold text-blue-700">{stats.totalTransactions}</div>
+                            </div>
+                            <div className="bg-green-50 p-4 rounded-lg">
+                                <div className="text-sm text-green-600 font-medium">Total Belanja</div>
+                                <div className="text-2xl font-bold text-green-700">Rp {stats.totalSpent.toLocaleString()}</div>
+                            </div>
+                            <div className="bg-purple-50 p-4 rounded-lg">
+                                <div className="text-sm text-purple-600 font-medium">Total Poin</div>
+                                <div className="text-2xl font-bold text-purple-700">{stats.totalPoints}</div>
+                            </div>
+                            <div className="bg-red-50 p-4 rounded-lg">
+                                <div className="text-sm text-red-600 font-medium">Hutang</div>
+                                <div className="text-2xl font-bold text-red-700">Rp {(customer.debt || 0).toLocaleString()}</div>
+                            </div>
+                        </div>
+
+                        {/* Transactions Table */}
+                        <div className="rounded-md border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Tanggal</TableHead>
+                                        <TableHead>ID Transaksi</TableHead>
+                                        <TableHead>Items</TableHead>
+                                        <TableHead>Metode</TableHead>
+                                        <TableHead className="text-right">Total</TableHead>
+                                        <TableHead className="text-right">Poin</TableHead>
                                     </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
+                                </TableHeader>
+                                <TableBody>
+                                    {loading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center py-8">
+                                                Memuat data...
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : transactions.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                                Belum ada transaksi
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        transactions.map(tx => (
+                                            <TableRow key={tx.id}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2 text-sm">
+                                                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                                                        <div>
+                                                            <div>{new Date(tx.date).toLocaleDateString('id-ID')}</div>
+                                                            <div className="text-xs text-muted-foreground">
+                                                                {new Date(tx.date).toLocaleTimeString('id-ID')}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="font-mono text-xs">
+                                                    #{tx.id}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {tx.type === 'debt_payment' ? (
+                                                        <span className="text-sm italic text-muted-foreground">Pembayaran Hutang</span>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2">
+                                                            <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+                                                            <span className="text-sm">
+                                                                {tx.items?.length || 0} item(s)
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className="capitalize">
+                                                        <CreditCard className="h-3 w-3 mr-1" />
+                                                        {tx.payment_method}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right font-medium">
+                                                    Rp {tx.total?.toLocaleString() || 0}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {tx.points_earned ? (
+                                                        <Badge variant="secondary">
+                                                            +{tx.points_earned} pts
+                                                        </Badge>
+                                                    ) : '-'}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="stamps">
+                        <CustomerStampCards customerId={customer.id} />
+                    </TabsContent>
+                </Tabs>
 
                 {/* Pay Debt Dialog */}
                 <Dialog open={isPayDebtOpen} onOpenChange={setIsPayDebtOpen}>

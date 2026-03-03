@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { X, Printer, Download } from 'lucide-react';
 import html2canvas from 'html2canvas';
-const APP_VERSION = "0.13.2";
+import { APP_VERSION } from '../version';
 import { printerService } from '../services/printer';
 import { formatDate } from '../lib/utils';
 import { getOptimizedImage } from '../utils/supabaseImage';
@@ -220,19 +220,37 @@ const ReceiptModal = ({ isOpen, onClose, transaction, store }) => {
                             )}
                         </div>
 
-                        {(transaction.customerName && (transaction.pointsEarned > 0 || transaction.customerTotalPoints >= 0)) && (
+                        {((transaction.customerName && (transaction.pointsEarned > 0 || transaction.customerTotalPoints >= 0)) || (transaction.payment_details?.stamp_updates?.length > 0 || transaction.stampUpdates?.length > 0)) && (
                             <div className="border-t border-dashed border-gray-300 mt-2 pt-2 space-y-0.5 text-xs text-center">
-                                <div className="font-bold text-gray-700 text-[10px] tracking-widest uppercase">POIN LOYALITAS</div>
-                                {transaction.pointsEarned > 0 && (
-                                    <div className="flex flex-col items-center">
-                                        <span className="text-[10px] text-gray-500">Poin Transaksi</span>
-                                        <span className="font-bold text-green-600">+{transaction.pointsEarned}</span>
-                                    </div>
+                                {(transaction.customerName && (transaction.pointsEarned > 0 || transaction.customerTotalPoints >= 0)) && (
+                                    <>
+                                        <div className="font-bold text-gray-700 text-[10px] tracking-widest uppercase">POIN LOYALITAS</div>
+                                        {transaction.pointsEarned > 0 && (
+                                            <div className="flex flex-col items-center">
+                                                <span className="text-[10px] text-gray-500">Poin Transaksi</span>
+                                                <span className="font-bold text-green-600">+{transaction.pointsEarned}</span>
+                                            </div>
+                                        )}
+                                        {transaction.customerTotalPoints !== undefined && (
+                                            <div className="flex flex-col items-center border-t border-gray-100 pt-1">
+                                                <span className="text-[10px] text-gray-500">Sisa Poin</span>
+                                                <span className="font-extrabold text-blue-600">{transaction.customerTotalPoints}</span>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
-                                {transaction.customerTotalPoints !== undefined && (
-                                    <div className="flex flex-col items-center border-t border-gray-100 pt-1">
-                                        <span className="text-[10px] text-gray-500">Sisa Poin</span>
-                                        <span className="font-extrabold text-blue-600">{transaction.customerTotalPoints}</span>
+
+                                {(transaction.payment_details?.stamp_updates?.length > 0 || transaction.stampUpdates?.length > 0) && (
+                                    <div className="mt-2 text-center pt-2 border-t border-gray-100">
+                                        <div className="font-bold text-gray-700 text-[10px] tracking-widest uppercase mb-1">PROGRAM STAMP</div>
+                                        {(transaction.payment_details?.stamp_updates || transaction.stampUpdates).map((stamp, idx) => (
+                                            <div key={idx} className="flex justify-between items-center text-[10px] bg-slate-100 rounded px-2 py-1 mb-1">
+                                                <span className="text-gray-600 truncate">{stamp.rule_name}</span>
+                                                <span className="font-bold whitespace-nowrap ml-2">
+                                                    {stamp.reward_reached ? `🎁 Reward (${stamp.target_stamps}/${stamp.target_stamps})` : `${stamp.current_stamps} / ${stamp.target_stamps}`}
+                                                </span>
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
                             </div>

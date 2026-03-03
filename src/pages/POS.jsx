@@ -8,7 +8,7 @@ import { useShift } from '../context/ShiftContext';
 import { sendTransactionToTelegram } from '../services/telegram';
 import { printerService } from '../services/printer';
 import { constructTransactionData } from '../lib/transactionLogic';
-import { calculateLoyaltyPoints } from '../lib/loyaltyLogic';
+import { calculateLoyaltyPoints, calculateStampUpdates } from '../lib/loyaltyLogic';
 
 import { usePOS } from '../hooks/usePOS';
 import { printReceiptBrowser } from '../lib/receiptHelper';
@@ -35,8 +35,20 @@ const POS = () => {
 
     const {
         products, categories, processSale, currentStore, customers, updateCustomer,
-        refreshTransactions: _, isOnline, fetchUsersByStore, fetchAllProducts, addCustomer
+        refreshTransactions: _, isOnline, fetchUsersByStore, fetchAllProducts, addCustomer,
+        fetchLoyaltyRules, fetchCustomerStamps, updateCustomerStamps
     } = useData();
+
+    // Loyalty and Stamp States
+    const [loyaltyRules, setLoyaltyRules] = useState([]);
+    const [currentStamps, setCurrentStamps] = useState([]);
+
+    // Fetch Loyalty Rules when store changes
+    useEffect(() => {
+        if (currentStore?.id) {
+            fetchLoyaltyRules(currentStore.id).then(setLoyaltyRules);
+        }
+    }, [currentStore?.id, fetchLoyaltyRules]);
 
     // Ensure we have products for the POS (since DataContext no longer fetches them globally by default)
     const lastFetchedStoreRef = useRef(null);
@@ -80,6 +92,15 @@ const POS = () => {
         promotions, availablePromos, // Destructure new return values
         addToCart, updateQty, updateCartItem, clearCart
     } = usePOS();
+
+    // Fetch Stamps when customer selected
+    useEffect(() => {
+        if (selectedCustomer?.id) {
+            fetchCustomerStamps(selectedCustomer.id).then(setCurrentStamps);
+        } else {
+            setCurrentStamps([]);
+        }
+    }, [selectedCustomer?.id, fetchCustomerStamps]);
 
     // --- Local UI State ---
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -433,13 +454,25 @@ const POS = () => {
         const loyaltyResult = calculateLoyaltyPoints({
             loyaltySettings: currentStore?.loyaltySettings,
             transactionTotal: totals.finalTotal,
+            cartItems: cart,
+            loyaltyProductRules: loyaltyRules,
             selectedCustomer
         });
 
         transactionData.pointsEarned = loyaltyResult.pointsEarned;
         transactionData.customerTotalPoints = loyaltyResult.customerTotalPoints;
 
-        console.log("DEBUG: Loyalty Logic Result", loyaltyResult);
+        const stampResult = calculateStampUpdates({
+            cartItems: cart,
+            loyaltyProductRules: loyaltyRules,
+            customerStamps: currentStamps
+        });
+
+        transactionData.pointsEarned += stampResult.bonusPoints;
+        transactionData.customerTotalPoints += stampResult.bonusPoints;
+        transactionData.stampUpdates = stampResult.updates;
+
+        console.log("DEBUG: Loyalty Logic Result", { loyaltyResult, stampResult });
 
 
         const result = await processSale(transactionData);
@@ -453,6 +486,13 @@ const POS = () => {
                         lastVisit: new Date().toISOString(),
                         loyaltyPoints: (parseInt(selectedCustomer.loyaltyPoints) || 0) + (transactionData.pointsEarned || 0)
                     });
+
+                    // Update Stamps in DB
+                    if (stampResult.updates && stampResult.updates.length > 0) {
+                        for (const update of stampResult.updates) {
+                            await updateCustomerStamps(selectedCustomer.id, update.rule_id, update.current_stamps, update.completed_count);
+                        }
+                    }
                 }
             } catch (err) {
                 console.error("Non-critical error in post-transaction updates:", err);
@@ -680,16 +720,30 @@ const POS = () => {
                 selectedCustomer={selectedCustomer}
                 pointsEarned={(() => {
                     if (!currentStore?.loyaltySettings?.isActive || !selectedCustomer) return 0;
-                    const rule = currentStore.loyaltySettings;
-                    if (rule.ruleType === 'minimum' && totals.finalTotal >= rule.minTransactionAmount) {
-                        return parseInt(rule.pointsReward) || 0;
-                    } else if (rule.ruleType === 'multiple') {
-                        const step = parseFloat(rule.ratioAmount) || 0;
-                        if (step > 0) {
-                            return Math.floor(totals.finalTotal / step) * (parseInt(rule.ratioPoints) || 0);
-                        }
-                    }
-                    return 0;
+
+                    const pResult = calculateLoyaltyPoints({
+                        loyaltySettings: currentStore.loyaltySettings,
+                        transactionTotal: totals.finalTotal,
+                        cartItems: cart,
+                        loyaltyProductRules: loyaltyRules,
+                        selectedCustomer
+                    });
+
+                    const sResult = calculateStampUpdates({
+                        cartItems: cart,
+                        loyaltyProductRules: loyaltyRules,
+                        customerStamps: currentStamps
+                    });
+
+                    return (pResult.pointsEarned || 0) + (sResult.bonusPoints || 0);
+                })()}
+                stampUpdates={(() => {
+                    if (!currentStore?.loyaltySettings?.isActive || !selectedCustomer) return [];
+                    return calculateStampUpdates({
+                        cartItems: cart,
+                        loyaltyProductRules: loyaltyRules,
+                        customerStamps: currentStamps
+                    }).updates;
                 })()}
             />
 

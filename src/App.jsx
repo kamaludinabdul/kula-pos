@@ -73,6 +73,7 @@ const TopSellingProducts = lazy(() => import('./pages/reports/TopSellingProducts
 const LoyaltyPointsReport = lazy(() => import('./pages/reports/LoyaltyPointsReport'));
 const SalesPerformanceReport = lazy(() => import('./pages/reports/SalesPerformanceReport'));
 const PetHotelFeeReport = lazy(() => import('./pages/reports/PetHotelFeeReport'));
+const CustomerProfilingReport = lazy(() => import('./pages/reports/CustomerProfilingReport'));
 
 // Sales & Finance
 const SalesTarget = lazy(() => import('./pages/sales/SalesTarget'));
@@ -544,6 +545,11 @@ const App = () => {
                       <Route path="pet-hotel-fee" element={
                         <PrivateRoute feature="reports">
                           <PetHotelFeeReport />
+                        </PrivateRoute>
+                      } />
+                      <Route path="customer-profiling" element={
+                        <PrivateRoute feature="reports">
+                          <CustomerProfilingReport />
                         </PrivateRoute>
                       } />
                     </Route>

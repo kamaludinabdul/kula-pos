@@ -47,6 +47,7 @@ export const REQUIRED_PLANS = {
     'reports.expenses': 'free',
     'reports.loyalty': 'pro',
     'reports.performance': 'pro',
+    'reports.customer_profiling': 'pro',
 
     // Stock & Inventory
     'products.stock_opname': 'pro',

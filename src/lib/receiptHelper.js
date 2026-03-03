@@ -186,12 +186,26 @@ export const generateReceiptHtml = (transaction, store) => {
                     ` : ''}
                 </div>
 
-                ${(transaction.customerName && (transaction.pointsEarned > 0 || transaction.customerTotalPoints >= 0)) ? `
+                ${((transaction.customerName && (transaction.pointsEarned > 0 || transaction.customerTotalPoints >= 0)) || (transaction.payment_details?.stamp_updates?.length > 0 || transaction.stampUpdates?.length > 0)) ? `
                 <div class="divider"></div>
                 <div style="font-size: 0.8em; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                    <div style="font-weight: bold; font-size: 0.9em; letter-spacing: 1px; text-transform: uppercase;">POIN LOYALITAS</div>
-                    ${transaction.pointsEarned > 0 ? `<div style="color: #16a34a;">Poin Transaksi: +${transaction.pointsEarned}</div>` : ''}
-                    ${transaction.customerTotalPoints !== undefined ? `<div style="font-weight: bold; color: #2563eb; border-top: 1px solid #eee; width: 100%; padding-top: 2px; margin-top: 2px;">Sisa Poin: ${transaction.customerTotalPoints}</div>` : ''}
+                    ${(transaction.customerName && (transaction.pointsEarned > 0 || transaction.customerTotalPoints >= 0)) ? `
+                        <div style="font-weight: bold; font-size: 0.9em; letter-spacing: 1px; text-transform: uppercase;">POIN LOYALITAS</div>
+                        ${transaction.pointsEarned > 0 ? `<div style="color: #16a34a;">Poin Transaksi: +${transaction.pointsEarned}</div>` : ''}
+                        ${transaction.customerTotalPoints !== undefined ? `<div style="font-weight: bold; color: #2563eb; border-top: 1px solid #eee; width: 100%; padding-top: 2px; margin-top: 2px;">Sisa Poin: ${transaction.customerTotalPoints}</div>` : ''}
+                    ` : ''}
+                    
+                    ${(transaction.payment_details?.stamp_updates?.length > 0 || transaction.stampUpdates?.length > 0) ? `
+                        <div style="width: 100%; border-top: 1px solid #eee; margin-top: 4px; padding-top: 4px;">
+                            <div style="font-weight: bold; font-size: 0.9em; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px;">PROGRAM STAMP</div>
+                            ${(transaction.payment_details?.stamp_updates || transaction.stampUpdates).map(stamp => `
+                            <div style="width: 100%; display: flex; justify-content: space-between; padding: 2px 0; font-size: 11px;">
+                                <span style="text-align: left;">${stamp.rule_name}</span>
+                                <span style="font-weight: bold; text-align: right; white-space: nowrap; margin-left: 8px;">${stamp.reward_reached ? '🎁 Reward (Penuh!)' : `${stamp.current_stamps}/${stamp.target_stamps}`}</span>
+                            </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
                 </div>
                 ` : ''}
 

@@ -62,6 +62,7 @@ vi.mock('../context/DataContext', () => ({
         processSale: vi.fn().mockResolvedValue({ success: true, transactionId: 'tx-123' }),
         fetchAllProducts: vi.fn(),
         fetchUsersByStore: vi.fn().mockResolvedValue([]),
+        fetchLoyaltyRules: vi.fn().mockResolvedValue([]),
         isOnline: true,
     })
 }));

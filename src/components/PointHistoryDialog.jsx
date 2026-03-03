@@ -61,7 +61,7 @@ const PointHistoryDialog = ({ open, onOpenChange, customer }) => {
                 <DialogHeader>
                     <DialogTitle>History Penyesuaian Poin</DialogTitle>
                     <DialogDescription>
-                        {customer.name} - Total Poin: <span className="font-bold">{customer.loyaltyPoints || 0}</span>
+                        {customer.name} - Total Poin: <span className="font-bold">{customer.loyaltyPoints ?? customer.points ?? 0}</span>
                     </DialogDescription>
                 </DialogHeader>
 

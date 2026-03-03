@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../compone
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import ProductSelectorDialog from '../components/ProductSelectorDialog';
-import { Play, Square, Plus, MonitorPlay, Coffee, Settings, Search, X, Trash2, Edit2, Link as LinkIcon, Check, Loader2, Eye, User, Bluetooth, RefreshCw, StickyNote } from 'lucide-react';
+import { Play, Square, Plus, MonitorPlay, Coffee, Settings, Search, X, Trash2, Edit2, Link as LinkIcon, Check, Loader2, Eye, User, Bluetooth, RefreshCw, StickyNote, Clock } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
@@ -74,7 +74,7 @@ const calculateBestPrice = (durationData, product) => {
 };
 
 // --- KOMPONEN KARTU UNIT ---
-const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onViewDetails, currentStore }) => {
+const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onViewDetails, currentStore, onAddTime }) => {
     const [elapsed, setElapsed] = useState(0);
     const [timeLeft, setTimeLeft] = useState(0);
 
@@ -180,9 +180,14 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
                             </div>
                         )}
                         {session?.notes && (
-                            <div className="flex items-start gap-1 mt-1 text-[11px] text-slate-500 bg-amber-50/50 border border-amber-100/50 px-1.5 py-0.5 rounded leading-tight">
-                                <StickyNote className="w-3 h-3 mt-0.5 shrink-0 text-amber-600" />
-                                <span className="line-clamp-2 italic">{session.notes}</span>
+                            <div className="flex items-start justify-between gap-1 mt-1 text-[11px] text-slate-500 bg-amber-50/50 border border-amber-100/50 px-1.5 py-0.5 rounded leading-tight">
+                                <div className="flex items-start gap-1">
+                                    <StickyNote className="w-3 h-3 mt-0.5 shrink-0 text-amber-600" />
+                                    <span className="line-clamp-2 italic">{session.notes}</span>
+                                </div>
+                                <Button variant="ghost" size="icon" className="h-4 w-4 shrink-0 hover:bg-amber-100" onClick={(e) => { e.stopPropagation(); onViewDetails(session); }}>
+                                    <Edit2 className="w-2 h-2 text-amber-700" />
+                                </Button>
                             </div>
                         )}
                         {session?.billing_mode === 'fixed' && (
@@ -191,7 +196,7 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
                             </Badge>
                         )}
                     </div>
-                    <Badge variant={session ? "destructive" : "success"} className={session ? (isOvertime ? "bg-red-700 animate-pulse" : (isGracePeriod ? "bg-amber-600 animate-pulse" : "bg-indigo-600")) : "bg-green-600"}>
+                    <Badge variant={session ? "destructive" : "success"} className={`whitespace-nowrap shrink-0 ${session ? (isOvertime ? "bg-red-700 animate-pulse" : (isGracePeriod ? "bg-amber-600 animate-pulse" : "bg-indigo-600")) : "bg-green-600"}`}>
                         {session ? (isOvertime ? "WAKTU HABIS" : (isGracePeriod ? "MASA TOLERANSI" : "In Use")) : "Available"}
                     </Badge>
                 </div>
@@ -206,7 +211,11 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-1">
                                     {session.billing_mode === 'fixed'
-                                        ? (timeLeft > 0 ? `Selesai: ${new Date(session.target_end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Billing Terhenti (Fixed)')
+                                        ? (timeLeft > 0 ? `Selesai: ${new Date(session.target_end_time).toLocaleString('id-ID', {
+                                            ...(product?.pricingType === 'daily' ? { weekday: 'short', day: 'numeric', month: 'short' } : {}),
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}` : 'Billing Terhenti (Fixed)')
                                         : (product?.pricingType === 'daily'
                                             ? `Durasi Billing: ${Math.ceil(durationInHours / 24)} Hari`
                                             : (product?.pricingType === 'minutely'
@@ -226,17 +235,15 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
                                     <span className="text-muted-foreground">F&B Total:</span>
                                     <div className="flex items-center gap-2">
                                         <span className="font-semibold">Rp {totalOrder.toLocaleString('id-ID')}</span>
-                                        {session.orders?.length > 0 && (
-                                            <Button
-                                                variant="secondary"
-                                                size="icon"
-                                                className="h-6 w-6 ml-1 bg-white border shadow-sm hover:bg-slate-100"
-                                                onClick={() => onViewDetails(session)}
-                                                title="Lihat Detail"
-                                            >
-                                                <Eye className="w-3 h-3 text-indigo-600" />
-                                            </Button>
-                                        )}
+                                        <Button
+                                            variant="secondary"
+                                            size="icon"
+                                            className="h-6 w-6 ml-1 bg-white border shadow-sm hover:bg-slate-100"
+                                            onClick={() => onViewDetails(session)}
+                                            title="Kelola F&B & Catatan"
+                                        >
+                                            <Edit2 className="w-3 h-3 text-indigo-600" />
+                                        </Button>
                                     </div>
                                 </div>
                                 <div className="flex justify-between border-t pt-2 mt-1 border-dashed border-slate-300">
@@ -263,6 +270,12 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
                             <Coffee className="w-4 h-4 mr-1" />
                             Menu
                         </Button>
+                        {session.billing_mode === 'fixed' && !isOvertime && (
+                            <Button variant="outline" size="sm" className="flex-1 text-indigo-700 border-indigo-200 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800" onClick={() => onAddTime(session)}>
+                                <Clock className="w-4 h-4 mr-1" />
+                                + Waktu
+                            </Button>
+                        )}
                         <Button variant={isOvertime ? "destructive" : (isGracePeriod ? "default" : "secondary")} size="sm" className={`flex-1 ${(!isOvertime && !isGracePeriod) && "bg-slate-200 hover:bg-slate-300 text-slate-800"} ${isGracePeriod && "bg-amber-600 hover:bg-amber-700 text-white"}`} onClick={() => onStop(session)}>
                             <Square className="w-4 h-4 mr-1" />
                             Stop
@@ -844,6 +857,130 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product, curren
     );
 };
 
+
+
+// --- DIALOG TAMBAH WAKTU ---
+const AddRentalTimeDialog = ({ isOpen, onClose, session, onConfirm, product }) => {
+    const [addDuration, setAddDuration] = useState(1);
+    const [extraPrice, setExtraPrice] = useState(0);
+
+    // Initial calculation when dialog opens
+    useEffect(() => {
+        if (!session || !product || !isOpen) return;
+        const basePrice = Number(product.sellPrice || 0);
+
+        // Check bundling condition for the extra time
+        if (product && product.isBundlingEnabled && product.pricingTiers) {
+            const tier = product.pricingTiers.find(t => parseFloat(t.duration) === Number(addDuration));
+            if (tier) {
+                setExtraPrice(parseFloat(tier.price));
+                return;
+            }
+        }
+
+        setExtraPrice(addDuration * basePrice);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen]);
+
+    const handleDurationChange = (e) => {
+        const val = parseFloat(e.target.value) || 0;
+        setAddDuration(val);
+
+        // Check tier matches exactly the newly added duration
+        if (product && product.isBundlingEnabled && product.pricingTiers) {
+            const tier = product.pricingTiers.find(t => parseFloat(t.duration) === val);
+            if (tier) {
+                setExtraPrice(parseFloat(tier.price));
+                return;
+            }
+        }
+
+        const basePrice = Number(product?.sellPrice || 0);
+        setExtraPrice(val * basePrice);
+    };
+
+    if (!session || !product) return null;
+
+    const unitType = product.pricingType === 'daily' ? 'Hari' : (product.pricingType === 'minutely' ? 'Menit' : 'Jam');
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-indigo-700">
+                        <Clock className="w-5 h-5" />
+                        Tambah Waktu Sewa
+                    </DialogTitle>
+                    <DialogDescription>
+                        Tambahkan durasi ke sesi paket (Fixed) yang sedang berjalan.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4 py-4">
+                    <div className="p-3 bg-slate-50 rounded border text-sm text-slate-600 space-y-1">
+                        <div className="flex justify-between">
+                            <span>Selesai Awal:</span>
+                            <span className="font-medium text-slate-800">{new Date(session.target_end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span>Durasi Saat Ini:</span>
+                            <span className="font-medium text-slate-800">{session.target_duration} {unitType}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span>Tagihan Saat Ini:</span>
+                            <span className="font-medium text-slate-800">Rp {(session.agreed_total || 0).toLocaleString()}</span>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Tambah Berapa {unitType}?</Label>
+                            <Input
+                                type="number"
+                                value={addDuration}
+                                onChange={handleDurationChange}
+                                step={product?.pricingType === 'daily' ? "1" : "0.5"}
+                                min={product?.pricingType === 'daily' ? "1" : "0.5"}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Extra Biaya Sewa</Label>
+                            <Input
+                                type="number"
+                                value={extraPrice}
+                                onChange={(e) => setExtraPrice(parseFloat(e.target.value) || 0)}
+                                className="font-medium text-indigo-700 bg-indigo-50 border-indigo-200"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3 mt-2">
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-bold text-indigo-700">Total Durasi Baru:</span>
+                            <span className="font-bold text-indigo-800">
+                                {Number(session.target_duration || 0) + Number(addDuration)} {unitType}
+                            </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm font-bold text-indigo-700">Total Tagihan Baru:</span>
+                            <span className="font-bold text-indigo-800">
+                                Rp {(Number(session.agreed_total || 0) + Number(extraPrice)).toLocaleString()}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" onClick={onClose}>Batal</Button>
+                    <Button onClick={() => onConfirm(addDuration, extraPrice)} className="bg-indigo-600 hover:bg-indigo-700">
+                        Simpan Penambahan
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
 const RentalDashboard = () => {
     const {
         products,
@@ -903,6 +1040,10 @@ const RentalDashboard = () => {
     // Stop Confirm State
     const [stopSessionData, setStopSessionData] = useState(null);
     const [isStopConfirmOpen, setIsStopConfirmOpen] = useState(false);
+
+    // Add Time State
+    const [isAddTimeOpen, setIsAddTimeOpen] = useState(false);
+    const [addTimeSession, setAddTimeSession] = useState(null);
 
     // Printer
     const [printerStatus, setPrinterStatus] = useState({ connected: false, name: null });
@@ -1189,6 +1330,78 @@ const RentalDashboard = () => {
         setIsStopConfirmOpen(true);
     };
 
+    const handleAddTimeClick = (session) => {
+        setAddTimeSession(session);
+        setIsAddTimeOpen(true);
+    };
+
+    const handleAddTimeConfirm = async (extraDuration, extraPrice) => {
+        if (!addTimeSession) return;
+        setIsLoadingUnits(true);
+
+        try {
+            const product = allProducts.find(p => p.id === addTimeSession.product_id);
+            if (!product) throw new Error("Produk tarif tidak ditemukan.");
+
+            const oldDuration = Number(addTimeSession.target_duration || 0);
+            const newDuration = oldDuration + Number(extraDuration);
+
+            const oldTotal = Number(addTimeSession.agreed_total || 0);
+            const newTotal = oldTotal + Number(extraPrice);
+
+            // Calculate new end time
+            const oldEndTime = new Date(addTimeSession.target_end_time);
+            let extraMs = 0;
+            if (product.pricingType === 'daily') {
+                extraMs = extraDuration * 24 * 60 * 60 * 1000;
+            } else if (product.pricingType === 'minutely') {
+                extraMs = extraDuration * 60 * 1000;
+            } else {
+                extraMs = extraDuration * 60 * 60 * 1000;
+            }
+            const newEndTime = new Date(oldEndTime.getTime() + extraMs).toISOString();
+
+            // Create note log
+            const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            const appendNote = `\n[${nowTime}] Tambah ${extraDuration} ${product.pricingType === 'daily' ? 'Hari' : (product.pricingType === 'minutely' ? 'Menit' : 'Jam')}. +Rp${extraPrice.toLocaleString('id-ID')}`;
+            const newNotes = (addTimeSession.notes || '') + appendNote;
+
+            const { error: updateError } = await supabase
+                .from('rental_sessions')
+                .update({
+                    target_duration: newDuration,
+                    target_end_time: newEndTime,
+                    agreed_total: newTotal,
+                    notes: newNotes
+                })
+                .eq('id', addTimeSession.id);
+
+            if (updateError) throw updateError;
+
+            // Trigger local refresh via realtime or manually
+            fetchSessions();
+            fetchUnits();
+
+            toast({
+                title: "Waktu Ditambahkan",
+                description: `Berhasil menambah ${extraDuration} waktu sewa.`,
+                variant: "success",
+                duration: 2000
+            });
+        } catch (error) {
+            console.error('Error adding time:', error);
+            toast({
+                title: 'Gagal Menambah Waktu',
+                description: error.message,
+                variant: 'destructive',
+            });
+        } finally {
+            setIsAddTimeOpen(false);
+            setAddTimeSession(null);
+            setIsLoadingUnits(false);
+        }
+    };
+
     const handleStopConfirmed = (finalDuration, finalPrice, discountValue = 0) => {
         const session = sessions[stopSessionData.unit_id];
         const product = allProducts.find(p => p.id === session.product_id);
@@ -1224,8 +1437,14 @@ const RentalDashboard = () => {
             discount: discountValue
         });
         setPaymentSuccess(false);
-        setIsCheckoutOpen(true);
         setIsStopConfirmOpen(false);
+
+        // --- TRANSITION OPTIMIZATION ---
+        // Add a small delay to allow StopRentalDialog to fully unmount before opening CheckoutDialog
+        // This prevents Radix UI overlay/scroll-lock conflicts
+        setTimeout(() => {
+            setIsCheckoutOpen(true);
+        }, 150);
     };
 
     const handlePrintReceipt = useCallback(async () => {
@@ -1295,7 +1514,12 @@ const RentalDashboard = () => {
                 rental_session_id: paymentSession.id,
                 customerId: paymentSession.customer_id || null,
                 pointsEarned: pointsEarned,
-                date: transactionDate ? transactionDate.toISOString() : new Date().toISOString()
+                date: transactionDate ? transactionDate.toISOString() : new Date().toISOString(),
+                payment_details: {
+                    snapshot: {
+                        start_time: paymentSession.start_time
+                    }
+                }
             };
 
             const result = await processSale(transactionData);
@@ -1323,9 +1547,9 @@ const RentalDashboard = () => {
                 });
             }
 
-            // Trigger re-fetches
-            fetchSessions();
-            refreshData();
+            // Trigger re-fetches (Wait for dialog close for full refresh)
+            // fetchSessions(); // Redundant, handled in onCloseSuccess
+            // refreshData();  // Redundant, handled in onCloseSuccess
 
             toast({ title: "Pembayaran Berhasil", description: "Transaksi rental tersimpan." });
         } catch (error) {
@@ -1534,6 +1758,7 @@ const RentalDashboard = () => {
                                 session={sessions[unit.id]}
                                 onStart={handleStartClick}
                                 onStop={handleStopClick}
+                                onAddTime={handleAddTimeClick}
                                 onOrder={handleOrderClick}
                                 onRemoveItem={handleRemoveItem}
                                 currentStore={currentStore}
@@ -1703,7 +1928,7 @@ const RentalDashboard = () => {
 
                                                         // If daily, show date + time. If hourly/minutely, just time.
                                                         const options = isDaily
-                                                            ? { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }
+                                                            ? { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }
                                                             : { hour: '2-digit', minute: '2-digit' };
                                                         return now.toLocaleString('id-ID', options);
                                                     })()}
@@ -1773,6 +1998,15 @@ const RentalDashboard = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Add Time Dialog */}
+            <AddRentalTimeDialog
+                isOpen={isAddTimeOpen}
+                onClose={() => setIsAddTimeOpen(false)}
+                session={addTimeSession}
+                product={addTimeSession ? allProducts.find(p => p.id === addTimeSession.product_id) : null}
+                onConfirm={handleAddTimeConfirm}
+            />
 
             <ManageUnitsDialog
                 isOpen={isManageOpen}

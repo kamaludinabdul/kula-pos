@@ -1,3 +1,4 @@
+import { APP_VERSION } from '../version';
 // ESC/POS Command Constants
 const ESC = '\x1B';
 const GS = '\x1D';
@@ -472,10 +473,37 @@ export const printerService = {
                 commands += ALIGN_LEFT; // Reset to left
             }
 
-            // Footer
+            // Stamp Progress
+            const stampUpdates = transaction.payment_details?.stamp_updates || transaction.stampUpdates;
+            if (stampUpdates && stampUpdates.length > 0) {
+                if (!(transaction.customerName && (transaction.pointsEarned > 0 || transaction.customerTotalPoints >= 0))) {
+                    addLine('-'.repeat(32)); // Separator if not already added
+                } else {
+                    addLine('-'.repeat(32)); // Add another separator if loyalty points exists
+                }
+
+                commands += ALIGN_CENTER;
+                commands += BOLD_ON + 'PROGRAM STAMP\n' + BOLD_OFF;
+                commands += ALIGN_LEFT;
+                stampUpdates.forEach(stamp => {
+                    const status = stamp.reward_reached ? `REWARD (${stamp.target_stamps}/${stamp.target_stamps})` : `${stamp.current_stamps}/${stamp.target_stamps}`;
+                    let line1 = stamp.rule_name;
+                    const statusStr = status;
+                    const maxNameLen = maxChars - statusStr.length - 1;
+
+                    if (line1.length > maxNameLen) {
+                        line1 = line1.substring(0, maxNameLen);
+                    }
+
+                    const spaces = maxChars - line1.length - statusStr.length;
+                    addLine(line1 + ' '.repeat(Math.max(1, spaces)) + statusStr);
+                });
+            }
+
             commands += ALIGN_CENTER;
             commands += '\n';
             addLine(storeConfig.receiptFooter || 'Terima Kasih');
+            addLine(`KULA v${APP_VERSION}`);
             // Minimized bottom padding (just enough to clear the cutter)
             // commands += '\n\n'; // Removed extra padding as per user request
 
@@ -620,9 +648,27 @@ export const printerService = {
             // Loyalty Test
             addLine('-'.repeat(32));
             commands += ALIGN_CENTER;
-            commands += BOLD_ON + '* POIN LOYALITAS *\n' + BOLD_OFF;
+            commands += BOLD_ON + 'POIN LOYALITAS\n' + BOLD_OFF;
             addLine('Poin Transaksi: +10');
             addLine('Total Poin: 150');
+
+            // Stamp Progress Test
+            addLine('-'.repeat(32));
+            commands += ALIGN_CENTER;
+            commands += BOLD_ON + 'PROGRAM STAMP\n' + BOLD_OFF;
+            commands += ALIGN_LEFT;
+
+            const stamp1Status = '5/10';
+            let stamp1Name = 'Stamp Kopi Susu';
+            const maxNameLen1 = 32 - stamp1Status.length - 1;
+            if (stamp1Name.length > maxNameLen1) stamp1Name = stamp1Name.substring(0, maxNameLen1);
+            addLine(stamp1Name + ' '.repeat(Math.max(1, 32 - stamp1Name.length - stamp1Status.length)) + stamp1Status);
+
+            const stamp2Status = `REWARD (10/10)`;
+            let stamp2Name = 'Promo Gula';
+            const maxNameLen2 = 32 - stamp2Status.length - 1;
+            if (stamp2Name.length > maxNameLen2) stamp2Name = stamp2Name.substring(0, maxNameLen2);
+            addLine(stamp2Name + ' '.repeat(Math.max(1, 32 - stamp2Name.length - stamp2Status.length)) + stamp2Status);
 
             // Footer
             commands += ALIGN_CENTER + '\n';

@@ -4,7 +4,7 @@ import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { Wallet, Search, Calendar as CalendarIcon, RefreshCw, AlertCircle, Users, TrendingUp } from 'lucide-react';
+import { Wallet, Search, Calendar as CalendarIcon, RefreshCw, AlertCircle, Users, TrendingUp, ChevronDown, ChevronRight } from 'lucide-react';
 import { supabase } from '../../supabase';
 import { format, endOfMonth, parseISO, eachDayOfInterval, getDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -20,6 +20,34 @@ const PetHotelFeeReport = () => {
     const [currentMonth, setCurrentMonth] = useState(format(new Date(), 'yyyy-MM'));
     const [searchTerm, setSearchTerm] = useState('');
     const [fees, setFees] = useState([]);
+    const [expandedGroups, setExpandedGroups] = useState({});
+
+    const toggleGroup = (trxId) => {
+        setExpandedGroups(prev => ({ ...prev, [trxId]: !prev[trxId] }));
+    };
+
+    const groupedFees = useMemo(() => {
+        const groups = {};
+        const filtered = fees.filter(f =>
+            f.employee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (f.transaction_id && String(f.transaction_id).includes(searchTerm))
+        );
+
+        filtered.forEach(fee => {
+            const key = fee.transaction_id || fee.id;
+            if (!groups[key]) {
+                groups[key] = {
+                    transaction_id: fee.transaction_id,
+                    fee_date: fee.fee_date,
+                    total_fee: 0,
+                    records: []
+                };
+            }
+            groups[key].records.push(fee);
+            groups[key].total_fee += Number(fee.fee_amount);
+        });
+        return Object.values(groups).sort((a, b) => new Date(b.fee_date) - new Date(a.fee_date));
+    }, [fees, searchTerm]);
 
     // Config from stores.settings
     const feeConfig = currentStore?.settings?.pet_hotel_fee || {};
@@ -121,7 +149,18 @@ const PetHotelFeeReport = () => {
 
                     // Lookup the schedule for the month this specific day falls in
                     const dayMonthSchedule = schedules[dayMonth] || {};
-                    const shiftsForDay = dayMonthSchedule[dayOfWeek] || [];
+
+                    // NEW: Hybrid lookup (Backward Compatible)
+                    const isOldFormat = Object.keys(dayMonthSchedule).some(k => !isNaN(k) && k.length === 1);
+                    let shiftsForDay = [];
+
+                    if (isOldFormat) {
+                        shiftsForDay = dayMonthSchedule[dayOfWeek] || [];
+                    } else {
+                        const overrides = dayMonthSchedule.overrides || {};
+                        const template = dayMonthSchedule.template || {};
+                        shiftsForDay = overrides[dayStr] || template[dayOfWeek] || [];
+                    }
 
                     if (shiftsForDay.length === 0) continue;
 
@@ -131,6 +170,7 @@ const PetHotelFeeReport = () => {
                     for (const shift of shiftsForDay) {
                         if (!shift.name) continue;
 
+                        const checkoutDateStr = checkOutDate;
                         const key = `${rental.id}_${dayStr}_${shift.name}`;
                         if (processedSet.has(key)) continue;
 
@@ -140,8 +180,8 @@ const PetHotelFeeReport = () => {
                             employee_id: '00000000-0000-0000-0000-000000000000',
                             employee_name: shift.name,
                             fee_amount: feePerPerson,
-                            fee_date: dayStr,
-                            shift_label: shift.shift || 'pagi',
+                            fee_date: checkoutDateStr, // Tetap gunakan checkoutDate sebagai tgl pelaporan
+                            shift_label: `${format(day, 'dd/MM')} - ${shift.shift || 'pagi'}`, // Tampilkan tgl inap di label
                             is_weekend: isWeekendDay
                         });
                     }
@@ -186,6 +226,19 @@ const PetHotelFeeReport = () => {
             if (error) throw error;
             toast({ title: "Terhapus" });
             setFees(fees.filter(f => f.id !== id));
+        } catch (error) {
+            toast({ title: "Gagal", description: error.message, variant: "destructive" });
+        }
+    };
+
+    const handleDeleteGroup = async (trxId, records) => {
+        if (!confirm(`Hapus semua (${records.length}) record fee untuk Trx #${trxId}?`)) return;
+        try {
+            const recordIds = records.map(r => r.id);
+            const { error } = await supabase.from('employee_fees').delete().in('id', recordIds);
+            if (error) throw error;
+            toast({ title: "Terhapus", description: "Fee group berhasil dihapus" });
+            setFees(fees.filter(f => !recordIds.includes(f.id)));
         } catch (error) {
             toast({ title: "Gagal", description: error.message, variant: "destructive" });
         }
@@ -268,12 +321,12 @@ const PetHotelFeeReport = () => {
                         <Table>
                             <TableHeader className="bg-slate-50">
                                 <TableRow>
+                                    <TableHead className="w-[40px]"></TableHead>
                                     <TableHead>No. Trx</TableHead>
-                                    <TableHead>Tanggal</TableHead>
-                                    <TableHead>Karyawan</TableHead>
-                                    <TableHead>Shift</TableHead>
-                                    <TableHead>Nominal</TableHead>
-                                    <TableHead className="w-[80px]">Aksi</TableHead>
+                                    <TableHead>Tgl Pembayaran</TableHead>
+                                    <TableHead>Karyawan (Penerima Fee)</TableHead>
+                                    <TableHead>Total Nominal</TableHead>
+                                    <TableHead className="w-[100px]">Aksi</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -281,24 +334,51 @@ const PetHotelFeeReport = () => {
                                     <TableRow><TableCell colSpan={6} className="text-center py-8">Memuat...</TableCell></TableRow>
                                 ) : fees.length === 0 ? (
                                     <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Belum ada fee. Klik <strong>Sinkronisasi Fee</strong>.</TableCell></TableRow>
+                                ) : groupedFees.length === 0 ? (
+                                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Pencarian tidak ditemukan.</TableCell></TableRow>
                                 ) : (
-                                    fees.filter(f => f.employee_name.toLowerCase().includes(searchTerm.toLowerCase())).map(fee => (
-                                        <TableRow key={fee.id}>
-                                            <TableCell>
-                                                <span className="text-xs font-mono text-slate-500">#{fee.transaction_id || '-'}</span>
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className="font-medium text-slate-800">{format(parseISO(fee.fee_date), 'dd MMM yyyy', { locale: localeId })}</span>
-                                                {fee.is_weekend && <span className="ml-2 text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded">Weekend</span>}
-                                            </TableCell>
-                                            <TableCell className="font-medium">{fee.employee_name}</TableCell>
-                                            <TableCell className="capitalize">{fee.shift_label}</TableCell>
-                                            <TableCell className="font-bold text-green-600">Rp {Number(fee.fee_amount).toLocaleString('id-ID')}</TableCell>
-                                            <TableCell>
-                                                <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 text-xs" onClick={() => handleDeleteFee(fee.id)}>Hapus</Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
+                                    groupedFees.map(group => {
+                                        const groupId = group.transaction_id || group.records[0].id;
+                                        return (
+                                            <React.Fragment key={groupId}>
+                                                <TableRow className="bg-slate-50/50 hover:bg-slate-50 border-b cursor-pointer" onClick={() => toggleGroup(groupId)}>
+                                                    <TableCell>
+                                                        {expandedGroups[groupId] ? <ChevronDown className="w-4 h-4 text-slate-500" /> : <ChevronRight className="w-4 h-4 text-slate-500" />}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <span className="font-bold text-slate-800">#{group.transaction_id || '-'}</span>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <span className="font-medium text-slate-700">{format(parseISO(group.fee_date), 'dd MMM yyyy', { locale: localeId })}</span>
+                                                    </TableCell>
+                                                    <TableCell className="text-sm text-slate-600">
+                                                        {group.records.length} Record Komisi
+                                                    </TableCell>
+                                                    <TableCell className="font-bold text-green-700">Rp {Number(group.total_fee).toLocaleString('id-ID')}</TableCell>
+                                                    <TableCell>
+                                                        <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 text-xs" onClick={(e) => { e.stopPropagation(); handleDeleteGroup(groupId, group.records); }}>Hapus TRX</Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                                {expandedGroups[groupId] && group.records.map(fee => (
+                                                    <TableRow key={fee.id} className="bg-white border-b border-l-4 border-l-indigo-200">
+                                                        <TableCell></TableCell>
+                                                        <TableCell></TableCell>
+                                                        <TableCell></TableCell>
+                                                        <TableCell>
+                                                            <div className="flex flex-col">
+                                                                <span className="font-medium text-slate-800">{fee.employee_name}</span>
+                                                                <span className="text-xs text-slate-500 capitalize">{fee.shift_label} {fee.is_weekend ? '(Weekend)' : ''}</span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-green-600 font-medium">Rp {Number(fee.fee_amount).toLocaleString('id-ID')}</TableCell>
+                                                        <TableCell>
+                                                            <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-600 hover:bg-red-50 h-6 text-[10px]" onClick={() => handleDeleteFee(fee.id)}>Hapus Item</Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </React.Fragment>
+                                        );
+                                    })
                                 )}
                             </TableBody>
                         </Table>

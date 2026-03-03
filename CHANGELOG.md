@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.19.0] - 2026-03-03
+
+### Added
+
+- **Loyalty Enhancement (Major)**: Implementasi penuh sistem poin dan kartu stamp digital.
+  - **Otomatisasi Poin**: Poin dihitung otomatis setiap transaksi (Sale) dan dikurangi otomatis saat Refund/Void.
+  - **Kartu Stamp**: Support kartu stamp per produk (misal: Grooming) dengan target dan reward yang dapat diatur.
+  - **Riwayat Lengkap**: Setiap perubahan poin tercatat di tabel `loyalty_history` untuk transparansi.
+  - **Redeem Reward**: Fitur penukaran hadiah kartu stamp yang terintegrasi dengan saldo poin customer.
+- **Manajemen Staf**: Sistem penjadwalan Pet Hotel hybrid (Pola Mingguan + Override Harian), memungkinkan pengaturan shift fleksibel per tanggal tanpa merusak template mingguan.
+
+### Fixed
+
+- **Stok Opname**: Sinkronisasi otomatis dengan data FIFO (Batches). Stok fisik sekarang selalu selaras dengan jumlah total di tabel batches.
+- **UI/UX Stability**: Fix bug browser freeze di halaman POS akibat konflik dialog penagihan.
+- **Peningkatan UX**: Penambahan tombol "Selesai" pada editor shift harian untuk merapikan tampilan setelah proses edit.
+- Bumped version to 0.19.0
+
 ## [0.18.10] - 2026-02-28
 
 ### Added

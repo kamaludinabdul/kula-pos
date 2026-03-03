@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
+import { supabase } from '../supabase';
 import { safeSupabaseQuery, safeSupabaseRpc } from '../utils/supabaseHelper';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -134,6 +135,20 @@ const StockOpname = () => {
         return opnameData[productId]?.notes ?? '';
     };
 
+    const handleAdjustCashChange = (productId, checked) => {
+        setOpnameData(prev => ({
+            ...prev,
+            [productId]: {
+                ...prev[productId],
+                adjustCash: checked
+            }
+        }));
+    };
+
+    const isAdjustCashChecked = (productId) => {
+        return opnameData[productId]?.adjustCash || false;
+    };
+
     const getDifference = (product) => {
         const physical = opnameData[product.id]?.physicalStock;
         if (physical === undefined || physical === '') return null;
@@ -143,7 +158,7 @@ const StockOpname = () => {
     const getDifferenceValue = (product) => {
         const diff = getDifference(product);
         if (diff === null) return null;
-        return diff * (product.sellPrice || 0);
+        return diff * (product.buyPrice || product.buy_price || 0);
     };
 
     const handleSaveOpname = async () => {
@@ -161,7 +176,8 @@ const StockOpname = () => {
                 const systemStock = product.stock || 0;
                 const physicalStock = data.physicalStock;
                 const difference = physicalStock - systemStock;
-                const differenceValue = difference * (product.sell_price || product.sellPrice || 0);
+                const buyPrice = product.buy_price || product.buyPrice || 0;
+                const differenceValue = difference * buyPrice;
 
                 opnameRecords.push({
                     productId,
@@ -171,8 +187,9 @@ const StockOpname = () => {
                     physicalStock,
                     difference,
                     differenceValue: differenceValue || 0,
-                    sellPrice: product.sell_price || product.sellPrice || 0,
-                    notes: data.notes || ''
+                    buyPrice: buyPrice,
+                    notes: data.notes || '',
+                    adjustCash: data.adjustCash || false
                 });
 
                 // Removed unused totalDifferenceValue increment
@@ -194,8 +211,32 @@ const StockOpname = () => {
             });
             if (!result.success) throw new Error(result.error);
 
+            // POST-SAVE: Handle Cash Flow Adjustment
+            const cashAdjustmentTotal = opnameRecords
+                .filter(r => r.adjustCash && r.differenceValue !== 0)
+                .reduce((sum, r) => sum + r.differenceValue, 0);
+
+            if (cashAdjustmentTotal !== 0) {
+                const isLoss = cashAdjustmentTotal < 0;
+                const { error: cashError } = await supabase.from('cash_flow').insert({
+                    store_id: activeStoreId,
+                    type: isLoss ? 'out' : 'in',
+                    category: 'Selisih Stok (Opname)',
+                    expense_group: isLoss ? 'non_operational' : null, // Loss is CAPEX
+                    amount: Math.abs(cashAdjustmentTotal),
+                    description: `Penyesuaian kas dari Stock Opname: ${notes || 'Tanpa catatan'}. (Net: ${cashAdjustmentTotal >= 0 ? '+' : ''}${cashAdjustmentTotal.toLocaleString()})`,
+                    date: new Date().toISOString().split('T')[0],
+                    performed_by: 'System (Opname)'
+                });
+                if (cashError) console.error("Gagal mencatat arus kas:", cashError);
+            }
+
             // Refresh global data to reflect stock changes
             await refreshData();
+            // Explicitly fetch all products to refresh the detailed list used in POS/Stock Management
+            if (activeStoreId) {
+                await fetchAllProducts(activeStoreId);
+            }
 
             alert(`Stock Opname berhasil disimpan! ${opnameRecords.length} produk diupdate.`);
             setOpnameData({});
@@ -346,6 +387,7 @@ const StockOpname = () => {
                                     <TableHead className="text-center w-[120px]">Stok Fisik</TableHead>
                                     <TableHead className="text-center w-[120px]">Selisih Unit</TableHead>
                                     <TableHead className="text-right w-[140px]">Selisih Nilai</TableHead>
+                                    <TableHead className="text-center w-[80px]">Adj. Kas</TableHead>
                                     <TableHead className="w-[200px]">Catatan</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -411,6 +453,16 @@ const StockOpname = () => {
                                                         </span>
                                                     )}
                                                 </TableCell>
+                                                <TableCell className="text-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer"
+                                                        checked={isAdjustCashChecked(product.id)}
+                                                        onChange={(e) => handleAdjustCashChange(product.id, e.target.checked)}
+                                                        disabled={difference === null || difference === 0}
+                                                        title={difference === 0 ? "Tidak ada selisih" : "Sesuaikan ke Arus Kas"}
+                                                    />
+                                                </TableCell>
                                                 <TableCell>
                                                     <Input
                                                         placeholder="Catatan..."
@@ -464,10 +516,20 @@ const StockOpname = () => {
                                             </div>
                                             <div className="space-y-1.5">
                                                 <label className="text-[10px] font-bold text-slate-400 uppercase text-right block">Selisih</label>
-                                                <div className="h-9 flex items-center justify-end">
+                                                <div className="h-9 flex flex-col items-end justify-center">
                                                     {difference !== null ? (
                                                         <div className="flex flex-col items-end">
-                                                            <div className="flex items-center gap-1.5">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
+                                                                    <span className="text-[9px] font-bold text-slate-400 uppercase">Adj. Kas</span>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        className="h-3 w-3 rounded text-indigo-600 cursor-pointer"
+                                                                        checked={isAdjustCashChecked(product.id)}
+                                                                        onChange={(e) => handleAdjustCashChange(product.id, e.target.checked)}
+                                                                        disabled={difference === 0}
+                                                                    />
+                                                                </div>
                                                                 {difference === 0 ? (
                                                                     <Badge variant="outline" className="h-6 text-[10px] font-bold">SESUAI</Badge>
                                                                 ) : (

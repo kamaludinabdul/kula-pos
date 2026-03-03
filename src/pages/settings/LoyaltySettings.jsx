@@ -7,6 +7,8 @@ import { Switch } from '../../components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group';
 import { Save, Gift } from 'lucide-react';
+import StampRulesManager from '../../components/settings/StampRulesManager';
+import PerProductPointsManager from '../../components/settings/PerProductPointsManager';
 
 const LoyaltySettings = () => {
     const { currentStore, updateStoreSettings } = useData();
@@ -14,6 +16,7 @@ const LoyaltySettings = () => {
 
     const [settings, setSettings] = useState({
         isActive: false,
+        isStampActive: false,
         ruleType: 'multiple', // 'minimum' or 'multiple'
         minTransactionAmount: 0,
         pointsReward: 0,
@@ -29,6 +32,7 @@ const LoyaltySettings = () => {
             setSettings(prev => {
                 const newData = {
                     isActive: currentStore.loyaltySettings.isActive ?? false,
+                    isStampActive: currentStore.loyaltySettings.isStampActive ?? false,
                     ruleType: currentStore.loyaltySettings.ruleType || 'multiple',
                     minTransactionAmount: currentStore.loyaltySettings.minTransactionAmount || 0,
                     pointsReward: currentStore.loyaltySettings.pointsReward || 0,
@@ -41,6 +45,7 @@ const LoyaltySettings = () => {
 
                 if (
                     prev.isActive === newData.isActive &&
+                    prev.isStampActive === newData.isStampActive &&
                     prev.ruleType === newData.ruleType &&
                     prev.minTransactionAmount === newData.minTransactionAmount &&
                     prev.pointsReward === newData.pointsReward &&
@@ -58,6 +63,7 @@ const LoyaltySettings = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
         currentStore?.loyaltySettings?.isActive,
+        currentStore?.loyaltySettings?.isStampActive,
         currentStore?.loyaltySettings?.ruleType,
         currentStore?.loyaltySettings?.minTransactionAmount,
         currentStore?.loyaltySettings?.pointsReward,
@@ -71,8 +77,8 @@ const LoyaltySettings = () => {
         setSettings(prev => ({ ...prev, [name]: value === '' ? '' : Number(value) }));
     };
 
-    const handleSwitchChange = (checked) => {
-        setSettings(prev => ({ ...prev, isActive: checked }));
+    const handleSwitchChange = (checked, field = 'isActive') => {
+        setSettings(prev => ({ ...prev, [field]: checked }));
     };
 
     const handleRadioChange = (value) => {
@@ -113,7 +119,7 @@ const LoyaltySettings = () => {
                 </p>
             </div>
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className="space-y-8">
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -135,7 +141,7 @@ const LoyaltySettings = () => {
                             <Switch
                                 id="loyalty-active"
                                 checked={settings.isActive}
-                                onCheckedChange={handleSwitchChange}
+                                onCheckedChange={(c) => handleSwitchChange(c, 'isActive')}
                             />
                         </div>
 
@@ -146,17 +152,17 @@ const LoyaltySettings = () => {
                                     <RadioGroup
                                         value={settings.ruleType}
                                         onValueChange={handleRadioChange}
-                                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                                        className="grid grid-cols-1 md:grid-cols-3 gap-4"
                                     >
                                         <div>
                                             <RadioGroupItem value="minimum" id="rule-minimum" className="peer sr-only" />
                                             <Label
                                                 htmlFor="rule-minimum"
-                                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:bg-primary/5 cursor-pointer h-full text-center"
                                             >
-                                                <span className="text-lg font-semibold mb-1">Minimum Pembelian</span>
-                                                <span className="text-sm text-center text-muted-foreground">
-                                                    Dapat poin tetap jika belanja di atas nominal tertentu.
+                                                <span className="text-md font-semibold mb-1">Minimum</span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    Poin tetap jika belanja di atas nominal tertentu.
                                                 </span>
                                             </Label>
                                         </div>
@@ -164,18 +170,30 @@ const LoyaltySettings = () => {
                                             <RadioGroupItem value="multiple" id="rule-multiple" className="peer sr-only" />
                                             <Label
                                                 htmlFor="rule-multiple"
-                                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:bg-primary/5 cursor-pointer h-full text-center"
                                             >
-                                                <span className="text-lg font-semibold mb-1">Kelipatan Pembelian</span>
-                                                <span className="text-sm text-center text-muted-foreground">
-                                                    Dapat poin untuk setiap kelipatan nominal tertentu.
+                                                <span className="text-md font-semibold mb-1">Kelipatan</span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    Poin untuk kelipatan nominal tertentu.
+                                                </span>
+                                            </Label>
+                                        </div>
+                                        <div>
+                                            <RadioGroupItem value="per_product" id="rule-per-product" className="peer sr-only" />
+                                            <Label
+                                                htmlFor="rule-per-product"
+                                                className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:bg-primary/5 cursor-pointer h-full text-center"
+                                            >
+                                                <span className="text-md font-semibold mb-1">Per Produk</span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    Poin diatur spesifik untuk setiap produk.
                                                 </span>
                                             </Label>
                                         </div>
                                     </RadioGroup>
                                 </div>
 
-                                {settings.ruleType === 'minimum' ? (
+                                {settings.ruleType === 'minimum' && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-muted/50 rounded-lg">
                                         <div className="space-y-2">
                                             <Label htmlFor="minTransactionAmount">Minimum Total Belanja (Rp)</Label>
@@ -206,7 +224,9 @@ const LoyaltySettings = () => {
                                             </p>
                                         </div>
                                     </div>
-                                ) : (
+                                )}
+
+                                {settings.ruleType === 'multiple' && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-muted/50 rounded-lg">
                                         <div className="space-y-2">
                                             <Label htmlFor="ratioAmount">Setiap Kelipatan Belanja (Rp)</Label>
@@ -231,6 +251,12 @@ const LoyaltySettings = () => {
                                                 Contoh: Setiap belanja Rp 10.000 dapat 1 poin.
                                             </p>
                                         </div>
+                                    </div>
+                                )}
+
+                                {settings.ruleType === 'per_product' && (
+                                    <div className="pt-4 border-t">
+                                        <PerProductPointsManager />
                                     </div>
                                 )}
                             </div>
@@ -283,14 +309,49 @@ const LoyaltySettings = () => {
                             </div>
                         )}
 
-                        <div className="flex justify-end">
-                            <Button type="submit" disabled={loading}>
-                                <Save className="mr-2 h-4 w-4" />
-                                {loading ? 'Menyimpan...' : 'Simpan Pengaturan'}
-                            </Button>
-                        </div>
                     </CardContent>
                 </Card>
+
+                {/* Program Kartu Stamp Card Manager */}
+                <Card>
+                    <CardHeader className="bg-muted/30">
+                        <CardTitle className="flex items-center gap-2">
+                            <Gift className="h-5 w-5 text-indigo-600" />
+                            Program Kartu Stamp
+                        </CardTitle>
+                        <CardDescription>
+                            Berikan stempel fisik atau digital terpisah dari perhitungan poin.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6 pt-6">
+                        <div className="flex items-center justify-between space-x-2">
+                            <Label htmlFor="stamp-active" className="flex flex-col space-y-1">
+                                <span>Aktifkan Fitur Stamp Card</span>
+                                <span className="font-normal text-xs text-muted-foreground">
+                                    Berjalan terpisah, tidak dipengaruhi metode poin di atas.
+                                </span>
+                            </Label>
+                            <Switch
+                                id="stamp-active"
+                                checked={settings.isStampActive}
+                                onCheckedChange={(c) => handleSwitchChange(c, 'isStampActive')}
+                            />
+                        </div>
+
+                        {settings.isStampActive && (
+                            <div className="pt-4 border-t">
+                                <StampRulesManager />
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <div className="flex justify-end pt-2">
+                    <Button type="submit" disabled={loading} size="lg" className="bg-indigo-600 hover:bg-indigo-700">
+                        <Save className="mr-2 h-5 w-5" />
+                        {loading ? 'Menyimpan...' : 'Simpan Semua Pengaturan'}
+                    </Button>
+                </div>
             </form>
         </div>
     );

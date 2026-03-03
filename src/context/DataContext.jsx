@@ -1864,6 +1864,203 @@ export const DataProvider = ({ children }) => {
      * Check and reset expired points if expiry date has passed
      */
 
+    // --- Loyalty Rules & Stamp Cards Management ---
+    const fetchLoyaltyRules = useCallback(async (storeId) => {
+        if (!storeId) return [];
+        try {
+            const { data, error } = await supabase
+                .from('loyalty_product_rules')
+                .select('*')
+                .eq('store_id', storeId)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error("Error fetching loyalty rules:", error);
+            return [];
+        }
+    }, []);
+
+    const saveLoyaltyRule = async (ruleData) => {
+        if (!activeStoreId) return { success: false, error: 'No active store' };
+        try {
+            let result;
+            if (ruleData.id) {
+                // Update
+                result = await supabase
+                    .from('loyalty_product_rules')
+                    .update(ruleData)
+                    .eq('id', ruleData.id)
+                    .select();
+            } else {
+                // Insert
+                const insertData = { ...ruleData };
+                delete insertData.id;
+                result = await supabase
+                    .from('loyalty_product_rules')
+                    .insert([{ ...insertData, store_id: activeStoreId }])
+                    .select();
+            }
+
+            if (result.error) throw result.error;
+            return { success: true, data: result.data[0] };
+        } catch (error) {
+            console.error("Error saving loyalty rule:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const deleteLoyaltyRule = async (id) => {
+        try {
+            const { error } = await supabase
+                .from('loyalty_product_rules')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            return { success: true };
+        } catch (error) {
+            console.error("Error deleting loyalty rule:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const fetchCustomerStamps = useCallback(async (customerId) => {
+        if (!customerId) return [];
+        try {
+            const { data, error } = await supabase
+                .from('customer_stamps')
+                .select(`
+                    *,
+                    loyalty_product_rules:rule_id (name, rule_type, stamp_target)
+                `)
+                .eq('customer_id', customerId);
+
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error("Error fetching customer stamps:", error);
+            return [];
+        }
+    }, []);
+
+    const updateCustomerStamps = async (customerId, ruleId, currentStamps, completedCount) => {
+        try {
+            // Upsert the stamp record
+            const { error } = await supabase
+                .from('customer_stamps')
+                .upsert(
+                    {
+                        customer_id: customerId,
+                        rule_id: ruleId,
+                        current_stamps: currentStamps,
+                        completed_count: completedCount,
+                        last_stamped_at: new Date().toISOString()
+                    },
+                    { onConflict: 'customer_id,rule_id' }
+                );
+
+            if (error) throw error;
+            return { success: true };
+        } catch (error) {
+            console.error("Error updating customer stamps:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const adjustCustomerStamps = async (customerId, stampId, amount, reason, type = 'addition') => {
+        if (!activeStoreId || !user) {
+            return { success: false, error: 'No active store or user' };
+        }
+
+        if (user.role !== 'admin' && user.role !== 'owner' && user.role !== 'super_admin') {
+            return { success: false, error: 'Insufficient permissions' };
+        }
+
+        if (amount === 0) {
+            return { success: false, error: 'Amount cannot be zero' };
+        }
+
+        if (!reason || reason.trim() === '') {
+            return { success: false, error: 'Reason is required' };
+        }
+
+        try {
+            // Get current stamp data
+            const { data: stampData, error: fetchError } = await supabase
+                .from('customer_stamps')
+                .select('*')
+                .eq('id', stampId)
+                .single();
+
+            if (fetchError || !stampData) {
+                return { success: false, error: 'Stamp record not found' };
+            }
+
+            const previousBalance = stampData.current_stamps || 0;
+            const newBalance = Math.max(0, previousBalance + amount);
+
+            // Update customer stamps
+            const { error: updateError } = await supabase
+                .from('customer_stamps')
+                .update({ current_stamps: newBalance })
+                .eq('id', stampId);
+
+            if (updateError) throw updateError;
+
+            // Optional: Create adjustment record in point_adjustments to keep history
+            const { data: custData } = await supabase.from('customers').select('name').eq('id', customerId).single();
+            await supabase.from('point_adjustments').insert({
+                customer_id: customerId,
+                customer_name: custData?.name || 'Customer',
+                store_id: activeStoreId,
+                type: type === 'addition' ? 'addition' : 'deduction',
+                amount: Math.abs(amount),
+                reason: `[Penyesuaian Stamp] ${reason.trim()}`,
+                performed_by: user.id || null,
+                performed_by_name: user.name || user.email || 'Unknown',
+                date: new Date().toISOString(),
+                previous_balance: previousBalance,
+                new_balance: newBalance
+            });
+
+            return { success: true, newBalance };
+        } catch (error) {
+            console.error("Error adjusting customer stamps:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const redeemStampCard = async (stampId, customerId, targetStamps, rewardPoints) => {
+        try {
+            const { data, error } = await supabase.rpc('redeem_stamp_card', {
+                p_stamp_id: stampId,
+                p_customer_id: customerId,
+                p_target_stamps: targetStamps,
+                p_reward_points: rewardPoints
+            });
+
+            if (error) throw error;
+
+            // Optimistic stat update
+            const customerIndex = customers.findIndex(c => c.id === customerId);
+            if (customerIndex !== -1) {
+                const updatedCustomers = [...customers];
+                updatedCustomers[customerIndex] = {
+                    ...updatedCustomers[customerIndex],
+                    loyalty_points: (updatedCustomers[customerIndex].loyalty_points || 0) + rewardPoints
+                };
+                setCustomers(updatedCustomers);
+            }
+
+            return { success: true, data };
+        } catch (error) {
+            console.error("Error redeeming stamp card:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
     // --- Advanced Stock Management (FIFO) ---
 
     const addStockBatch = async (productId, qty, buyPrice, sellPrice, note = '') => {
@@ -1937,7 +2134,8 @@ export const DataProvider = ({ children }) => {
                 amount_paid: transactionData.cashAmount || transactionData.amount_paid || 0,
                 change: transactionData.change || 0,
                 points_earned: transactionData.pointsEarned || 0,
-                customer_remaining_points: transactionData.customerTotalPoints || 0
+                customer_remaining_points: transactionData.customerTotalPoints || 0,
+                stamp_updates: transactionData.stampUpdates || []
             };
 
             // Call Supabase RPC
@@ -2700,6 +2898,13 @@ export const DataProvider = ({ children }) => {
             adjustCustomerPoints,
             getPointAdjustmentHistory,
             checkAndResetExpiredPoints,
+            fetchLoyaltyRules,
+            saveLoyaltyRule,
+            deleteLoyaltyRule,
+            fetchCustomerStamps,
+            updateCustomerStamps,
+            adjustCustomerStamps,
+            redeemStampCard,
             addStockBatch,
             bulkUpdateStock,
             adjustStock,
