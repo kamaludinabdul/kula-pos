@@ -74,7 +74,7 @@ const calculateBestPrice = (durationData, product) => {
 };
 
 // --- KOMPONEN KARTU UNIT ---
-const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onViewDetails, currentStore, onAddTime }) => {
+const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onViewDetails, currentStore, onAddTime, onAutoConvert }) => {
     const [elapsed, setElapsed] = useState(0);
     const [timeLeft, setTimeLeft] = useState(0);
 
@@ -85,9 +85,26 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
             const updateTimer = () => {
                 const now = Date.now();
                 if (session.billing_mode === 'fixed' && session.target_end_time) {
-                    // Count DOWN
-                    const target = new Date(session.target_end_time).getTime();
-                    setTimeLeft(target - now);
+                    if (session.overtime_start_time) {
+                        // Count UP for overtime
+                        const overStart = new Date(session.overtime_start_time).getTime();
+                        setElapsed(now - overStart);
+                        setTimeLeft(0);
+                    } else {
+                        // Count DOWN
+                        const target = new Date(session.target_end_time).getTime();
+                        const remaining = target - now;
+                        setTimeLeft(remaining);
+
+                        // Auto-convert logic
+                        if (remaining < 0) {
+                            const graceMid = currentStore?.settings?.grace_period || 0;
+                            const graceMs = graceMid * 60 * 1000;
+                            if (Math.abs(remaining) > graceMs && onAutoConvert) {
+                                onAutoConvert(session);
+                            }
+                        }
+                    }
                 } else {
                     // Count UP (Open Billing)
                     const startTime = new Date(session.start_time).getTime();
@@ -99,38 +116,59 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
             interval = setInterval(updateTimer, 1000);
         }
         return () => clearInterval(interval);
-    }, [session]);
+    }, [session, currentStore?.settings?.grace_period, onAutoConvert]);
 
     // Hitung Biaya & Display Variables
     let durationInHours = 0;
     let currentBill = 0;
+    let overtimeBill = 0;
     let isOvertime = false;
     let isGracePeriod = false;
     let timerDisplay = "00:00:00";
 
     if (session) {
         if (session.billing_mode === 'fixed') {
-            // FIXED Mode
-            durationInHours = session.target_duration || 1; // Fixed duration
+            // FIXED Mode calculation
+            durationInHours = session.target_duration || 1;
             if (session.agreed_total !== undefined && session.agreed_total !== null) {
                 currentBill = session.agreed_total;
             } else {
                 currentBill = product ? durationInHours * product.sellPrice : 0;
             }
 
-            if (timeLeft > 0) {
-                timerDisplay = formatDuration(timeLeft);
-            } else {
-                const graceMid = currentStore?.settings?.grace_period || 0;
-                const graceMs = graceMid * 60 * 1000;
+            if (session.overtime_start_time) {
+                // We are in Overtime! Count up the extra cost
+                isOvertime = true;
+                timerDisplay = formatDuration(elapsed);
 
-                if (Math.abs(timeLeft) <= graceMs) {
-                    timerDisplay = "MASA TOLERANSI";
-                    isOvertime = false;
-                    isGracePeriod = true;
+                let overtimeHrs = 0;
+                if (product && product.pricingType === 'daily') {
+                    overtimeHrs = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
+                    const days = Math.ceil(overtimeHrs / 24);
+                    overtimeBill = days * product.sellPrice;
+                } else if (product && product.pricingType === 'minutely') {
+                    const mins = Math.max(1, Math.ceil(elapsed / (1000 * 60)));
+                    overtimeBill = mins * product.sellPrice;
                 } else {
-                    timerDisplay = "WAKTU HABIS";
-                    isOvertime = true;
+                    overtimeHrs = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
+                    overtimeBill = product ? overtimeHrs * product.sellPrice : 0;
+                }
+            } else {
+                if (timeLeft > 0) {
+                    timerDisplay = formatDuration(timeLeft);
+                } else {
+                    const graceMid = currentStore?.settings?.grace_period || 0;
+                    const graceMs = graceMid * 60 * 1000;
+
+                    if (Math.abs(timeLeft) <= graceMs) {
+                        timerDisplay = "MASA TOLERANSI";
+                        isOvertime = false;
+                        isGracePeriod = true;
+                    } else {
+                        // Past grace period but not yet converted to overtime
+                        timerDisplay = "WAKTU HABIS";
+                        isOvertime = true; // Visual state only until session is updated
+                    }
                 }
             }
         } else {
@@ -142,7 +180,7 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
             } else if (product && product.pricingType === 'minutely') {
                 const durationInMinutes = Math.max(1, Math.ceil(elapsed / (1000 * 60)));
                 currentBill = durationInMinutes * product.sellPrice;
-                durationInHours = durationInMinutes; // reusing variable name for rendering ease
+                durationInHours = durationInMinutes;
             } else {
                 durationInHours = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
                 currentBill = product ? durationInHours * product.sellPrice : 0;
@@ -155,7 +193,7 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
     const totalOrder = session?.orders?.reduce((acc, item) => acc + (item.price * item.qty), 0) || 0;
 
     const cardBgColor = isOvertime
-        ? 'border-red-600 ring-2 ring-red-500 shadow-xl bg-red-100'
+        ? 'border-red-600 ring-2 ring-red-500 shadow-xl bg-red-50'
         : (isGracePeriod ? 'border-amber-500 ring-2 ring-amber-400 shadow-md bg-amber-50' : 'border-indigo-500 shadow-md bg-indigo-50');
 
     return (
@@ -205,17 +243,21 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
                 <div className="flex flex-col h-full gap-4">
                     {session ? (
                         <>
-                            <div className={`text-center py-2 rounded-lg border flex-shrink-0 ${isOvertime ? 'bg-red-200 border-red-300' : (isGracePeriod ? 'bg-amber-200 border-amber-300' : 'bg-white/60 border-indigo-100')}`}>
+                            <div className={`text-center py-2 rounded-lg border flex-shrink-0 ${isOvertime ? 'bg-red-100 border-red-300' : (isGracePeriod ? 'bg-amber-100 border-amber-300' : 'bg-white/60 border-indigo-100')}`}>
                                 <div className={`text-3xl font-mono font-bold ${isOvertime ? 'text-red-700' : (isGracePeriod ? 'text-amber-700' : 'text-indigo-700')}`}>
                                     {timerDisplay}
                                 </div>
-                                <p className="text-xs text-muted-foreground mt-1">
+                                <p className="text-xs text-muted-foreground mt-1 font-medium">
                                     {session.billing_mode === 'fixed'
-                                        ? (timeLeft > 0 ? `Selesai: ${new Date(session.target_end_time).toLocaleString('id-ID', {
+                                        ? (session.overtime_start_time ? `Waktu Habis: ${new Date(session.target_end_time).toLocaleString('id-ID', {
                                             ...(product?.pricingType === 'daily' ? { weekday: 'short', day: 'numeric', month: 'short' } : {}),
                                             hour: '2-digit',
                                             minute: '2-digit'
-                                        })}` : 'Billing Terhenti (Fixed)')
+                                        })}` : (timeLeft > 0 ? `Selesai: ${new Date(session.target_end_time).toLocaleString('id-ID', {
+                                            ...(product?.pricingType === 'daily' ? { weekday: 'short', day: 'numeric', month: 'short' } : {}),
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}` : 'Masa Toleransi...'))
                                         : (product?.pricingType === 'daily'
                                             ? `Durasi Billing: ${Math.ceil(durationInHours / 24)} Hari`
                                             : (product?.pricingType === 'minutely'
@@ -226,19 +268,30 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
                                 </p>
                             </div>
 
-                            <div className="flex flex-col gap-2 text-sm bg-white/60 p-3 rounded border border-indigo-100/50">
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Sewa {session.billing_mode === 'fixed' ? '(Fixed)' : `(${durationInHours} ${product?.pricingType === 'minutely' ? 'Menit' : 'Jam'})`}:</span>
-                                    <span className="font-semibold">Rp {currentBill.toLocaleString('id-ID')}</span>
+                            <div className="flex flex-col gap-2 text-sm bg-white/60 p-3 rounded border border-indigo-100/50 shadow-sm">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-muted-foreground">Sewa {session.billing_mode === 'fixed' ? `(Paket ${session.target_duration} ${product?.pricingType === 'daily' ? 'Hari' : 'Jam'})` : `(${durationInHours} ${product?.pricingType === 'minutely' ? 'Menit' : 'Jam'})`}:</span>
+                                    <span className="font-semibold text-slate-700">Rp {currentBill.toLocaleString('id-ID')}</span>
                                 </div>
-                                <div className="flex justify-between items-center border-t pt-2 mt-1">
+
+                                {isOvertime && (
+                                    <div className="flex justify-between items-center border-t border-red-100 pt-2 mt-1">
+                                        <div className="flex items-center gap-1 text-red-600">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                                            <span className="font-medium">Overtime:</span>
+                                        </div>
+                                        <span className="font-bold text-red-600">Rp {overtimeBill.toLocaleString('id-ID')}</span>
+                                    </div>
+                                )}
+
+                                <div className="flex justify-between items-center border-t border-slate-100 pt-2 mt-1">
                                     <span className="text-muted-foreground">F&B Total:</span>
                                     <div className="flex items-center gap-2">
-                                        <span className="font-semibold">Rp {totalOrder.toLocaleString('id-ID')}</span>
+                                        <span className="font-semibold text-slate-700">Rp {totalOrder.toLocaleString('id-ID')}</span>
                                         <Button
                                             variant="secondary"
                                             size="icon"
-                                            className="h-6 w-6 ml-1 bg-white border shadow-sm hover:bg-slate-100"
+                                            className="h-6 w-6 border shadow-sm hover:bg-slate-100"
                                             onClick={() => onViewDetails(session)}
                                             title="Kelola F&B & Catatan"
                                         >
@@ -246,9 +299,9 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
                                         </Button>
                                     </div>
                                 </div>
-                                <div className="flex justify-between border-t pt-2 mt-1 border-dashed border-slate-300">
-                                    <span className="font-bold text-slate-700">Total Tagihan:</span>
-                                    <span className="font-bold text-indigo-700 text-lg">Rp {(currentBill + totalOrder).toLocaleString('id-ID')}</span>
+                                <div className="flex justify-between items-center border-t pt-2 mt-1 border-dashed border-slate-300">
+                                    <span className="font-bold text-slate-800">Total Tagihan:</span>
+                                    <span className="font-bold text-indigo-700 text-lg">Rp {(currentBill + overtimeBill + totalOrder).toLocaleString('id-ID')}</span>
                                 </div>
                             </div>
                         </>
@@ -633,15 +686,47 @@ const RentalSessionDetailsDialog = ({ isOpen, onClose, session, onRemoveItem, on
 
 // --- DIALOG STOP SESI (KONFIRMASI TOTAL) ---
 const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product, currentStore }) => {
+
+    // Derived properties for overtime
+    const isOvertime = session?.overtime_start_time ? true : false;
+    const basePrice = product ? Number(product.sellPrice) : Number(session?.product_price || 0);
+    const fixedTotal = session?.agreed_total || 0;
+
+    // Calculate Overtime Value statically (locked at the exact moment Stop was clicked)
+    const overtimeCalc = React.useMemo(() => {
+        if (!isOvertime || !session?.overtime_start_time) return { duration: 0, price: 0 };
+        const nowMs = Date.now();
+        const overStartMs = new Date(session.overtime_start_time).getTime();
+        const elapsed = Math.max(0, nowMs - overStartMs);
+
+        let hrs = 0;
+        let price = 0;
+
+        if (product && product.pricingType === 'daily') {
+            hrs = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
+            const days = Math.ceil(hrs / 24);
+            price = days * basePrice;
+        } else if (product && product.pricingType === 'minutely') {
+            const mins = Math.max(1, Math.ceil(elapsed / (1000 * 60)));
+            price = mins * basePrice;
+            hrs = mins / 60; // Just for display reference if needed
+        } else {
+            hrs = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
+            price = hrs * basePrice;
+        }
+
+        return { duration: hrs, price };
+    }, [isOvertime, session?.overtime_start_time, product, basePrice]);
+
+
     // State Initializers (runs once on mount/remount)
     const [durationInput, setDurationInput] = useState(() => {
         if (!session) return 0;
-        if (session.billing_mode === 'fixed' && session.target_duration) {
+        if (session.billing_mode === 'fixed') {
             return session.target_duration;
         }
         const elapsed = Date.now() - new Date(session.start_time).getTime();
         const hrs = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
-        // If Daily, return Days
         if (product && product.pricingType === 'daily') {
             return Math.ceil(hrs / 24);
         }
@@ -650,65 +735,20 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product, curren
 
     const [priceInput, setPriceInput] = useState(() => {
         if (!session) return 0;
-        const elapsed = Date.now() - new Date(session.start_time).getTime();
-        const totalMinutes = Math.floor(elapsed / (1000 * 60));
-        const hrs = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
-        const minsRounded = Math.max(1, Math.ceil(elapsed / (1000 * 60)));
-        const basePrice = product ? Number(product.sellPrice) : Number(session.product_price || 0);
-        const graceMid = currentStore?.settings?.grace_period || 0;
 
-        // --- DAILY PRICING LOGIC (Tiered Penalty) ---
-        if (product && product.pricingType === 'daily') {
-            const totalDays = Math.floor(hrs / 24);
-            const remainingHours = hrs % 24;
-            const extraMinutes = totalMinutes % (24 * 60);
-
-            // 1. Check Grace Period (Toleransi)
-            if (totalDays >= 1 && extraMinutes <= graceMid) {
-                return totalDays * basePrice;
-            }
-
-            // 2. Tiered Penalty Logic
-            const triggerHours = product.overtime_trigger_hours || 0;
-            const hourlyPenalty = product.overtime_hourly_penalty || 0;
-
-            if (remainingHours > 0) {
-                if (triggerHours > 0 && remainingHours > triggerHours) {
-                    // Over the limit -> Charge full day
-                    return (totalDays + 1) * basePrice;
-                } else if (hourlyPenalty > 0) {
-                    // Within limit -> Charge per hour penalty
-                    return (totalDays * basePrice) + (remainingHours * hourlyPenalty);
-                } else {
-                    // No denda setup -> Charge full day for any overtime
-                    return (totalDays + 1) * basePrice;
-                }
-            }
-            // Exactly on cycle
-            return Math.max(1, totalDays) * basePrice;
-        }
-
-        // --- HOURLY & MINUTELY PRICING LOGIC ---
-        // If fixed mode and NOT overtime, use agreed total
-        if (session.billing_mode === 'fixed' && session.agreed_total !== null && session.agreed_total !== undefined) {
-            const targetDuration = parseFloat(session.target_duration || 0);
-
-            // Target minutes
-            const targetMin = product?.pricingType === 'minutely' ? targetDuration : (targetDuration * 60);
-            if (totalMinutes <= targetMin + graceMid) {
-                return session.agreed_total;
-            }
-            // Overtime
-            if (product?.pricingType === 'minutely') {
-                return minsRounded * basePrice;
-            }
-            return hrs * basePrice;
+        // If it's Fixed Mode (whether overtime or not), the base price input is locked to agreed_total
+        // The overtime is added visually as a separate line, but 'priceInput' represents the base billing.
+        if (session.billing_mode === 'fixed') {
+            return fixedTotal;
         }
 
         // Open Billing
-        if (product?.pricingType === 'minutely') {
-            return minsRounded * basePrice;
-        }
+        const elapsed = Date.now() - new Date(session.start_time).getTime();
+        const hrs = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
+        const minsRounded = Math.max(1, Math.ceil(elapsed / (1000 * 60)));
+
+        if (product?.pricingType === 'minutely') return minsRounded * basePrice;
+        if (product?.pricingType === 'daily') return Math.ceil(hrs / 24) * basePrice;
         return hrs * basePrice;
     });
 
@@ -718,33 +758,35 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product, curren
 
     // Calculate discount value
     const calculateDiscount = () => {
+        const subtotal = priceInput + (isOvertime ? overtimeCalc.price : 0);
         if (discountType === 'percent') {
-            return Math.round(priceInput * (discountAmount / 100));
+            return Math.round(subtotal * (discountAmount / 100));
         }
         return discountAmount;
     };
 
     const discountValue = calculateDiscount();
-    const finalPrice = Math.max(0, priceInput - discountValue);
-
-    // We rely on 'key' prop to force remount when session changes, eliminating the need for useEffect state sync.
+    const finalPrice = Math.max(0, (priceInput + (isOvertime ? overtimeCalc.price : 0)) - discountValue);
 
     const handleDurationChange = (e) => {
         const val = parseFloat(e.target.value) || 0;
         setDurationInput(val);
 
-        // Auto update price based on Bundling Rules or Rate
-        if (product && product.isBundlingEnabled && product.pricingTiers) {
-            const tier = product.pricingTiers.find(t => parseFloat(t.duration) === val);
-            if (tier) {
-                setPriceInput(parseFloat(tier.price));
-                return;
+        if (session.billing_mode === 'fixed' && !isOvertime) {
+            // In fixed mode Without overtime, changing duration changes priceInput (Agreed Total) 
+            // Auto update price based on Bundling Rules or Rate
+            if (product && product.isBundlingEnabled && product.pricingTiers) {
+                const tier = product.pricingTiers.find(t => parseFloat(t.duration) === val);
+                if (tier) {
+                    setPriceInput(parseFloat(tier.price));
+                    return;
+                }
             }
+            setPriceInput(val * basePrice);
+        } else if (session.billing_mode === 'open') {
+            setPriceInput(val * basePrice);
         }
-
-        // Fallback to normal calculation
-        const basePrice = product ? Number(product.sellPrice) : Number(session.product_price || 0);
-        setPriceInput(val * basePrice);
+        // If Fixed + Overtime, we don't allow changing base duration/price easily to avoid confusion.
     };
 
     if (!session) return null;
@@ -789,8 +831,13 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product, curren
                                 onChange={handleDurationChange}
                                 step={product?.pricingType === 'daily' ? "1" : "0.5"}
                                 min={product?.pricingType === 'daily' ? "1" : "0.5"}
+                                disabled={session.billing_mode === 'fixed' && isOvertime}
                             />
-                            <p className="text-[10px] text-muted-foreground">Bisa diedit (misal telat stop).</p>
+                            {session.billing_mode === 'fixed' && isOvertime ? (
+                                <p className="text-[10px] text-amber-600 font-medium">Paket awal terkunci (Overtime aktif).</p>
+                            ) : (
+                                <p className="text-[10px] text-muted-foreground">Bisa diedit (misal telat stop).</p>
+                            )}
                         </div>
                         <div className="space-y-2">
                             <Label>Rate / {product?.pricingType === 'daily' ? 'Hari' : 'Jam'}</Label>
@@ -801,15 +848,33 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product, curren
                     </div>
 
                     <div className="space-y-2 pt-2 border-t">
-                        <Label>Total Tagihan Sewa</Label>
+                        <Label>Sewa Dasar (Sesuai Paket)</Label>
                         <Input
                             type="number"
                             value={priceInput}
                             onChange={(e) => setPriceInput(parseFloat(e.target.value) || 0)}
                             className="font-bold text-lg"
+                            disabled={session.billing_mode === 'fixed'}
                         />
-                        <p className="text-[10px] text-muted-foreground">*Total biaya sewa (belum termasuk F&B).</p>
+                        <p className="text-[10px] text-muted-foreground">*Total biaya sewa dasar (belum termasuk F&B/Diskon).</p>
                     </div>
+
+                    {/* Overtime Section */}
+                    {isOvertime && (
+                        <div className="space-y-2 pt-2 border-t border-red-100 bg-red-50/50 p-2 rounded">
+                            <div className="flex justify-between items-center mb-1">
+                                <Label className="flex items-center gap-1 text-red-600">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                                    Overtime Aktif
+                                </Label>
+                                <span className="text-xs font-semibold text-red-700">{overtimeCalc.duration} {product?.pricingType === 'minutely' ? 'Menit' : 'Jam'}</span>
+                            </div>
+                            <div className="flex items-center justify-between bg-white border border-red-200 px-3 py-2 rounded h-10">
+                                <span className="text-sm text-slate-600">Biaya Tambahan:</span>
+                                <span className="font-bold text-red-600">Rp {overtimeCalc.price.toLocaleString()}</span>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Discount Section */}
                     <div className="space-y-2 pt-2 border-t">
@@ -1325,6 +1390,35 @@ const RentalDashboard = () => {
         }
     };
 
+    const handleAutoConvert = async (session) => {
+        if (!session || session.overtime_start_time) return; // Prevent double trigger
+        try {
+            const { error } = await supabase
+                .from('rental_sessions')
+                .update({ overtime_start_time: new Date().toISOString() })
+                .eq('id', session.id);
+
+            if (error) throw error;
+
+            // Sync local state immediately so UI reacts
+            setSessions(prev => ({
+                ...prev,
+                [session.unit_id]: {
+                    ...prev[session.unit_id],
+                    overtime_start_time: new Date().toISOString()
+                }
+            }));
+
+            toast({
+                title: "Waktu Habis",
+                description: `${session.unit_name} masuk masa overtime / open billing.`,
+                variant: 'destructive',
+            });
+        } catch (error) {
+            console.error("Failed to auto-convert session to overtime:", error);
+        }
+    };
+
     const handleStopClick = (session) => {
         setStopSessionData(session);
         setIsStopConfirmOpen(true);
@@ -1405,17 +1499,51 @@ const RentalDashboard = () => {
     const handleStopConfirmed = (finalDuration, finalPrice, discountValue = 0) => {
         const session = sessions[stopSessionData.unit_id];
         const product = allProducts.find(p => p.id === session.product_id);
+        const isOvertime = session.overtime_start_time ? true : false;
 
-        // Buat Item Rental
+        // Base Rental Item
         const rentalItem = {
             id: session.product_id || 'rental-fee',
-            name: `Sewa ${session.unit_name || 'Unit'} (${finalDuration} ${product?.pricingType === 'daily' ? 'Hari' : (product?.pricingType === 'minutely' ? 'Menit' : 'Jam')})`,
-            price: finalPrice, // Harga FINAL setelah diskon
-            qty: 1, // Kita set qty 1, karena harga sudah 'Total Harga Sewa'
+            name: `Sewa ${session.unit_name || 'Unit'} ${session.billing_mode === 'fixed' ? `(Paket ${session.target_duration} ${product?.pricingType === 'daily' ? 'Hari' : 'Jam'})` : `(${finalDuration} ${product?.pricingType === 'daily' ? 'Hari' : (product?.pricingType === 'minutely' ? 'Menit' : 'Jam')})`}`,
+            price: session.billing_mode === 'fixed' && session.agreed_total !== null ? session.agreed_total : finalPrice,
+            qty: 1,
             type: 'service'
         };
-        // Alternatif: qty = finalDuration, price = rate. Tapi kalau user edit harga manual yg tidak match rate?
-        // Lebih aman: Name mengandung durasi, Price adalah Total, Qty 1.
+
+        const items = [rentalItem];
+
+        // Overtime Item (if applicable)
+        if (isOvertime) {
+            const nowMs = Date.now();
+            const overStartMs = new Date(session.overtime_start_time).getTime();
+            const elapsed = Math.max(0, nowMs - overStartMs);
+            const basePrice = product ? Number(product.sellPrice) : Number(session.product_price || 0);
+
+            let overHrs = 0;
+            let overPrice = 0;
+
+            if (product && product.pricingType === 'daily') {
+                overHrs = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
+                const days = Math.ceil(overHrs / 24);
+                overPrice = days * basePrice;
+            } else if (product && product.pricingType === 'minutely') {
+                const mins = Math.max(1, Math.ceil(elapsed / (1000 * 60)));
+                overPrice = mins * basePrice;
+                overHrs = mins;
+            } else {
+                overHrs = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
+                overPrice = overHrs * basePrice;
+            }
+
+            items.push({
+                id: 'rental-overtime',
+                name: `Overtime ${session.unit_name || 'Unit'} (${overHrs} ${product?.pricingType === 'minutely' ? 'Menit' : 'Jam'})`,
+                price: overPrice,
+                qty: 1,
+                type: 'service',
+                is_overtime: true
+            });
+        }
 
         const orderItems = (session.orders || []).map(o => ({
             id: o.id,
@@ -1425,7 +1553,8 @@ const RentalDashboard = () => {
             stock_deducted: o.stock_deducted || false
         }));
 
-        const items = [rentalItem, ...orderItems];
+        items.push(...orderItems);
+
         const total = items.reduce((acc, item) => acc + (item.price * item.qty), 0);
         const subtotal = total + discountValue; // Subtotal adalah total sebelum diskon
 
@@ -1761,6 +1890,7 @@ const RentalDashboard = () => {
                                 onAddTime={handleAddTimeClick}
                                 onOrder={handleOrderClick}
                                 onRemoveItem={handleRemoveItem}
+                                onAutoConvert={handleAutoConvert}
                                 currentStore={currentStore}
                                 onViewDetails={(s) => {
                                     setDetailSession(s); // Keep track of WHICH session is open

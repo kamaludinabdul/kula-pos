@@ -84,6 +84,29 @@ const SalesAnalysis = () => {
         fetchComparisonData();
     }, [currentStore?.id, selectedYear, lastYear]);
 
+    // Helper: get month data across year boundaries
+    const getMonthData = React.useCallback((monthIndex, year) => {
+        if (year === selectedYear) {
+            return currentYearData.find(m => m.monthIndex === monthIndex) || {};
+        } else if (year === lastYear) {
+            return lastYearData.find(m => m.monthIndex === monthIndex) || {};
+        }
+        return {};
+    }, [currentYearData, lastYearData, selectedYear, lastYear]);
+
+    // Helper: get N months back from a given (monthIndex, year)
+    const getPreviousMonths = React.useCallback((fromMonth, fromYear, count) => {
+        const months = [];
+        let m = fromMonth;
+        let y = fromYear;
+        for (let i = 0; i < count; i++) {
+            m--;
+            if (m < 0) { m = 11; y--; }
+            months.unshift({ monthIndex: m, year: y, data: getMonthData(m, y) });
+        }
+        return months;
+    }, [getMonthData]);
+
     const stats = useMemo(() => {
         const calculateGrowth = (curr, prev) => {
             if (prev === 0) return curr > 0 ? 100 : 0;
@@ -105,26 +128,30 @@ const SalesAnalysis = () => {
                 opex: { val: currOps, growth: calculateGrowth(currOps, lastOps) }
             };
         } else {
-            // Monthly Mode
-            const currMonthData = currentYearData.find(m => m.monthIndex === selectedMonth) || {};
-            const prevMonthData = selectedMonth === 0
-                ? lastYearData.find(m => m.monthIndex === 11) || {}
-                : currentYearData.find(m => m.monthIndex === selectedMonth - 1) || {};
+            // Monthly Mode — compare against average of 3 previous months
+            const currMonthData = getMonthData(selectedMonth, selectedYear);
+            const prev3 = getPreviousMonths(selectedMonth, selectedYear, 3);
+
+            const avgOf = (arr, key) => {
+                const vals = arr.map(m => Number(m.data[key]) || 0);
+                const sum = vals.reduce((a, b) => a + b, 0);
+                return vals.length > 0 ? sum / vals.length : 0;
+            };
 
             const currRev = Number(currMonthData.totalRevenue) || 0;
-            const prevRev = Number(prevMonthData.totalRevenue) || 0;
+            const avgRev = avgOf(prev3, 'totalRevenue');
             const currProfit = Number(currMonthData.totalNetProfit) || 0;
-            const prevProfit = Number(prevMonthData.totalNetProfit) || 0;
+            const avgProfit = avgOf(prev3, 'totalNetProfit');
             const currOps = Number(currMonthData.totalOpEx) || 0;
-            const prevOps = Number(prevMonthData.totalOpEx) || 0;
+            const avgOps = avgOf(prev3, 'totalOpEx');
 
             return {
-                revenue: { val: currRev, growth: calculateGrowth(currRev, prevRev) },
-                profit: { val: currProfit, growth: calculateGrowth(currProfit, prevProfit) },
-                opex: { val: currOps, growth: calculateGrowth(currOps, prevOps) }
+                revenue: { val: currRev, growth: calculateGrowth(currRev, avgRev) },
+                profit: { val: currProfit, growth: calculateGrowth(currProfit, avgProfit) },
+                opex: { val: currOps, growth: calculateGrowth(currOps, avgOps) }
             };
         }
-    }, [currentYearData, lastYearData, analysisMode, selectedMonth]);
+    }, [currentYearData, lastYearData, analysisMode, selectedMonth, selectedYear, getMonthData, getPreviousMonths]);
 
     const chartData = useMemo(() => {
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -136,32 +163,35 @@ const SalesAnalysis = () => {
                 last: lastYearData.find(m => m.monthIndex === i)?.totalRevenue || 0
             }));
         } else {
-            // Monthly Mode
-            // For a simple MoM chart we could perhaps show daily data, but our RPC currently 
-            // only returns monthly aggregates (get_dashboard_monthly_summary).
-            // So we will just show a bar/line chart of the current month vs previous month vs same month last year.
-            const currMonthData = currentYearData.find(m => m.monthIndex === selectedMonth) || {};
-            const prevMonthData = selectedMonth === 0
-                ? lastYearData.find(m => m.monthIndex === 11) || {}
-                : currentYearData.find(m => m.monthIndex === selectedMonth - 1) || {};
-            const sameMonthLastYearData = lastYearData.find(m => m.monthIndex === selectedMonth) || {};
+            // Monthly Mode — show 3 months back + current month + same month last year (YoY)
+            const prev3 = getPreviousMonths(selectedMonth, selectedYear, 3);
+            const currMonthData = getMonthData(selectedMonth, selectedYear);
+            const sameMonthLastYearData = getMonthData(selectedMonth, lastYear);
 
-            return [
+            const result = [
+                // YoY reference
                 {
-                    name: `Bulan Sama (${lastYear})`,
-                    revenue: sameMonthLastYearData.totalRevenue || 0
+                    name: `${monthNames[selectedMonth]} ${lastYear} (YoY)`,
+                    revenue: Number(sameMonthLastYearData.totalRevenue) || 0,
+                    laba: Number(sameMonthLastYearData.totalNetProfit) || 0
                 },
+                // 3 months back
+                ...prev3.map(pm => ({
+                    name: `${monthNames[pm.monthIndex]} ${pm.year}`,
+                    revenue: Number(pm.data.totalRevenue) || 0,
+                    laba: Number(pm.data.totalNetProfit) || 0
+                })),
+                // Current month
                 {
-                    name: `Bulan Sebelumnya`,
-                    revenue: prevMonthData.totalRevenue || 0
-                },
-                {
-                    name: `Bulan Ini (${selectedYear})`,
-                    revenue: currMonthData.totalRevenue || 0
+                    name: `${monthNames[selectedMonth]} ${selectedYear}`,
+                    revenue: Number(currMonthData.totalRevenue) || 0,
+                    laba: Number(currMonthData.totalNetProfit) || 0
                 }
             ];
+
+            return result;
         }
-    }, [currentYearData, lastYearData, analysisMode, selectedMonth, selectedYear, lastYear]);
+    }, [currentYearData, lastYearData, analysisMode, selectedMonth, selectedYear, lastYear, getMonthData, getPreviousMonths]);
 
     const handleGenerateAI = async () => {
         setAiLoading(true);
@@ -170,15 +200,22 @@ const SalesAnalysis = () => {
             let isMonthly = analysisMode === 'monthly';
 
             if (isMonthly) {
-                const currMonthData = currentYearData.find(m => m.monthIndex === selectedMonth) || {};
-                const prevMonthData = selectedMonth === 0
-                    ? lastYearData.find(m => m.monthIndex === 11) || {}
-                    : currentYearData.find(m => m.monthIndex === selectedMonth - 1) || {};
-                const sameMonthLastYearData = lastYearData.find(m => m.monthIndex === selectedMonth) || {};
+                const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+                const currMonthData = getMonthData(selectedMonth, selectedYear);
+                const prev3 = getPreviousMonths(selectedMonth, selectedYear, 3);
+                const sameMonthLastYearData = getMonthData(selectedMonth, lastYear);
+
+                const prev3Labeled = {};
+                prev3.forEach(pm => {
+                    prev3Labeled[`${monthNames[pm.monthIndex]} ${pm.year}`] = pm.data;
+                });
 
                 dataToSend = {
-                    currentYear: currMonthData,
-                    lastYear: { "Bulan Sebelumnya (MoM)": prevMonthData, "Bulan Sama Tahun Lalu (YoY)": sameMonthLastYearData }
+                    currentYear: { [`${monthNames[selectedMonth]} ${selectedYear} (Bulan Ini)`]: currMonthData },
+                    lastYear: {
+                        ...prev3Labeled,
+                        [`${monthNames[selectedMonth]} ${lastYear} (YoY)`]: sameMonthLastYearData
+                    }
                 };
             } else {
                 dataToSend = {
@@ -223,7 +260,7 @@ const SalesAnalysis = () => {
                 <div>
                     <h3 className="text-2xl font-bold text-slate-800 tracking-tight">Performa & Analisis AI</h3>
                     <p className="text-sm text-slate-500">
-                        {analysisMode === 'yearly' ? 'Bandingkan performa tahun ini dengan tahun sebelumnya.' : 'Bandingkan performa bulan ini dengan bulan sebelumnya.'}
+                        {analysisMode === 'yearly' ? 'Bandingkan performa tahun ini dengan tahun sebelumnya.' : 'Bandingkan performa bulan ini dengan rata-rata 3 bulan sebelumnya.'}
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -272,7 +309,7 @@ const SalesAnalysis = () => {
             <Card className="border-none shadow-sm">
                 <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                        <History className="w-4 h-4" /> {analysisMode === 'yearly' ? 'Perbandingan Omset (Tahun Ini vs Lalu)' : 'Perbandingan Omset Bulanan (MoM & YoY)'}
+                        <History className="w-4 h-4" /> {analysisMode === 'yearly' ? 'Perbandingan Omset (Tahun Ini vs Lalu)' : 'Perbandingan Omset & Laba (3 Bulan Terakhir + YoY)'}
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -291,10 +328,12 @@ const SalesAnalysis = () => {
                             ) : (
                                 <LineChart data={chartData}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                    <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} tick={{ fill: '#64748b' }} />
+                                    <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} tick={{ fill: '#64748b' }} />
                                     <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000000).toFixed(1)}jt`} tick={{ fill: '#64748b' }} />
-                                    <Tooltip />
-                                    <Line type="monotone" dataKey="revenue" stroke="#4f46e5" strokeWidth={3} dot={{ r: 6 }} name={`Total Omset`} />
+                                    <Tooltip formatter={(v) => `Rp ${Number(v).toLocaleString('id-ID')}`} />
+                                    <Legend verticalAlign="top" height={36} />
+                                    <Line type="monotone" dataKey="revenue" stroke="#4f46e5" strokeWidth={3} dot={{ r: 5 }} name="Omset" />
+                                    <Line type="monotone" dataKey="laba" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} name="Laba Bersih" strokeDasharray="5 5" />
                                 </LineChart>
                             )}
                         </ResponsiveContainer>

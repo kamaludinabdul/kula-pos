@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { DollarSign, ShoppingBag, Users, TrendingUp, Eye, AlertTriangle, Package, BrainCircuit } from 'lucide-react';
 import ReceiptModal from '../components/ReceiptModal';
 import { useData } from '../context/DataContext';
-import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { AreaChart, Area, LineChart, Line, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { InfoCard } from '../components/ui/info-card';
 import DashboardCharts from './dashboard-components/DashboardCharts';
@@ -31,6 +31,9 @@ const Dashboard = () => {
 
     const [selectedTransaction, setSelectedTransaction] = useState(null);
     const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+    const [chartView, setChartView] = useState('daily'); // 'daily' | 'hourly'
+    const [hourlyPatternData, setHourlyPatternData] = useState([]);
+    const [isLoadingHourly, setIsLoadingHourly] = useState(false);
     const { currentStore, products: rawProducts, fetchAllProducts, activeStoreId } = useData();
     const products = useMemo(() => Array.isArray(rawProducts) ? rawProducts : [], [rawProducts]);
 
@@ -134,11 +137,97 @@ const Dashboard = () => {
         fetchDashboardData();
     }, [dateRange, currentStore, isSingleDay, userTimezone]);
 
+    // Fetch hourly pattern data for multi-day view
+    useEffect(() => {
+        const fetchHourlyPattern = async () => {
+            if (!currentStore?.id || isSingleDay) {
+                setHourlyPatternData([]);
+                return;
+            }
+            setIsLoadingHourly(true);
+            try {
+                const start = new Date(dateRange.from);
+                const end = new Date(dateRange.to);
+
+                const data = await safeSupabaseRpc({
+                    rpcName: 'get_dashboard_stats',
+                    params: {
+                        p_store_id: currentStore.id,
+                        p_start_date: start.toISOString(),
+                        p_end_date: end.toISOString(),
+                        p_period: 'hour',
+                        p_timezone: userTimezone
+                    }
+                });
+
+                const hourlyRaw = data?.chartData || [];
+                // Aggregate by hour-of-day: compute avg, min, max
+                const hourMap = {}; // { '08': [val1, val2, ...], ... }
+                hourlyRaw.forEach(entry => {
+                    // entry.name could be "08:00", "14:00", or "2026-03-01 08:00" etc.
+                    const nameStr = String(entry.name || '');
+                    let hourKey = nameStr;
+                    // Extract hour part if format includes date
+                    if (nameStr.includes(' ')) {
+                        hourKey = nameStr.split(' ').pop();
+                    }
+                    // Normalize to 2-digit hour: "8" -> "08", "08:00" -> "08"
+                    const hourNum = parseInt(hourKey);
+                    if (isNaN(hourNum)) return;
+                    const key = String(hourNum).padStart(2, '0');
+
+                    if (!hourMap[key]) hourMap[key] = [];
+                    hourMap[key].push(Number(entry.total) || 0);
+                });
+
+                // Build pattern data for all operating hours (07:00 - 23:00)
+                const patternData = [];
+                for (let h = 7; h <= 23; h++) {
+                    const key = String(h).padStart(2, '0');
+                    const values = hourMap[key] || [0];
+                    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+                    const min = Math.min(...values);
+                    const max = Math.max(...values);
+
+                    patternData.push({
+                        name: `${key}:00`,
+                        avg: Math.round(avg),
+                        min,
+                        max,
+                        range: [min, max]
+                    });
+                }
+
+                setHourlyPatternData(patternData);
+            } catch (error) {
+                console.error("Error fetching hourly pattern:", error);
+            } finally {
+                setIsLoadingHourly(false);
+            }
+        };
+
+        if (chartView === 'hourly' && !isSingleDay) {
+            fetchHourlyPattern();
+        }
+    }, [dateRange, currentStore, isSingleDay, userTimezone, chartView]);
+
+    // Reset chartView when switching between single/multi day
+    useEffect(() => {
+        setChartView('daily');
+    }, [isSingleDay]);
+
     const stats = dashboardStats;
     const chartData = stats.chartData || [];
     const categoryData = stats.categoryData || [];
     const topProducts = stats.topProducts || [];
     const recentTransactions = stats.recentTransactions || [];
+
+    // Find peak hour for annotation
+    const peakHour = useMemo(() => {
+        if (hourlyPatternData.length === 0) return null;
+        const peak = hourlyPatternData.reduce((best, curr) => curr.avg > best.avg ? curr : best, hourlyPatternData[0]);
+        return peak;
+    }, [hourlyPatternData]);
 
     const stockCounts = useMemo(() => {
         return {
@@ -253,17 +342,74 @@ const Dashboard = () => {
 
                         <Card className="lg:col-span-2 rounded-xl border-none shadow-sm overflow-hidden">
                             <CardHeader className="bg-white border-b p-4 lg:p-6">
-                                <CardTitle className="flex items-center gap-2 text-lg font-bold">
-                                    Grafik Penjualan
-                                    <span className="text-xs font-normal text-muted-foreground">
-                                        ({isSingleDay ? 'Per Jam' : 'Per Hari'})
-                                    </span>
-                                </CardTitle>
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="flex items-center gap-2 text-lg font-bold">
+                                        Grafik Penjualan
+                                        <span className="text-xs font-normal text-muted-foreground">
+                                            ({isSingleDay ? 'Per Jam' : (chartView === 'hourly' ? 'Pola Per Jam' : 'Per Hari')})
+                                        </span>
+                                    </CardTitle>
+                                    {!isSingleDay && (
+                                        <div className="flex bg-slate-100 rounded-lg p-0.5">
+                                            <button
+                                                onClick={() => setChartView('daily')}
+                                                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${chartView === 'daily' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                                                    }`}
+                                            >
+                                                Per Hari
+                                            </button>
+                                            <button
+                                                onClick={() => setChartView('hourly')}
+                                                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${chartView === 'hourly' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                                                    }`}
+                                            >
+                                                Pola Per Jam
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </CardHeader>
                             <CardContent className="p-4 lg:p-6">
                                 <div style={{ width: '100%', height: 300 }}>
-                                    {isLoading ? (
+                                    {(isLoading || isLoadingHourly) ? (
                                         <div className="flex items-center justify-center h-full text-muted-foreground">Memuat data...</div>
+                                    ) : chartView === 'hourly' && !isSingleDay ? (
+                                        // Hourly Pattern Chart
+                                        hourlyPatternData.length > 0 ? (
+                                            <>
+                                                {peakHour && (
+                                                    <div className="flex items-center gap-2 mb-3">
+                                                        <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
+                                                            🔥 Jam Tersibuk: {peakHour.name} (Rata-rata Rp {peakHour.avg.toLocaleString()})
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <ComposedChart data={hourlyPatternData}>
+                                                        <defs>
+                                                            <linearGradient id="rangeGradient" x1="0" y1="0" x2="0" y2="1">
+                                                                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
+                                                                <stop offset="95%" stopColor="#6366f1" stopOpacity={0.05} />
+                                                            </linearGradient>
+                                                        </defs>
+                                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} dy={10} />
+                                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} tickFormatter={(value) => `Rp ${formatCurrency(value)}`} />
+                                                        <Tooltip
+                                                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                                            formatter={(value, name) => {
+                                                                if (name === 'range') return [`Rp ${value[0].toLocaleString()} - Rp ${value[1].toLocaleString()}`, 'Min-Max'];
+                                                                return [`Rp ${Number(value).toLocaleString()}`, name === 'avg' ? 'Rata-rata' : name];
+                                                            }}
+                                                        />
+                                                        <Area type="monotone" dataKey="range" fill="url(#rangeGradient)" stroke="none" />
+                                                        <Line type="monotone" dataKey="avg" stroke="#6366f1" strokeWidth={4} dot={false} activeDot={{ r: 6, strokeWidth: 0, fill: '#6366f1' }} name="avg" />
+                                                    </ComposedChart>
+                                                </ResponsiveContainer>
+                                            </>
+                                        ) : (
+                                            <div className="flex items-center justify-center h-full text-muted-foreground text-sm font-medium">Tidak ada data untuk periode ini.</div>
+                                        )
                                     ) : chartData && chartData.length > 0 ? (
                                         <ResponsiveContainer width="100%" height="100%">
                                             <LineChart data={chartData}>
