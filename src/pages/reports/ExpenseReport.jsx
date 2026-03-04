@@ -119,33 +119,32 @@ const ExpenseReport = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="p-4 space-y-6">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Laporan Pengeluaran</h2>
+                    <h1 className="text-2xl font-bold tracking-tight">Laporan Pengeluaran</h1>
                     <p className="text-muted-foreground">Arus kas keluar dari POS & Back Office</p>
                 </div>
-                <div className="flex w-full lg:w-auto gap-2">
-                    <Button variant="outline" onClick={fetchExpenses} disabled={loading} className="flex-1 lg:flex-none">
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={fetchExpenses} disabled={loading} className="flex-1 lg:flex-none">
                         <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                         Refresh
                     </Button>
-                    <Button variant="outline" onClick={handleExportPDF} className="flex-1 lg:flex-none">
+                    <Button variant="outline" size="sm" onClick={handleExportPDF} className="flex-1 lg:flex-none">
                         <Download className="mr-2 h-4 w-4" />
                         PDF
                     </Button>
-                    <Button variant="outline" onClick={handleExport} className="flex-1 lg:flex-none">
+                    <Button variant="outline" size="sm" onClick={handleExport} className="flex-1 lg:flex-none">
                         <Download className="mr-2 h-4 w-4" />
                         CSV
                     </Button>
+                    <div className="w-full sm:w-auto">
+                        <SmartDatePicker
+                            date={datePickerDate}
+                            onDateChange={setDatePickerDate}
+                        />
+                    </div>
                 </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-4">
-                <SmartDatePicker
-                    date={datePickerDate}
-                    onDateChange={setDatePickerDate}
-                />
             </div>
 
             {/* Summary Card */}

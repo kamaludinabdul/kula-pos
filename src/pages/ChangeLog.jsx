@@ -664,9 +664,9 @@ const CHANGELOG_DATA = [
 
 const ChangeLog = () => {
     return (
-        <div className="p-6 max-w-4xl mx-auto space-y-8">
+        <div className="p-4 max-w-4xl mx-auto space-y-8">
             <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight">Changelog</h1>
+                <h1 className="text-2xl font-bold tracking-tight">Changelog</h1>
                 <p className="text-muted-foreground">
                     Riwayat pembaruan dan perubahan sistem KULA.
                     Versi saat ini: <span className="font-semibold text-foreground">v{APP_VERSION}</span>
@@ -700,7 +700,7 @@ const ChangeLog = () => {
                             </div>
 
                             <Card>
-                                <CardContent className="p-6">
+                                <CardContent className="p-4">
                                     <ul className="space-y-3">
                                         {log.changes.map((change, i) => (
                                             <li key={i} className="flex items-start gap-3 text-sm text-slate-600">

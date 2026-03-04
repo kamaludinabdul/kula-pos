@@ -98,6 +98,10 @@ export const getDateRange = (rangeKey, customStart, customEnd) => {
             startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
             endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
             break;
+        case 'last6Months':
+            startDate = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+            break;
         case 'custom':
             if (customStart) {
                 startDate = new Date(customStart);

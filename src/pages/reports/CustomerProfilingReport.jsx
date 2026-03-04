@@ -36,20 +36,22 @@ const CustomerProfilingReport = () => {
         if (!currentStore?.id) return;
         setLoading(true);
         try {
-            const startDate = new Date(datePickerDate.from);
-            startDate.setHours(0, 0, 0, 0);
             const endDate = new Date(datePickerDate.to || datePickerDate.from);
             endDate.setHours(23, 59, 59, 999);
+
+            // Fetch last 180 days (6 months) for accurate segmentation history
+            const lookbackDate = new Date(endDate);
+            lookbackDate.setDate(lookbackDate.getDate() - 180);
 
             const { data, error } = await supabase
                 .from('transactions')
                 .select('customer_id, date, total, items, status')
                 .eq('store_id', currentStore.id)
                 .neq('status', 'void')
-                .gte('date', startDate.toISOString())
+                .gte('date', lookbackDate.toISOString())
                 .lte('date', endDate.toISOString())
                 .order('date', { ascending: false })
-                .limit(10000);
+                .limit(20000);
 
             if (error) throw error;
             setTransactions(data || []);
@@ -111,13 +113,13 @@ const CustomerProfilingReport = () => {
                     .slice(0, 5)
                     .map(([name, qty]) => ({ name, qty }));
 
-                // Segment
+                // Segment Logic (Rule 6 Months)
                 let segment = 'Baru';
-                if (stat.count === 0 || daysSinceLast > 60) {
+                if (stat.count === 1 && daysSinceLast > 90) {
                     segment = 'Tidur';
-                } else if (stat.count > 5 && stat.totalSpent > 1000000) {
+                } else if (stat.count > 10 && stat.totalSpent > 1000000) {
                     segment = 'VIP';
-                } else if (stat.count >= 3) {
+                } else if (stat.count >= 6) {
                     segment = 'Reguler';
                 }
 
@@ -129,10 +131,14 @@ const CustomerProfilingReport = () => {
                     lastVisit: stat.lastVisit,
                     daysSinceLast,
                     topProducts,
-                    segment
+                    segment,
+                    // Check if active in the current date picker range
+                    isActiveInRange: stat.lastVisit &&
+                        stat.lastVisit >= new Date(datePickerDate.from).setHours(0, 0, 0, 0) &&
+                        stat.lastVisit <= new Date(datePickerDate.to || datePickerDate.from).setHours(23, 59, 59, 999)
                 };
             });
-    }, [customers, transactions]);
+    }, [customers, transactions, datePickerDate]);
 
     // Segments
     const segments = useMemo(() => {
@@ -145,7 +151,8 @@ const CustomerProfilingReport = () => {
 
     // Search & Sort
     const filteredCustomers = useMemo(() => {
-        let data = customerStats.filter(c => c.txCount > 0); // Only customers with transactions
+        // Show customers active in the selected range OR search results
+        let data = customerStats.filter(c => c.isActiveInRange || searchTerm);
 
         if (searchTerm) {
             const q = searchTerm.toLowerCase();
@@ -173,15 +180,18 @@ const CustomerProfilingReport = () => {
             .sort((a, b) => b.daysSinceLast - a.daysSinceLast);
     }, [customerStats]);
 
-    // New Customers this month
-    const newCustomersThisMonth = useMemo(() => {
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    // New Customers based on selected date range (replaces "thisMonth" logic)
+    const newCustomersInSelectedRange = useMemo(() => {
+        const fromDate = new Date(datePickerDate.from);
+        fromDate.setHours(0, 0, 0, 0);
+        const toDate = new Date(datePickerDate.to || datePickerDate.from);
+        toDate.setHours(23, 59, 59, 999);
+
         return customers.filter(c => {
             const created = c.created_at ? new Date(c.created_at) : null;
-            return created && created >= startOfMonth;
+            return created && created >= fromDate && created <= toDate;
         }).length;
-    }, [customers]);
+    }, [customers, datePickerDate]);
 
     // Sort Handler
     const handleSort = (key) => {
@@ -215,50 +225,55 @@ const CustomerProfilingReport = () => {
 
     const SortButton = ({ label, sortKey }) => (
         <button
-            className="flex items-center gap-1 hover:text-primary transition-colors font-medium"
+            className="flex items-center gap-1 hover:text-indigo-600 transition-colors"
             onClick={() => handleSort(sortKey)}
         >
             {label}
-            <ArrowUpDown className={cn("h-3 w-3", sortConfig.key === sortKey ? "text-primary" : "text-muted-foreground")} />
+            <ArrowUpDown className={cn("h-3 w-3", sortConfig.key === sortKey ? "text-indigo-600" : "text-slate-400")} />
         </button>
     );
 
     const getSegmentBadge = (segment) => {
         const variants = {
-            VIP: 'bg-purple-100 text-purple-700 border-purple-200',
-            Reguler: 'bg-blue-100 text-blue-700 border-blue-200',
-            Baru: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-            Tidur: 'bg-orange-100 text-orange-700 border-orange-200'
+            VIP: 'purple-subtle',
+            Reguler: 'info-subtle',
+            Baru: 'success-subtle',
+            Tidur: 'warning-subtle'
         };
+        // Normalize variant mapping
+        const variant = variants[segment] || (segment === 'Tidur' ? 'warning-subtle' : 'neutral-subtle');
+
         return (
-            <Badge variant="outline" className={cn("text-[10px] font-medium", variants[segment])}>
+            <Badge variant={variant} className="font-bold border-none uppercase text-[10px]">
                 {segment}
             </Badge>
         );
     };
 
     return (
-        <div className="space-y-6 p-6">
+        <div className="p-4 space-y-6">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Profil Pelanggan</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">Profil Pelanggan</h1>
                     <p className="text-muted-foreground">
                         Analisis data pelanggan berdasarkan pola belanja dan preferensi produk.
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <SmartDatePicker
-                        date={datePickerDate}
-                        onDateChange={setDatePickerDate}
-                    />
-                    <Button variant="outline" size="sm" onClick={handleExport} disabled={loading}>
-                        <Download className="mr-2 h-4 w-4" /> Export CSV
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={fetchData} disabled={loading} className="flex-1 sm:flex-none">
                         <RefreshCw className={cn("mr-2 h-4 w-4", loading && "animate-spin")} />
                         Refresh
                     </Button>
+                    <Button variant="outline" size="sm" onClick={handleExport} disabled={loading} className="flex-1 sm:flex-none">
+                        <Download className="mr-2 h-4 w-4" /> Export
+                    </Button>
+                    <div className="w-full sm:w-auto">
+                        <SmartDatePicker
+                            date={datePickerDate}
+                            onDateChange={setDatePickerDate}
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -269,32 +284,32 @@ const CustomerProfilingReport = () => {
                     value={segments.VIP.length}
                     icon={Star}
                     variant="purple"
-                    description=">5 transaksi & >1jt belanja"
+                    description=">10 transaksi & >1jt belanja"
                 />
                 <InfoCard
                     title="Reguler"
                     value={segments.Reguler.length}
                     icon={Users}
                     variant="info"
-                    description="3-5 transaksi aktif"
+                    description="6-10 transaksi"
                 />
                 <InfoCard
                     title="Baru"
                     value={segments.Baru.length}
                     icon={UserPlus}
                     variant="success"
-                    description="<3 transaksi"
+                    description="1-5 transaksi"
                 />
                 <InfoCard
                     title="Tidur"
                     value={segments.Tidur.length}
                     icon={UserX}
                     variant="warning"
-                    description=">60 hari tidak belanja"
+                    description="1 transaksi & >90 hari lalu"
                 />
                 <InfoCard
-                    title="Baru Bulan Ini"
-                    value={newCustomersThisMonth}
+                    title="Baru di Range Ini"
+                    value={newCustomersInSelectedRange}
                     icon={TrendingUp}
                     variant="default"
                     description="Pelanggan baru terdaftar"
@@ -327,22 +342,22 @@ const CustomerProfilingReport = () => {
                 </CardHeader>
                 <CardContent>
                     {loading ? (
-                        <div className="flex justify-center py-12">
+                        <div className="flex items-center justify-center py-20">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         </div>
                     ) : (
-                        <div className="border rounded-md overflow-x-auto">
+                        <div className="rounded-xl border bg-white overflow-hidden shadow-sm">
                             <Table>
                                 <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-8">#</TableHead>
-                                        <TableHead>Pelanggan</TableHead>
-                                        <TableHead>Segmen</TableHead>
-                                        <TableHead><SortButton label="Transaksi" sortKey="txCount" /></TableHead>
-                                        <TableHead><SortButton label="Total Belanja" sortKey="totalSpent" /></TableHead>
-                                        <TableHead><SortButton label="Rata-rata" sortKey="avgSpent" /></TableHead>
-                                        <TableHead><SortButton label="Hari Lalu" sortKey="daysSinceLast" /></TableHead>
-                                        <TableHead className="text-right">Aksi</TableHead>
+                                    <TableRow className="bg-slate-50/50">
+                                        <TableHead className="w-[50px] p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">#</TableHead>
+                                        <TableHead className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pelanggan</TableHead>
+                                        <TableHead className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Segmen</TableHead>
+                                        <TableHead className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest"><SortButton label="Transaksi" sortKey="txCount" /></TableHead>
+                                        <TableHead className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest"><SortButton label="Total Belanja" sortKey="totalSpent" /></TableHead>
+                                        <TableHead className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest"><SortButton label="Rata-rata" sortKey="avgSpent" /></TableHead>
+                                        <TableHead className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest"><SortButton label="Hari Lalu" sortKey="daysSinceLast" /></TableHead>
+                                        <TableHead className="text-right p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Aksi</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -409,14 +424,14 @@ const CustomerProfilingReport = () => {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="border rounded-md bg-white overflow-x-auto">
+                        <div className="rounded-xl border bg-white overflow-hidden shadow-sm">
                             <Table>
                                 <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Pelanggan</TableHead>
-                                        <TableHead>Terakhir Belanja</TableHead>
-                                        <TableHead>Total Transaksi</TableHead>
-                                        <TableHead>Total Belanja</TableHead>
+                                    <TableRow className="bg-slate-50/50">
+                                        <TableHead className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pelanggan</TableHead>
+                                        <TableHead className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Terakhir Belanja</TableHead>
+                                        <TableHead className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total Transaksi</TableHead>
+                                        <TableHead className="p-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total Belanja</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>

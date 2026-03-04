@@ -326,22 +326,22 @@ const SalesPerformanceReport = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="p-4 space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Laporan Performa Sales</h2>
+                    <h1 className="text-2xl font-bold tracking-tight">Laporan Performa Sales</h1>
                     <p className="text-muted-foreground">
                         Pantau kinerja penjualan tim sales Anda.
                     </p>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleExportExcel}>
+                <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" onClick={handleExportExcel}>
                         <FileText className="mr-2 h-4 w-4 text-green-600" />
-                        Export Excel
+                        Excel
                     </Button>
-                    <Button variant="outline" onClick={handleExportPDF}>
+                    <Button variant="outline" size="sm" onClick={handleExportPDF}>
                         <Download className="mr-2 h-4 w-4 text-red-600" />
-                        Export PDF
+                        PDF
                     </Button>
                 </div>
             </div>
@@ -365,11 +365,13 @@ const SalesPerformanceReport = () => {
                             />
                         </div>
 
-                        <div className="flex items-center gap-2">
-                            <SmartDatePicker
-                                date={datePickerDate}
-                                onDateChange={setDatePickerDate}
-                            />
+                        <div className="flex flex-wrap items-center gap-2">
+                            <div className="w-full sm:w-auto">
+                                <SmartDatePicker
+                                    date={datePickerDate}
+                                    onDateChange={setDatePickerDate}
+                                />
+                            </div>
                         </div>
                     </div>
 

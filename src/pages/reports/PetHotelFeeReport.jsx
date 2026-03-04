@@ -246,7 +246,7 @@ const PetHotelFeeReport = () => {
 
     if (!isFeeEnabled) {
         return (
-            <div className="p-8 text-center bg-slate-50 border rounded-lg">
+            <div className="p-4 text-center bg-slate-50 border rounded-lg">
                 <Wallet className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                 <h3 className="text-lg font-bold">Fitur Fee Pet Hotel Belum Aktif</h3>
                 <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
@@ -257,15 +257,15 @@ const PetHotelFeeReport = () => {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="p-4 space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Fee Karyawan Pet Hotel</h2>
+                    <h1 className="text-2xl font-bold tracking-tight">Fee Karyawan Pet Hotel</h1>
                     <p className="text-muted-foreground">Rekap pembagian fee dari transaksi rental bulanan.</p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Input type="month" value={currentMonth} onChange={e => setCurrentMonth(e.target.value)} className="w-[180px]" />
-                    <Button onClick={handleGenerateFees} disabled={generating || !hasSchedule} className="bg-indigo-600 hover:bg-indigo-700">
+                <div className="flex flex-wrap items-center gap-2">
+                    <Input type="month" value={currentMonth} onChange={e => setCurrentMonth(e.target.value)} className="w-[180px] h-9" />
+                    <Button size="sm" onClick={handleGenerateFees} disabled={generating || !hasSchedule} className="bg-indigo-600 hover:bg-indigo-700">
                         <RefreshCw className={`w-4 h-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
                         Sinkronisasi Fee
                     </Button>

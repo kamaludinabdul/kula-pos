@@ -383,28 +383,26 @@ const ProfitLoss = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="p-4 space-y-6">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Laporan Laba Rugi</h2>
-                    <p className="text-muted-foreground">Ringkasan performa keuangan bisnis Anda.</p>
+                    <h1 className="text-2xl font-bold tracking-tight">Laporan Laba Rugi</h1>
+                    <p className="text-muted-foreground">Analisis pendapatan, pengeluaran, dan net profit.</p>
                 </div>
-                <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-2">
-                    <div className="flex gap-2 w-full lg:w-auto">
-                        <Button variant="outline" onClick={fetchReportData} disabled={isLoading} className="flex-1 lg:flex-none">
-                            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                            Refresh
-                        </Button>
-                        <Button variant="outline" onClick={handleExportPDF} disabled={isLoading} className="flex-1 lg:flex-none">
-                            <Download className="mr-2 h-4 w-4" />
-                            PDF
-                        </Button>
-                        <Button variant="outline" onClick={handleExport} disabled={isLoading} className="flex-1 lg:flex-none">
-                            <Download className="mr-2 h-4 w-4" />
-                            CSV
-                        </Button>
-                    </div>
-                    <div className="w-full lg:w-auto">
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={fetchReportData} disabled={isLoading} className="flex-1 lg:flex-none">
+                        <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={isLoading} className="flex-1 lg:flex-none">
+                        <Download className="mr-2 h-4 w-4" />
+                        PDF
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleExport} disabled={isLoading} className="flex-1 lg:flex-none">
+                        <Download className="mr-2 h-4 w-4" />
+                        CSV
+                    </Button>
+                    <div className="w-full sm:w-auto">
                         <SmartDatePicker
                             date={datePickerDate}
                             onDateChange={setDatePickerDate}
@@ -466,7 +464,7 @@ const ProfitLoss = () => {
             </div>
 
             <Card className="rounded-xl border-none shadow-sm overflow-hidden">
-                <CardHeader className="flex flex-col space-y-4 p-4 lg:p-6 bg-white border-b">
+                <CardHeader className="flex flex-col space-y-4 p-4 bg-white border-b">
                     <div className="flex items-center justify-between">
                         <CardTitle className="text-lg font-bold">Riwayat Transaksi</CardTitle>
                     </div>
@@ -829,7 +827,7 @@ const ProfitLoss = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     );
 };
 

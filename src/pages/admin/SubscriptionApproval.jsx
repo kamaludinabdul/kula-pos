@@ -185,9 +185,9 @@ const SubscriptionApproval = () => {
     };
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-4 space-y-6">
             <div className="flex justify-between items-center">
-                <h1 className="text-3xl font-bold tracking-tight">Approval Langganan</h1>
+                <h1 className="text-2xl font-bold tracking-tight">Approval Langganan</h1>
                 <Button variant="outline" onClick={fetchInvoices} disabled={loading}>
                     <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                     Refresh

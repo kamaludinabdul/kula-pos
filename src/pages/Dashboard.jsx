@@ -311,10 +311,10 @@ const Dashboard = () => {
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <Card className="rounded-xl border-none shadow-sm overflow-hidden">
-                            <CardHeader className="bg-white border-b p-4 lg:p-6">
+                            <CardHeader className="bg-white border-b p-4">
                                 <CardTitle className="text-lg font-bold">Penjualan per Kategori</CardTitle>
                             </CardHeader>
-                            <CardContent className="p-4 lg:p-6">
+                            <CardContent className="p-4">
                                 <div style={{ width: '100%', height: 300 }}>
                                     {isLoading ? (
                                         <div className="flex items-center justify-center h-full text-muted-foreground">Memuat...</div>
@@ -341,7 +341,7 @@ const Dashboard = () => {
                         </Card>
 
                         <Card className="lg:col-span-2 rounded-xl border-none shadow-sm overflow-hidden">
-                            <CardHeader className="bg-white border-b p-4 lg:p-6">
+                            <CardHeader className="bg-white border-b p-4">
                                 <div className="flex items-center justify-between">
                                     <CardTitle className="flex items-center gap-2 text-lg font-bold">
                                         Grafik Penjualan
@@ -369,7 +369,7 @@ const Dashboard = () => {
                                     )}
                                 </div>
                             </CardHeader>
-                            <CardContent className="p-4 lg:p-6">
+                            <CardContent className="p-4">
                                 <div style={{ width: '100%', height: 300 }}>
                                     {(isLoading || isLoadingHourly) ? (
                                         <div className="flex items-center justify-center h-full text-muted-foreground">Memuat data...</div>
@@ -438,7 +438,7 @@ const Dashboard = () => {
                 {/* Top Selling Products */}
                 {canViewFinancials && (
                     <Card className="rounded-xl border-none shadow-sm overflow-hidden h-full">
-                        <CardHeader className="bg-white border-b p-4 lg:p-6">
+                        <CardHeader className="bg-white border-b p-4">
                             <CardTitle className="text-lg font-bold">Produk Terlaris</CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
@@ -470,7 +470,7 @@ const Dashboard = () => {
 
                 {/* Recent Transactions */}
                 <Card className="rounded-xl border-none shadow-sm overflow-hidden h-full">
-                    <CardHeader className="bg-white border-b p-4 lg:p-6">
+                    <CardHeader className="bg-white border-b p-4">
                         <CardTitle className="text-lg font-bold">Transaksi Terakhir</CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">

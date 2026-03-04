@@ -90,23 +90,25 @@ const CategorySales = () => {
     }, [fetchedTransactions]);
 
     return (
-        <div className="space-y-6">
+        <div className="p-4 space-y-6">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Laporan Penjualan Kategori</h2>
+                    <h1 className="text-2xl font-bold tracking-tight">Laporan Penjualan Kategori</h1>
                     <p className="text-muted-foreground">
                         Analisis penjualan dan performa profit berdasarkan kategori produk.
                     </p>
                 </div>
-                <div className="flex gap-2 w-full lg:w-auto">
-                    <Button variant="outline" onClick={fetchData} disabled={isLoading} className="flex-1 lg:flex-none">
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={fetchData} disabled={isLoading} className="flex-1 lg:flex-none">
                         <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                         Refresh
                     </Button>
-                    <SmartDatePicker
-                        date={datePickerDate}
-                        onDateChange={setDatePickerDate}
-                    />
+                    <div className="w-full sm:w-auto">
+                        <SmartDatePicker
+                            date={datePickerDate}
+                            onDateChange={setDatePickerDate}
+                        />
+                    </div>
                 </div>
             </div>
 

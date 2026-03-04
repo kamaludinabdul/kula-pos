@@ -96,9 +96,9 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
                         const remaining = target - now;
                         setTimeLeft(remaining);
 
-                        // Auto-convert logic
-                        if (remaining < 0) {
-                            const graceMid = currentStore?.settings?.grace_period || 0;
+                        // Auto-convert logic (Guard against redundant calls)
+                        if (remaining < 0 && !session.overtime_start_time) {
+                            const graceMid = Number(currentStore?.settings?.grace_period) || 0;
                             const graceMs = graceMid * 60 * 1000;
                             if (Math.abs(remaining) > graceMs && onAutoConvert) {
                                 onAutoConvert(session);
@@ -685,17 +685,19 @@ const RentalSessionDetailsDialog = ({ isOpen, onClose, session, onRemoveItem, on
 };
 
 // --- DIALOG STOP SESI (KONFIRMASI TOTAL) ---
-const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product, currentStore }) => {
+const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product }) => {
 
     // Derived properties for overtime
-    const isOvertime = session?.overtime_start_time ? true : false;
-    const basePrice = product ? Number(product.sellPrice) : Number(session?.product_price || 0);
-    const fixedTotal = session?.agreed_total || 0;
+    const isOvertime = !!session?.overtime_start_time;
+    const basePrice = Number(product?.sellPrice || session?.product_price || 0);
+    const fixedTotal = Number(session?.agreed_total || 0);
+
+    // Capture the exact moment the dialog opens to lock the billing
+    const [nowMs] = useState(() => Date.now());
 
     // Calculate Overtime Value statically (locked at the exact moment Stop was clicked)
-    const overtimeCalc = React.useMemo(() => {
+    const overtimeCalc = (() => {
         if (!isOvertime || !session?.overtime_start_time) return { duration: 0, price: 0 };
-        const nowMs = Date.now();
         const overStartMs = new Date(session.overtime_start_time).getTime();
         const elapsed = Math.max(0, nowMs - overStartMs);
 
@@ -716,7 +718,7 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product, curren
         }
 
         return { duration: hrs, price };
-    }, [isOvertime, session?.overtime_start_time, product, basePrice]);
+    })();
 
 
     // State Initializers (runs once on mount/remount)
@@ -915,7 +917,7 @@ const StopRentalDialog = ({ isOpen, onClose, session, onConfirm, product, curren
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={onClose}>Batal</Button>
-                    <Button onClick={() => onConfirm(durationInput, finalPrice, discountValue)}>Lanjut Pembayaran</Button>
+                    <Button onClick={() => onConfirm(durationInput, finalPrice, discountValue, isOvertime ? overtimeCalc.price : 0)}>Lanjut Pembayaran</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -1496,16 +1498,23 @@ const RentalDashboard = () => {
         }
     };
 
-    const handleStopConfirmed = (finalDuration, finalPrice, discountValue = 0) => {
-        const session = sessions[stopSessionData.unit_id];
+    const handleStopConfirmed = (finalDuration, finalPrice, discountValue = 0, overtimePriceRaw = 0) => {
+        const session = sessions[stopSessionData?.unit_id];
+        if (!session) return;
+
         const product = allProducts.find(p => p.id === session.product_id);
-        const isOvertime = session.overtime_start_time ? true : false;
+        const isOvertime = !!session.overtime_start_time;
 
         // Base Rental Item
+        // Use agreed_total if fixed, otherwise use finalPrice (but subtract overtime if passed)
+        const basePriceValue = session.billing_mode === 'fixed' && session.agreed_total !== null
+            ? Number(session.agreed_total)
+            : (Number(finalPrice) + Number(discountValue) - Number(overtimePriceRaw));
+
         const rentalItem = {
             id: session.product_id || 'rental-fee',
             name: `Sewa ${session.unit_name || 'Unit'} ${session.billing_mode === 'fixed' ? `(Paket ${session.target_duration} ${product?.pricingType === 'daily' ? 'Hari' : 'Jam'})` : `(${finalDuration} ${product?.pricingType === 'daily' ? 'Hari' : (product?.pricingType === 'minutely' ? 'Menit' : 'Jam')})`}`,
-            price: session.billing_mode === 'fixed' && session.agreed_total !== null ? session.agreed_total : finalPrice,
+            price: Number(basePriceValue) || 0,
             qty: 1,
             type: 'service'
         };
@@ -1514,25 +1523,15 @@ const RentalDashboard = () => {
 
         // Overtime Item (if applicable)
         if (isOvertime) {
-            const nowMs = Date.now();
+            // Re-calculate exactly what was passed from the dialog for consistency
+            const overPrice = Number(overtimePriceRaw);
+
+            // Re-derive labels (approximate is fine as it's just for receipt text)
             const overStartMs = new Date(session.overtime_start_time).getTime();
-            const elapsed = Math.max(0, nowMs - overStartMs);
-            const basePrice = product ? Number(product.sellPrice) : Number(session.product_price || 0);
-
-            let overHrs = 0;
-            let overPrice = 0;
-
-            if (product && product.pricingType === 'daily') {
-                overHrs = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
-                const days = Math.ceil(overHrs / 24);
-                overPrice = days * basePrice;
-            } else if (product && product.pricingType === 'minutely') {
-                const mins = Math.max(1, Math.ceil(elapsed / (1000 * 60)));
-                overPrice = mins * basePrice;
-                overHrs = mins;
-            } else {
-                overHrs = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
-                overPrice = overHrs * basePrice;
+            const elapsed = Math.max(0, Date.now() - overStartMs);
+            let overHrs = Math.max(1, Math.ceil(elapsed / (1000 * 60 * 60)));
+            if (product?.pricingType === 'minutely') {
+                overHrs = Math.max(1, Math.ceil(elapsed / (1000 * 60)));
             }
 
             items.push({
@@ -1555,8 +1554,8 @@ const RentalDashboard = () => {
 
         items.push(...orderItems);
 
-        const total = items.reduce((acc, item) => acc + (item.price * item.qty), 0);
-        const subtotal = total + discountValue; // Subtotal adalah total sebelum diskon
+        const subtotal = items.reduce((acc, item) => acc + (item.price * item.qty), 0);
+        const total = Math.max(0, subtotal - discountValue);
 
         setPaymentSession({
             ...session,
@@ -1569,11 +1568,11 @@ const RentalDashboard = () => {
         setIsStopConfirmOpen(false);
 
         // --- TRANSITION OPTIMIZATION ---
-        // Add a small delay to allow StopRentalDialog to fully unmount before opening CheckoutDialog
-        // This prevents Radix UI overlay/scroll-lock conflicts
+        // Add a larger delay to allow StopRentalDialog to fully unmount before opening CheckoutDialog
+        // This is critical to prevent Radix UI overlay/scroll-lock conflicts which cause "freezes"
         setTimeout(() => {
             setIsCheckoutOpen(true);
-        }, 150);
+        }, 300);
     };
 
     const handlePrintReceipt = useCallback(async () => {
@@ -1763,7 +1762,7 @@ const RentalDashboard = () => {
         <div className="p-4 space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Rental</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">Rental</h1>
                     <p className="text-muted-foreground">Kelola sesi rental dan unit layanan.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">

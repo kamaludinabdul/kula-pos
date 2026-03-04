@@ -207,7 +207,7 @@ const SubscriptionSettings = () => {
     return (
         <div className="space-y-10">
             {/* Pricing Section */}
-            <div className="space-y-6">
+            <div className="p-4 space-y-8">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Langganan & Paket</h2>
                     <p className="text-muted-foreground">

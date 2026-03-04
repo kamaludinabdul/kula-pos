@@ -1073,7 +1073,7 @@ const ShoppingRecommendations = () => {
     };
 
     return (
-        <div className="p-4 md:p-6 lg:p-8 space-y-6">
+        <div className="p-4 space-y-6">
             <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
@@ -1141,7 +1141,7 @@ const ShoppingRecommendations = () => {
                 </div>
             </header>
 
-            <div className="space-y-6">
+            <div className="p-4 space-y-6">
                 {recommendations.length === 0 ? (
                     <Card className="bg-muted/50 border-dashed">
                         <CardContent className="flex flex-col items-center justify-center py-12 text-center">

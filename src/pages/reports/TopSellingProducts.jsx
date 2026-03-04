@@ -107,28 +107,26 @@ const TopSellingProducts = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="p-4 space-y-6">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Produk Terlaris</h2>
+                    <h1 className="text-2xl font-bold tracking-tight">Produk Terlaris</h1>
                     <p className="text-muted-foreground">Analisis produk dengan performa penjualan terbaik.</p>
                 </div>
-                <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-2">
-                    <div className="flex gap-2 w-full lg:w-auto">
-                        <Button variant="outline" onClick={fetchTopProducts} disabled={loading} className="flex-1 lg:flex-none rounded-[10px]">
-                            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                            Refresh
-                        </Button>
-                        <Button variant="outline" onClick={handleExportPDF} className="flex-1 lg:flex-none rounded-[10px]">
-                            <Download className="mr-2 h-4 w-4" />
-                            PDF
-                        </Button>
-                        <Button variant="outline" onClick={handleExport} className="flex-1 lg:flex-none rounded-[10px]">
-                            <Download className="mr-2 h-4 w-4" />
-                            CSV
-                        </Button>
-                    </div>
-                    <div className="w-full lg:w-auto">
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={fetchTopProducts} disabled={loading} className="flex-1 lg:flex-none">
+                        <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleExportPDF} className="flex-1 lg:flex-none">
+                        <Download className="mr-2 h-4 w-4" />
+                        PDF
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleExport} className="flex-1 lg:flex-none">
+                        <Download className="mr-2 h-4 w-4" />
+                        CSV
+                    </Button>
+                    <div className="w-full sm:w-auto">
                         <SmartDatePicker
                             date={datePickerDate}
                             onDateChange={setDatePickerDate}
@@ -181,7 +179,7 @@ const TopSellingProducts = () => {
             </div>
 
             <Card className="rounded-xl border-none shadow-sm overflow-hidden">
-                <CardHeader className="p-4 lg:p-6 bg-white border-b">
+                <CardHeader className="p-4 bg-white border-b">
                     <CardTitle className="text-lg font-bold">Peringkat Produk</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">

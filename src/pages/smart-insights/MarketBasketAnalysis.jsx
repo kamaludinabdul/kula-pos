@@ -124,7 +124,7 @@ const MarketBasketAnalysis = () => {
     }, [analyzeBundles]);
 
     return (
-        <div className="space-y-6 p-6">
+        <div className="space-y-6 p-4">
             {!hasAiAccess && (
                 <Alert className="bg-indigo-50 border-indigo-100">
                     <Lock className="h-4 w-4 text-indigo-600" />
@@ -138,7 +138,7 @@ const MarketBasketAnalysis = () => {
 
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Bundling Pintar</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">Bundling Pintar</h1>
                     <p className="text-muted-foreground">
                         Analisis keranjang belanja untuk menemukan peluang paket produk (bundling).
                     </p>

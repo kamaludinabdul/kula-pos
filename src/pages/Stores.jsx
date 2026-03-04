@@ -267,7 +267,7 @@ const Stores = () => {
         <div className="p-4 space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold">Store Management</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">Store Management</h1>
                     <p className="text-muted-foreground mt-1">
                         Manage your stores, plans, and staff members
                         {user?.role !== 'super_admin' && maxStoresAllowed > 0 && (

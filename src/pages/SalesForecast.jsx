@@ -246,16 +246,16 @@ const SalesForecast = () => {
     };
 
     if (loading) {
-        return <div className="p-8 text-center">Memuat data forecasting...</div>;
+        return <div className="p-4 text-center">Memuat data forecasting...</div>;
     }
 
     if (error) {
-        return <div className="p-8 text-center text-red-500">Error: {error}</div>;
+        return <div className="p-4 text-center text-red-500">Error: {error}</div>;
     }
 
     if (!currentStore?.latitude || !currentStore?.longitude) {
         return (
-            <div className="p-8 flex flex-col items-center justify-center text-center space-y-4">
+            <div className="p-4 flex flex-col items-center justify-center text-center space-y-4">
                 <MapPin className="h-16 w-16 text-muted-foreground opacity-50" />
                 <h2 className="text-2xl font-bold">Lokasi Toko Belum Diatur</h2>
                 <p className="text-muted-foreground max-w-md">
@@ -271,12 +271,12 @@ const SalesForecast = () => {
     }
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-4 space-y-6">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2">
+                    <h1 className="text-2xl font-bold flex items-center gap-2 text-slate-800">
                         <TrendingUp className="h-8 w-8 text-blue-600" />
-                        Peramalan Penjualan (Forecasting)
+                        Prediksi Penjualan
                     </h1>
                     <p className="text-muted-foreground mt-1">
                         Prediksi penjualan 14 hari ke depan berdasarkan data historis dan prakiraan cuaca.

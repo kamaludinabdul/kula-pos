@@ -164,9 +164,9 @@ const SalesForecast = () => {
     }, [currentStore?.id]);
 
     return (
-        <div className="space-y-6 p-6">
+        <div className="p-4 space-y-6">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Prediksi Omset</h1>
+                <h1 className="text-2xl font-bold tracking-tight">Prediksi Omset</h1>
                 <p className="text-muted-foreground">
                     Perkiraan penjualan 7 hari ke depan berdasarkan tren data historis.
                 </p>

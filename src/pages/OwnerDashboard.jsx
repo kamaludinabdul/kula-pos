@@ -419,7 +419,7 @@ const OwnerDashboard = () => {
 
             {/* Daily Sales Chart Section */}
             <Card className="rounded-2xl border-none shadow-sm bg-white overflow-hidden">
-                <CardHeader className="p-6 pb-0 flex flex-row items-center justify-between">
+                <CardHeader className="p-4 pb-0 flex flex-row items-center justify-between">
                     <div className="flex flex-col">
                         <CardTitle className="text-lg font-bold">Grafik Penjualan</CardTitle>
                         <span className="text-xs text-slate-400 font-medium">
@@ -437,7 +437,7 @@ const OwnerDashboard = () => {
                         </div>
                     )}
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="p-4">
                     <div className="h-[300px] w-full">
                         {isDailyLoading ? (
                             <div className="flex items-center justify-center h-full text-muted-foreground">Memuat...</div>
@@ -555,10 +555,10 @@ const OwnerDashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* 1. Monthly Revenue (Stacked) */}
                     <Card className="rounded-2xl border-none shadow-sm bg-white overflow-hidden">
-                        <CardHeader className="p-6 pb-0">
+                        <CardHeader className="p-4 pb-0">
                             <CardTitle className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Omzet Bulanan</CardTitle>
                         </CardHeader>
-                        <CardContent className="p-6">
+                        <CardContent className="p-4">
                             <div className="h-[200px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={transformedFinancials} barGap={4}>
@@ -598,10 +598,10 @@ const OwnerDashboard = () => {
 
                     {/* 2. Monthly Profit (Stacked) */}
                     <Card className="rounded-2xl border-none shadow-sm bg-white overflow-hidden">
-                        <CardHeader className="p-6 pb-0">
+                        <CardHeader className="p-4 pb-0">
                             <CardTitle className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Laba Bersih Bulanan</CardTitle>
                         </CardHeader>
-                        <CardContent className="p-6">
+                        <CardContent className="p-4">
                             <div className="h-[200px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={transformedFinancials} barGap={4}>
@@ -635,10 +635,10 @@ const OwnerDashboard = () => {
 
                     {/* 3. Operational Expenses (Stacked) */}
                     <Card className="rounded-2xl border-none shadow-sm bg-white overflow-hidden">
-                        <CardHeader className="p-6 pb-0">
+                        <CardHeader className="p-4 pb-0">
                             <CardTitle className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pengeluaran Operasional</CardTitle>
                         </CardHeader>
-                        <CardContent className="p-6">
+                        <CardContent className="p-4">
                             <div className="h-[200px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={transformedFinancials} barGap={4}>
@@ -672,10 +672,10 @@ const OwnerDashboard = () => {
 
                     {/* 4. Daily Avg Revenue */}
                     <Card className="rounded-2xl border-none shadow-sm bg-white overflow-hidden">
-                        <CardHeader className="p-6 pb-0">
+                        <CardHeader className="p-4 pb-0">
                             <CardTitle className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Omzet Rata-rata Harian</CardTitle>
                         </CardHeader>
-                        <CardContent className="p-6">
+                        <CardContent className="p-4">
                             <div className="h-[200px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={transformedFinancials} barGap={4}>
@@ -709,10 +709,10 @@ const OwnerDashboard = () => {
 
                     {/* 5. Daily Avg Profit */}
                     <Card className="rounded-2xl border-none shadow-sm bg-white overflow-hidden">
-                        <CardHeader className="p-6 pb-0">
+                        <CardHeader className="p-4 pb-0">
                             <CardTitle className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Laba Rata-rata Harian</CardTitle>
                         </CardHeader>
-                        <CardContent className="p-6">
+                        <CardContent className="p-4">
                             <div className="h-[200px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={transformedFinancials} barGap={4}>
@@ -754,7 +754,7 @@ const OwnerDashboard = () => {
                     <CardHeader className="bg-white border-b p-4 lg:p-6">
                         <CardTitle className="text-lg font-bold">Omzet per Toko</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-4 lg:p-6">
+                    <CardContent className="p-4">
                         <div style={{ width: '100%', height: 300 }}>
                             {isLoading ? (
                                 <div className="flex items-center justify-center h-full text-muted-foreground">Memuat...</div>

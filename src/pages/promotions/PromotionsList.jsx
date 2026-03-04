@@ -82,10 +82,10 @@ const PromotionsList = () => {
     };
 
     return (
-        <div className="space-y-6 p-4 sm:p-6">
+        <div className="space-y-6 p-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Promosi & Diskon</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">Promosi & Diskon</h1>
                     <p className="text-muted-foreground">
                         Kelola diskon, voucher, dan paket bundling untuk meningkatkan penjualan.
                     </p>
@@ -111,7 +111,7 @@ const PromotionsList = () => {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="p-0 sm:p-6">
+                <CardContent className="p-4">
                     {/* Desktop Table View */}
                     <div className="hidden lg:block">
                         <Table>

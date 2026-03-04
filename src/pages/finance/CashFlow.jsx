@@ -346,10 +346,10 @@ const CashFlow = () => {
     }, [filterType, categories]);
 
     return (
-        <div className="space-y-6 p-6">
+        <div className="space-y-6 p-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Arus Kas (Cash Flow)</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">Arus Kas (Cash Flow)</h1>
                     <p className="text-muted-foreground">Catat pemasukan dan pengeluaran manual</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -358,14 +358,15 @@ const CashFlow = () => {
                         onDateChange={setDatePickerDate}
                     />
 
-                    <Button variant="outline" size="icon" onClick={fetchTransactions} disabled={loading} className="h-9 w-9 rounded-full">
+                    <Button variant="outline" size="icon" onClick={fetchTransactions} disabled={loading} title="Refresh" className="shrink-0 h-10 w-10">
                         <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
 
                     <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                         <DialogTrigger asChild>
-                            <Button className="gap-2">
-                                <Plus className="h-4 w-4" /> Catat Transaksi
+                            <Button className="gap-2 p-0 w-10 sm:w-auto sm:px-4 sm:py-2 shrink-0">
+                                <Plus className="h-4 w-4" />
+                                <span className="hidden sm:inline">Catat Transaksi</span>
                             </Button>
                         </DialogTrigger>
                         <DialogContent>
@@ -492,7 +493,7 @@ const CashFlow = () => {
                 <CardContent>
                     <div className="flex flex-col gap-4">
                         <div>
-                            <div className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                            <div className="text-2xl font-extrabold tracking-tight">
                                 {allTimeBalance.loading ? '...' : `Rp ${currentBalance.toLocaleString()}`}
                             </div>
                             <p className="text-[10px] text-slate-500 font-medium mt-1 uppercase tracking-widest">

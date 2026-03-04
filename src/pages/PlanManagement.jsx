@@ -134,14 +134,14 @@ const PlanManagement = () => {
     };
 
     if (!plans || Object.keys(plans).length === 0) {
-        return <div className="p-8 text-center">Memuat data paket...</div>;
+        return <div className="p-4 text-center">Memuat data paket...</div>;
     }
 
     return (
-        <div className="p-6 w-full space-y-6">
-            <div className="flex items-center justify-between">
+        <div className="p-4 w-full space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Manajemen Paket & Fitur</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">Manajemen Paket & Fitur</h1>
                     <p className="text-muted-foreground mt-1">
                         Atur harga, nama paket, dan fitur yang dapat diakses oleh setiap level langganan.
                     </p>

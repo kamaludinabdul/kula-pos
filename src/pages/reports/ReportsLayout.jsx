@@ -4,10 +4,8 @@ import { BarChart3, TrendingUp, Package, Layers, Clock, Gift, TrendingDown } fro
 const ReportsLayout = () => {
 
     return (
-        <div className="p-6 space-y-6">
-            <div className="min-h-[500px]">
-                <Outlet />
-            </div>
+        <div className="min-h-screen">
+            <Outlet />
         </div>
     );
 };

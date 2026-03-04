@@ -265,11 +265,11 @@ const StockOpname = () => {
     }, 0);
 
     return (
-        <div className="p-4 sm:p-6 space-y-6">
+        <div className="p-4 space-y-6">
             <Tabs defaultValue="opname" className="w-full">
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Stock Opname</h1>
+                        <h1 className="text-2xl font-bold tracking-tight">Stock Opname</h1>
                         <p className="text-muted-foreground">Penghitungan fisik stok vs sistem</p>
                     </div>
                     <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-3">
@@ -634,7 +634,7 @@ const StockOpname = () => {
                                                 </div>
                                             </CardHeader>
                                             {expandedSessions.has(session.id) && (
-                                                <CardContent className="p-0 sm:p-6">
+                                                <CardContent className="p-4">
                                                     {/* Desktop Table View */}
                                                     <div className="hidden sm:block">
                                                         <Table>

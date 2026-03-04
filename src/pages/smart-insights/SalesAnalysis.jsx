@@ -258,7 +258,7 @@ const SalesAnalysis = () => {
         <div className="p-4 space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h3 className="text-2xl font-bold text-slate-800 tracking-tight">Performa & Analisis AI</h3>
+                    <h1 className="text-2xl font-bold tracking-tight">Performa & Analisis AI</h1>
                     <p className="text-sm text-slate-500">
                         {analysisMode === 'yearly' ? 'Bandingkan performa tahun ini dengan tahun sebelumnya.' : 'Bandingkan performa bulan ini dengan rata-rata 3 bulan sebelumnya.'}
                     </p>

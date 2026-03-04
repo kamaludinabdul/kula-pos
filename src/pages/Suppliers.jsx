@@ -133,9 +133,9 @@ const Suppliers = () => {
     };
 
     return (
-        <div className="p-4 sm:p-6 space-y-6">
+        <div className="p-4 space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h1 className="text-3xl font-bold tracking-tight">Supplier</h1>
+                <h1 className="text-2xl font-bold tracking-tight">Supplier</h1>
                 {checkPermission('suppliers.create') && (
                     <Button onClick={() => handleOpenDialog()} className="w-full sm:w-auto gap-2">
                         <Plus className="h-4 w-4" /> Tambah Supplier

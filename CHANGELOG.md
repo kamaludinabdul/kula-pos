@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.19.1] - 2026-03-04
+### Changed
+- Bumped version to 0.19.1
+
+## [0.19.1] - 2026-03-05
+
+### Changed
+
+- **UI Standardization**: Standardized component padding to a consistent `p-4` layout across multiple heavily-used pages including Dashboard, Purchase Orders, Settings, Transactions, and Reports.
+- **Typography Consistency**: Uniformly adjusted major page titles to `text-2xl` for a cleaner, unified header hierarchy.
+- **Code Stability**: Fixed HTML tag mismatches (e.g. invalid nested headings inside text spans) in the Product Form.
+- Bumped version to 0.19.1
+
 ## [0.19.0] - 2026-03-03
 
 ### Added

@@ -397,13 +397,13 @@ const ProductForm = () => {
     };
 
     return (
-        <div className="p-6 space-y-6 w-full mx-auto pb-24">
+        <div className="p-4 space-y-6 w-full mx-auto pb-24">
             <header className="flex items-center gap-4">
                 <Button variant="outline" size="icon" onClick={() => navigate('/products')}>
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div>
-                    <h1 className="text-3xl font-bold">{isEditMode ? 'Edit Produk' : 'Tambah Produk Baru'}</h1>
+                    <h1 className="text-2xl font-bold">{isEditMode ? 'Edit Produk' : 'Tambah Produk Baru'}</h1>
                     <p className="text-muted-foreground mt-1">
                         {isEditMode ? 'Perbarui informasi produk.' : 'Lengkapi informasi produk di bawah ini.'}
                     </p>

@@ -695,7 +695,7 @@ const PurchaseOrderForm = () => {
 
     return (
         <>
-            <div className="p-6 space-y-6 w-full mx-auto">
+            <div className="p-4 space-y-6 relative pb-32">
                 <div className="print:hidden flex flex-col sm:flex-row sm:items-center gap-4">
                     <div className="flex items-center gap-4 w-full sm:w-auto flex-1">
                         <Button variant="ghost" size="icon" onClick={() => navigate('/purchase-orders')} className="-ml-2">
@@ -744,7 +744,7 @@ const PurchaseOrderForm = () => {
 
                 <div className="print:hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Header Information */}
-                    <div className="lg:col-span-2 space-y-4 bg-white p-4 lg:p-6 rounded-2xl border border-slate-100 shadow-sm transition-all">
+                    <div className="lg:col-span-2 space-y-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm transition-all">
                         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
                             <FileText className="h-4 w-4" /> Informasi Umum
                         </h2>
@@ -790,7 +790,7 @@ const PurchaseOrderForm = () => {
                     </div>
 
                     {/* Actions Panel */}
-                    <div className="space-y-4 bg-white p-4 lg:p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="space-y-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
                         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Aksi</h2>
                         <div className="flex flex-col gap-3">
                             {!isReadOnly && (
@@ -836,7 +836,7 @@ const PurchaseOrderForm = () => {
                 </div>
 
                 {/* Items Section */}
-                <div className="print:hidden bg-white p-4 lg:p-6 rounded-2xl border border-slate-100 shadow-sm space-y-6">
+                <div className="print:hidden bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                             <Plus className="h-4 w-4" /> Daftar Barang
@@ -901,18 +901,17 @@ const PurchaseOrderForm = () => {
                             <TableHeader>
                                 <TableRow className="bg-slate-50/50 border-b border-slate-100">
                                     <TableHead className="py-4 px-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                                        <Button
-                                            variant="ghost"
+                                        <button
                                             onClick={() => requestSort('productName')}
-                                            className="h-8 px-2 hover:bg-transparent font-bold text-left justify-start"
+                                            className="flex items-center gap-1 hover:text-indigo-600 transition-colors uppercase"
                                         >
                                             Produk
                                             {sortConfig.key === 'productName' ? (
-                                                sortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />
+                                                sortConfig.direction === 'asc' ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />
                                             ) : (
-                                                <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+                                                <ArrowUpDown className="ml-1 h-3 w-3 opacity-30" />
                                             )}
-                                        </Button>
+                                        </button>
                                     </TableHead>
                                     <TableHead className="w-[120px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">QTY PO</TableHead>
                                     <TableHead className="w-[100px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Satuan</TableHead>

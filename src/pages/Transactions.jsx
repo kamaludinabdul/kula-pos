@@ -591,7 +591,7 @@ const Transactions = () => {
         <div className="p-4 space-y-6">
             <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Transaksi</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">Transaksi</h1>
                     <p className="text-muted-foreground">Kelola dan pantau riwayat transaksi penjualan.</p>
                 </div>
                 <div className="flex flex-wrap gap-2 w-full xl:w-auto">
@@ -976,7 +976,7 @@ const Transactions = () => {
                     ) : (
                         <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
                             {anomalyInsights.length === 0 ? (
-                                <div className="p-8 text-center bg-green-50 rounded-2xl border border-green-100">
+                                <div className="p-4 text-center bg-green-50 rounded-2xl border border-green-100">
                                     <div className="text-green-600 font-bold mb-1">Semua Terlihat Aman!</div>
                                     <div className="text-xs text-green-500">AI tidak menemukan transaksi yang mencurigakan dalam sampel ini.</div>
                                 </div>

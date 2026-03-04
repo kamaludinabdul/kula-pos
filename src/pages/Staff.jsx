@@ -453,7 +453,7 @@ const Staff = () => {
         <div className="p-4 space-y-6">
             <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold">Manajemen Staff</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">Manajemen Staff</h1>
                     <p className="text-muted-foreground mt-1">Kelola akses dan karyawan toko Anda.</p>
                 </div>
                 <Button onClick={handleAddStaff} className="w-full sm:w-auto">
@@ -594,19 +594,19 @@ const Staff = () => {
                                             <p className="text-xs text-slate-500">ID: {staff.email && staff.email.endsWith('@kula.id') ? staff.email.split('@')[0] : staff.email}</p>
                                         </div>
                                     </div>
-                                    <div className="flex gap-1">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleViewHistory(staff)}>
+                                    <div className="flex gap-0.5 -mr-2">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => handleViewHistory(staff)}>
                                             <History className="h-4 w-4" />
                                         </Button>
                                         {canManageStaff(staff) && (
                                             <>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditStaff(staff)}>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => handleEditStaff(staff)}>
                                                     <Edit2 className="h-4 w-4" />
                                                 </Button>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-8 w-8 text-amber-500"
+                                                    className="h-8 w-8 shrink-0 text-amber-500"
                                                     onClick={() => handleForceLogout(staff)}
                                                 >
                                                     <Shield className="h-4 w-4" />
@@ -614,7 +614,7 @@ const Staff = () => {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-8 w-8 text-red-500"
+                                                    className="h-8 w-8 shrink-0 text-red-500"
                                                     onClick={() => handleDeleteStaff(staff.id)}
                                                 >
                                                     <Trash2 className="h-4 w-4" />

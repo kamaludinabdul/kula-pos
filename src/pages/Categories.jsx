@@ -157,7 +157,7 @@ const Categories = () => {
         <div className="p-4 space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Kategori</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">Kategori</h1>
                     <p className="text-muted-foreground">Kelola kategori produk</p>
                 </div>
                 <div className="flex w-full sm:w-auto gap-2">

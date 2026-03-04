@@ -115,22 +115,22 @@ const ItemSales = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="p-4 space-y-6">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Laporan Penjualan Barang</h2>
+                    <h1 className="text-2xl font-bold tracking-tight">Laporan Penjualan Barang</h1>
                     <p className="text-muted-foreground">Analisis performa penjualan per item.</p>
                 </div>
-                <div className="flex w-full lg:w-auto gap-2">
-                    <Button variant="outline" onClick={fetchData} className="flex-1 lg:flex-none">
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={fetchData} className="flex-1 lg:flex-none">
                         <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                         Refresh
                     </Button>
-                    <Button variant="outline" onClick={handleExport} className="flex-1 lg:flex-none">
+                    <Button variant="outline" size="sm" onClick={handleExport} className="flex-1 lg:flex-none">
                         <Download className="mr-2 h-4 w-4" />
-                        Export CSV
+                        Export
                     </Button>
-                    <div className="flex-1 lg:flex-none">
+                    <div className="w-full sm:w-auto">
                         <SmartDatePicker
                             date={datePickerDate}
                             onDateChange={setDatePickerDate}

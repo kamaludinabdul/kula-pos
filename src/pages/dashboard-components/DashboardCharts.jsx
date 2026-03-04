@@ -150,10 +150,10 @@ const DashboardCharts = ({ currentStore }) => {
             <div className="grid gap-6 md:grid-cols-2">
                 {/* 1. Omset Bulanan (Bar) */}
                 <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden">
-                    <CardHeader className="p-4 lg:p-6 pb-0">
+                    <CardHeader className="p-4 pb-0">
                         <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Omset Bulanan</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-4 lg:p-6">
+                    <CardContent className="p-4">
                         <div className="h-[250px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={chartData}>
@@ -176,10 +176,10 @@ const DashboardCharts = ({ currentStore }) => {
 
                 {/* 2. Tren Laba (Bar) */}
                 <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden">
-                    <CardHeader className="p-4 lg:p-6 pb-0">
+                    <CardHeader className="p-4 pb-0">
                         <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Laba Bersih Rata-rata Harian</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-4 lg:p-6">
+                    <CardContent className="p-4">
                         <div className="h-[250px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={chartData}>
@@ -202,10 +202,10 @@ const DashboardCharts = ({ currentStore }) => {
 
                 {/* 3. Tren Omset Harian (Bar) */}
                 <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden">
-                    <CardHeader className="p-4 lg:p-6 pb-0">
+                    <CardHeader className="p-4 pb-0">
                         <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Omset Rata-rata Harian</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-4 lg:p-6">
+                    <CardContent className="p-4">
                         <div className="h-[250px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={chartData}>
@@ -228,10 +228,10 @@ const DashboardCharts = ({ currentStore }) => {
 
                 {/* 4. Pengeluaran Operasional (Bar) */}
                 <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden">
-                    <CardHeader className="p-4 lg:p-6 pb-0">
+                    <CardHeader className="p-4 pb-0">
                         <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pengeluaran Operasional</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-4 lg:p-6">
+                    <CardContent className="p-4">
                         <div className="h-[250px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={chartData}>
@@ -254,10 +254,10 @@ const DashboardCharts = ({ currentStore }) => {
 
                 {/* 5. Laba Bersih Bulanan (Bar) */}
                 <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden md:col-span-2">
-                    <CardHeader className="p-4 lg:p-6 pb-0">
+                    <CardHeader className="p-4 pb-0">
                         <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Laba Bersih Bulanan</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-4 lg:p-6">
+                    <CardContent className="p-4">
                         <div className="h-[250px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={chartData}>
