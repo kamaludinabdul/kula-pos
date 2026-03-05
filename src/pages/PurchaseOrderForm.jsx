@@ -915,6 +915,7 @@ const PurchaseOrderForm = () => {
                                     </TableHead>
                                     <TableHead className="w-[120px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">QTY PO</TableHead>
                                     <TableHead className="w-[100px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Satuan</TableHead>
+                                    <TableHead className="w-[100px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center print:hidden">Berat (Kg)</TableHead>
                                     <TableHead className="w-[150px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Harga Beli PO</TableHead>
                                     <TableHead className="w-[120px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">QTY PCS</TableHead>
                                     <TableHead className="w-[150px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Harga Satuan</TableHead>
