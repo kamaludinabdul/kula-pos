@@ -32,22 +32,33 @@ const SalesForecast = () => {
             startDate.setDate(today.getDate() - 45);
             const startDateStr = startDate.toLocaleDateString('en-CA');
 
-            // Fetch transactions
-            const { data: txList, error } = await supabase
-                .from('transactions')
-                .select('date, total, status')
-                .eq('store_id', currentStore.id)
-                .gte('date', startDateStr)
-                .order('date', { ascending: true });
+            // Fetch ALL transactions with pagination (Supabase default limit is 1000)
+            let allTx = [];
+            let page = 0;
+            const pageSize = 1000;
+            let hasMore = true;
 
-            if (error) throw error;
+            while (hasMore) {
+                const from = page * pageSize;
+                const to = from + pageSize - 1;
+                const { data: batch, error: batchError } = await supabase
+                    .from('transactions')
+                    .select('date, total, status')
+                    .eq('store_id', currentStore.id)
+                    .gte('date', startDateStr)
+                    .order('date', { ascending: true })
+                    .range(from, to);
+
+                if (batchError) throw batchError;
+                allTx = allTx.concat(batch || []);
+                hasMore = (batch || []).length === pageSize;
+                page++;
+            }
 
             // 2. Aggregate Sales by Date (Use Local Date to match user's day)
             const dailyMap = {};
-            (txList || []).forEach(data => {
+            allTx.forEach(data => {
                 if (data.status === 'void' || data.status === 'refunded' || data.status === 'cancelled') return;
-
-                // Ensure we get YYYY-MM-DD regardless of whether data.date is a string or ISO
                 const dateKey = new Date(data.date).toLocaleDateString('en-CA');
                 dailyMap[dateKey] = (dailyMap[dateKey] || 0) + (Number(data.total) || 0);
             });
