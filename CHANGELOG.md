@@ -1,15 +1,32 @@
 # Changelog
 
-## [0.19.3] - 2026-03-05
+## [0.19.4] - 2026-03-06
 ### Changed
+- Bumped version to 0.19.4
+
+## [0.19.4] - 2026-03-06
+
+### Fixed
+
+- **POS**: Fixed a bug where searching for a non-existent product resulted in a blank screen. The "Empty State" message is now correctly displayed.
+- Bumped version to 0.19.4
+
+## [0.19.3] - 2026-03-05
+
+### Changed
+
 - Bumped version to 0.19.3
 
 ## [0.19.2] - 2026-03-05
+
 ### Changed
+
 - Bumped version to 0.19.2
 
 ## [0.19.1] - 2026-03-04
+
 ### Changed
+
 - Bumped version to 0.19.1
 
 ## [0.19.1] - 2026-03-05

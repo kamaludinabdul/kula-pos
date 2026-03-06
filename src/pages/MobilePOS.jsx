@@ -11,7 +11,7 @@ import ProductGrid from '../components/pos/ProductGrid';
 import { MobileBottomNav, MobileCartSheet } from '../components/pos/MobileComponents';
 import CheckoutDialog from '../components/pos/CheckoutDialog';
 import BarcodeScannerDialog from '../components/pos/BarcodeScannerDialog';
-import { Search, ScanBarcode, RefreshCw } from 'lucide-react';
+import { Search, ScanBarcode, RefreshCw, X } from 'lucide-react';
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 
@@ -156,10 +156,19 @@ const MobilePOS = () => {
                         <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             placeholder="Cari produk..."
-                            className="pl-9 bg-slate-100 border-none h-10 text-sm"
+                            className="pl-9 pr-8 bg-slate-100 border-none h-10 text-sm"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
+                        {searchQuery && (
+                            <button
+                                type="button"
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
                     </div>
                     <Button
                         size="icon"

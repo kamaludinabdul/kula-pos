@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, ScanBarcode } from 'lucide-react';
+import { Search, ScanBarcode, X } from 'lucide-react';
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import CategoryTabs from './CategoryTabs';
@@ -24,7 +24,7 @@ const ProductFilter = ({
                         placeholder="Cari produk... (F2)"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9 bg-white shadow-sm"
+                        className="pl-9 pr-8 bg-white shadow-sm"
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                                 // Trigger search/add action
@@ -32,6 +32,15 @@ const ProductFilter = ({
                             }
                         }}
                     />
+                    {searchQuery && (
+                        <button
+                            type="button"
+                            onClick={() => setSearchQuery('')}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    )}
                 </div>
                 <Button variant="outline" size="icon" onClick={onOpenScanner} title="Scan Barcode (Enter)">
                     <ScanBarcode className="h-4 w-4" />

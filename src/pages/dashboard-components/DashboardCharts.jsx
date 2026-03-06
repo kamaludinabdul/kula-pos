@@ -55,6 +55,7 @@ const DashboardCharts = ({ currentStore }) => {
                             totalProfit: 0,
                             totalOpEx: 0,
                             avgDailyRevenue: 0,
+                            avgDailyGrossProfit: 0,
                             avgDailyProfit: 0,
                             transactionsCount: 0
                         });
@@ -73,6 +74,7 @@ const DashboardCharts = ({ currentStore }) => {
                         totalProfit: 0,
                         totalOpEx: 0,
                         avgDailyRevenue: 0,
+                        avgDailyGrossProfit: 0,
                         avgDailyProfit: 0,
                         transactionsCount: 0
                     });
@@ -174,7 +176,33 @@ const DashboardCharts = ({ currentStore }) => {
                     </CardContent>
                 </Card>
 
-                {/* 2. Tren Laba (Bar) */}
+                {/* 2. Laba Kotor Rata-rata Harian (Bar) */}
+                <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden">
+                    <CardHeader className="p-4 pb-0">
+                        <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Laba Kotor Rata-rata Harian</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                        <div className="h-[250px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartData}>
+                                    <defs>
+                                        <linearGradient id="colorGrossProfit" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#d97706" stopOpacity={1} />
+                                            <stop offset="100%" stopColor="#fbbf24" stopOpacity={0.8} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                    <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
+                                    <YAxis width={50} fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
+                                    <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
+                                    <Bar dataKey="avgDailyGrossProfit" fill="url(#colorGrossProfit)" radius={[6, 6, 0, 0]} name="Laba Kotor Rata-rata" barSize={24} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* 3. Tren Laba Bersih (Bar) */}
                 <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden">
                     <CardHeader className="p-4 pb-0">
                         <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Laba Bersih Rata-rata Harian</CardTitle>
@@ -253,7 +281,7 @@ const DashboardCharts = ({ currentStore }) => {
                 </Card>
 
                 {/* 5. Laba Bersih Bulanan (Bar) */}
-                <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden md:col-span-2">
+                <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden">
                     <CardHeader className="p-4 pb-0">
                         <CardTitle className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Laba Bersih Bulanan</CardTitle>
                     </CardHeader>
