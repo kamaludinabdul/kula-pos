@@ -8,8 +8,77 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        version: "0.19.4",
+        date: "2026-03-06",
+        type: "patch",
+        title: "POS Empty State Fix",
+        changes: [
+            "POS: Fixed a bug where searching for a non-existent product resulted in a blank screen. The 'Empty State' message is now correctly displayed."
+        ]
+    },
+    {
+        version: "0.19.1",
+        date: "2026-03-05",
+        type: "patch",
+        title: "UI Standardization & Typography",
+        changes: [
+            "UI Standardization: Standardized component padding to a consistent `p-4` layout across multiple heavily-used pages including Dashboard, Purchase Orders, Settings, Transactions, and Reports.",
+            "Typography Consistency: Uniformly adjusted major page titles to `text-2xl` for a cleaner, unified header hierarchy.",
+            "Code Stability: Fixed HTML tag mismatches (e.g. invalid nested headings inside text spans) in the Product Form."
+        ]
+    },
+    {
+        version: "0.19.0",
+        date: "2026-03-03",
+        type: "major",
+        title: "Loyalty Program & Hybrid Pet Hotel Scheduling",
+        changes: [
+            "Loyalty Enhancement (Major): Implementasi penuh sistem poin dan kartu stamp digital.",
+            "Otomatisasi Poin: Poin dihitung otomatis setiap transaksi (Sale) dan dikurangi otomatis saat Refund/Void.",
+            "Kartu Stamp: Support kartu stamp per produk (misal: Grooming) dengan target dan reward yang dapat diatur.",
+            "Manajemen Staf: Sistem penjadwalan Pet Hotel hybrid (Pola Mingguan + Override Harian), memungkinkan pengaturan shift fleksibel per tanggal tanpa merusak template mingguan.",
+            "Stok Opname: Sinkronisasi otomatis dengan data FIFO (Batches). Stok fisik sekarang selalu selaras dengan jumlah total di tabel batches.",
+            "Peningkatan UX: Penambahan tombol 'Selesai' pada editor shift harian untuk merapikan tampilan setelah proses edit."
+        ]
+    },
+    {
+        version: "0.18.10",
+        date: "2026-02-28",
+        type: "patch",
+        title: "Smart Budget & Finance Fixes",
+        changes: [
+            "Smart Strategy: Introduced a dual-mode algorithm for 'Rekomendasi Belanja' (Shopping Recommendations). Manual budget input now aggressively maximizes spending to optimize transport layout, while the AI budget maintains a conservative 14-day stock approach.",
+            "Finance: Fixed a critical timezone casting bug (`::DATE`) in the Profit & Loss RPC (`get_profit_loss_report`) that caused phantom operational expenses from previous days to bleed into the current month's report."
+        ]
+    },
+    {
+        version: "0.18.9",
+        date: "2026-02-27",
+        type: "patch",
+        title: "Cash Flow Stability & Pagination Sync",
+        changes: [
+            "Finance: Replaced native `window.confirm` with custom `ConfirmDialog` in Cash Flow for better stability and UI consistency.",
+            "UI: Fixed calendar icon alignment in date and time inputs by removing `flex` display for those input types.",
+            "Stability: Standardized pagination reset logic across Stock Management, Transactions, Customers, and Purchase Orders to ensure the current page resets to 1 upon search or filter changes."
+        ]
+    },
+    {
+        version: "0.18.8",
+        date: "2026-02-27",
+        type: "patch",
+        title: "Global UI Rounding & Alignment",
+        changes: [
+            "UI Standardization: Unified component rounding to `rounded-[10px]` (10px) across the entire application.",
+            "Design System: Integrated rounding defaults into core `Button`, `Input`, and `Select` components for better maintainability.",
+            "Search Precision: Implemented standardized search styling with `pl-10` padding and precisely centered icons (`left-3.5`).",
+            "Alignment: Right-aligned `SmartDatePicker` in Shift and Expense reports for improved layout balance."
+        ]
+    },
+    {
         version: "0.18.7",
         date: "2026-02-27",
+        type: "patch",
+        title: "Margin Priority & Restock Urgency",
         changes: [
             "Shopping Recommendations: Added Margin-Priority scoring to prioritize high-profit items.",
             "Shopping Recommendations: Added urgency badges ('Kritis', 'Menipis') based on stock runway.",
