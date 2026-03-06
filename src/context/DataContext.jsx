@@ -2063,7 +2063,7 @@ export const DataProvider = ({ children }) => {
 
     // --- Advanced Stock Management (FIFO) ---
 
-    const addStockBatch = async (productId, qty, buyPrice, sellPrice, note = '') => {
+    const addStockBatch = async (productId, qty, buyPrice, sellPrice, note = '', expiredDate = null) => {
         if (!activeStoreId) return { success: false, error: 'No active store' };
         try {
             const { data, error } = await supabase.rpc('add_stock_batch', {
@@ -2072,7 +2072,8 @@ export const DataProvider = ({ children }) => {
                 p_qty: qty,
                 p_buy_price: buyPrice,
                 p_sell_price: sellPrice || 0,
-                p_note: note
+                p_note: note,
+                p_expired_date: expiredDate
             });
 
             if (error) throw error;
@@ -2096,19 +2097,66 @@ export const DataProvider = ({ children }) => {
             const newMovement = {
                 id: 'temp-' + Date.now(),
                 store_id: activeStoreId,
+                storeId: activeStoreId,
                 product_id: productId,
+                productId: productId,
                 type: 'in',
                 qty: qty,
                 date: new Date().toISOString(),
                 note: note || 'Stok Masuk (Batch)',
-                ref_id: batchId
+                ref_id: batchId,
+                refId: batchId
             };
             setStockMovements(prev => [newMovement, ...prev]);
 
             return { success: true };
         } catch (error) {
             console.error("Error adding stock batch:", error);
+            alert("DB Error in add_stock_batch: " + (error.message || JSON.stringify(error)));
             return { success: false, error: error.message };
+        }
+    };
+
+    const createInitialBatch = async (productId, qty, buyPrice, expiredDate) => {
+        if (!activeStoreId) return { success: false, error: 'No active store' };
+        try {
+            const { data, error } = await supabase.rpc('create_initial_batch', {
+                p_store_id: activeStoreId,
+                p_product_id: productId,
+                p_qty: qty,
+                p_buy_price: buyPrice,
+                p_expired_date: expiredDate
+            });
+
+            if (error) throw error;
+            if (data && data.success === false) throw new Error(data.error);
+
+            return { success: true, batch_id: data.batch_id };
+        } catch (error) {
+            console.error("Error creating initial batch:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const fetchActiveBatches = async (productId) => {
+        if (!activeStoreId) return [];
+        try {
+            const { data, error } = await supabase
+                .from('batches')
+                .select('*')
+                .eq('store_id', activeStoreId)
+                .eq('product_id', productId)
+                .gt('current_qty', 0)
+                .order('date', { ascending: true });
+
+            if (error) {
+                console.error("Error fetching active batches:", error);
+                return [];
+            }
+            return data || [];
+        } catch (error) {
+            console.error("Error fetching active batches:", error);
+            return [];
         }
     };
 
@@ -2633,6 +2681,7 @@ export const DataProvider = ({ children }) => {
             };
         } catch (error) {
             console.error("Error bulk updating stock:", error);
+            alert("DB Error in bulkUpdateStock: " + (error.message || JSON.stringify(error)));
             return { success: false, error: error.message };
         }
     };
@@ -2662,18 +2711,22 @@ export const DataProvider = ({ children }) => {
             const newMovement = {
                 id: 'temp-' + Date.now(),
                 store_id: activeStoreId,
+                storeId: activeStoreId,
                 product_id: productId,
+                productId: productId,
                 type: type,
                 qty: qtyChange,
                 date: new Date().toISOString(),
                 note: note || 'Manual Adjustment',
-                ref_id: null
+                ref_id: null,
+                refId: null
             };
             setStockMovements(prev => [newMovement, ...prev]);
 
             return { success: true };
         } catch (error) {
             console.error("Error adjusting stock:", error);
+            alert("DB Error in adjust_stock: " + (error.message || JSON.stringify(error)));
             return { success: false, error: error.message };
         }
     };
@@ -2704,12 +2757,15 @@ export const DataProvider = ({ children }) => {
             const newMovement = {
                 id: 'temp-' + Date.now(),
                 store_id: activeStoreId,
+                storeId: activeStoreId,
                 product_id: productId,
+                productId: productId,
                 type: 'out',
                 qty: -qty,
                 date: new Date().toISOString(),
                 note: note || 'Pengurangan Stok (FIFO)',
-                ref_id: null
+                ref_id: null,
+                refId: null
             };
             setStockMovements(prev => [newMovement, ...prev]);
 
@@ -2905,7 +2961,9 @@ export const DataProvider = ({ children }) => {
             updateCustomerStamps,
             adjustCustomerStamps,
             redeemStampCard,
+            fetchActiveBatches,
             addStockBatch,
+            createInitialBatch,
             bulkUpdateStock,
             adjustStock,
             reduceStockFIFO,

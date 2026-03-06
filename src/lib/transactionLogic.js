@@ -8,6 +8,7 @@ export const constructTransactionData = ({
     amountPaid,
     change,
     notes,
+    shiftId = null,
     pointsToRedeem = 0,
     pointsRedemptionValue = 0
 }) => {
@@ -58,6 +59,7 @@ export const constructTransactionData = ({
         change: change,
         status: 'completed',
         notes: notes || '',
+        shiftId: shiftId,
         pointsRedeemed: pointsToRedeem,
         pointsRedemptionValue: pointsRedemptionValue
     };

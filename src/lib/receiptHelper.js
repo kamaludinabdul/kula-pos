@@ -1,14 +1,19 @@
 import { formatDate } from './utils';
+import { prepareReceiptData } from './receiptLogic';
 
 export const generateReceiptHtml = (transaction, store) => {
     const isStandardPaper = store?.printerWidth === '80mm';
     const isContinuous = store?.printerWidth === 'continuous';
 
-    // Calculate totals
-    const subtotal = transaction.subtotal || transaction.total;
-    const tax = transaction.tax || 0;
-    const serviceCharge = transaction.serviceCharge || 0;
-    const finalTotal = transaction.total;
+    const {
+        totalQty,
+        subtotal,
+        tax,
+        serviceCharge,
+        finalTotal,
+        amountPaid,
+        change
+    } = prepareReceiptData(transaction, store);
 
     return `
         <html>
@@ -143,7 +148,7 @@ export const generateReceiptHtml = (transaction, store) => {
                     `}
                 </div>
                 <div style="border-top: 1px dashed #ccc; padding-top: 2px; margin-bottom: 2px; font-size: 0.9em; text-align: right;">
-                    Total Qty: ${transaction.items ? transaction.items.reduce((acc, item) => acc + Number(item.qty), 0) : 0}
+                    Total Qty: ${totalQty}
                 </div>
                 <div class="divider"></div>
 
@@ -176,12 +181,12 @@ export const generateReceiptHtml = (transaction, store) => {
                     </div>
                     <div class="total-row" style="margin-top: 2px;">
                         <span>${(transaction.paymentMethod || 'cash').toUpperCase()}</span>
-                        <span>Rp ${transaction.amountPaid ? Number(transaction.amountPaid).toLocaleString('id-ID') : finalTotal.toLocaleString('id-ID')}</span>
+                        <span>Rp ${amountPaid.toLocaleString('id-ID')}</span>
                     </div>
-                    ${transaction.change > 0 ? `
+                    ${change > 0 ? `
                     <div class="total-row">
                         <span>Kembalian</span>
-                        <span>Rp ${Number(transaction.change).toLocaleString('id-ID')}</span>
+                        <span>Rp ${change.toLocaleString('id-ID')}</span>
                     </div>
                     ` : ''}
                 </div>

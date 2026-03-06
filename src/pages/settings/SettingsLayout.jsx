@@ -3,12 +3,7 @@ import { Outlet } from 'react-router-dom';
 
 const SettingsLayout = () => {
     return (
-        <div className="p-6 space-y-6">
-            <header>
-                <h1 className="text-2xl font-bold text-slate-900">Pengaturan</h1>
-                <p className="text-muted-foreground mt-1">Kelola konfigurasi toko Anda.</p>
-            </header>
-
+        <div className="p-6">
             <main>
                 <Outlet />
             </main>

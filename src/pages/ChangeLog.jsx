@@ -8,725 +8,772 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
-        version: "0.19.4",
-        date: "2026-03-06",
-        type: "patch",
-        title: "POS Empty State Fix",
-        changes: [
-            "POS: Fixed a bug where searching for a non-existent product resulted in a blank screen. The 'Empty State' message is now correctly displayed."
+        "version": "0.19.5",
+        "date": "2026-03-06",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.19.5"
         ]
     },
     {
-        version: "0.19.1",
-        date: "2026-03-05",
-        type: "patch",
-        title: "UI Standardization & Typography",
-        changes: [
-            "UI Standardization: Standardized component padding to a consistent `p-4` layout across multiple heavily-used pages including Dashboard, Purchase Orders, Settings, Transactions, and Reports.",
-            "Typography Consistency: Uniformly adjusted major page titles to `text-2xl` for a cleaner, unified header hierarchy.",
-            "Code Stability: Fixed HTML tag mismatches (e.g. invalid nested headings inside text spans) in the Product Form."
+        "version": "0.19.5",
+        "date": "2026-03-07",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Expiry Management**:",
+            "**Testing**: Added comprehensive unit test suite for `utils`, `AI`, `permissions`, and `planLimits`.",
+            "**Dashboard Optimization**:",
+            "**Formatting**: Standardized `formatCompactNumber` to use Indonesian decimal separators (`,`) and suffixes (`rb`, `jt`).",
+            "**Finance**: Updated `get_profit_loss_report` and `get_owner_financial_summary` RPCs to support dual profit metrics and timezone-aware calculations."
         ]
     },
     {
-        version: "0.19.0",
-        date: "2026-03-03",
-        type: "major",
-        title: "Loyalty Program & Hybrid Pet Hotel Scheduling",
-        changes: [
-            "Loyalty Enhancement (Major): Implementasi penuh sistem poin dan kartu stamp digital.",
-            "Otomatisasi Poin: Poin dihitung otomatis setiap transaksi (Sale) dan dikurangi otomatis saat Refund/Void.",
-            "Kartu Stamp: Support kartu stamp per produk (misal: Grooming) dengan target dan reward yang dapat diatur.",
-            "Manajemen Staf: Sistem penjadwalan Pet Hotel hybrid (Pola Mingguan + Override Harian), memungkinkan pengaturan shift fleksibel per tanggal tanpa merusak template mingguan.",
-            "Stok Opname: Sinkronisasi otomatis dengan data FIFO (Batches). Stok fisik sekarang selalu selaras dengan jumlah total di tabel batches.",
-            "Peningkatan UX: Penambahan tombol 'Selesai' pada editor shift harian untuk merapikan tampilan setelah proses edit."
+        "version": "0.19.4",
+        "date": "2026-03-06",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**POS**: Fixed a bug where searching for a non-existent product resulted in a blank screen. The \"Empty State\" message is now correctly displayed."
         ]
     },
     {
-        version: "0.18.10",
-        date: "2026-02-28",
-        type: "patch",
-        title: "Smart Budget & Finance Fixes",
-        changes: [
-            "Smart Strategy: Introduced a dual-mode algorithm for 'Rekomendasi Belanja' (Shopping Recommendations). Manual budget input now aggressively maximizes spending to optimize transport layout, while the AI budget maintains a conservative 14-day stock approach.",
-            "Finance: Fixed a critical timezone casting bug (`::DATE`) in the Profit & Loss RPC (`get_profit_loss_report`) that caused phantom operational expenses from previous days to bleed into the current month's report."
+        "version": "0.19.3",
+        "date": "2026-03-05",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.19.3"
         ]
     },
     {
-        version: "0.18.9",
-        date: "2026-02-27",
-        type: "patch",
-        title: "Cash Flow Stability & Pagination Sync",
-        changes: [
-            "Finance: Replaced native `window.confirm` with custom `ConfirmDialog` in Cash Flow for better stability and UI consistency.",
-            "UI: Fixed calendar icon alignment in date and time inputs by removing `flex` display for those input types.",
-            "Stability: Standardized pagination reset logic across Stock Management, Transactions, Customers, and Purchase Orders to ensure the current page resets to 1 upon search or filter changes."
+        "version": "0.19.2",
+        "date": "2026-03-05",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.19.2"
         ]
     },
     {
-        version: "0.18.8",
-        date: "2026-02-27",
-        type: "patch",
-        title: "Global UI Rounding & Alignment",
-        changes: [
-            "UI Standardization: Unified component rounding to `rounded-[10px]` (10px) across the entire application.",
-            "Design System: Integrated rounding defaults into core `Button`, `Input`, and `Select` components for better maintainability.",
-            "Search Precision: Implemented standardized search styling with `pl-10` padding and precisely centered icons (`left-3.5`).",
-            "Alignment: Right-aligned `SmartDatePicker` in Shift and Expense reports for improved layout balance."
+        "version": "0.19.1",
+        "date": "2026-03-04",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.19.1"
         ]
     },
     {
-        version: "0.18.7",
-        date: "2026-02-27",
-        type: "patch",
-        title: "Margin Priority & Restock Urgency",
-        changes: [
-            "Shopping Recommendations: Added Margin-Priority scoring to prioritize high-profit items.",
-            "Shopping Recommendations: Added urgency badges ('Kritis', 'Menipis') based on stock runway.",
-            "Shopping Recommendations: Added Supplier Filter to generate recommendations for specific suppliers via PO history."
+        "version": "0.19.1",
+        "date": "2026-03-05",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**UI Standardization**: Standardized component padding to a consistent `p-4` layout across multiple heavily-used pages including Dashboard, Purchase Orders, Settings, Transactions, and Reports.",
+            "**Typography Consistency**: Uniformly adjusted major page titles to `text-2xl` for a cleaner, unified header hierarchy.",
+            "**Code Stability**: Fixed HTML tag mismatches (e.g. invalid nested headings inside text spans) in the Product Form.",
+            "Bumped version to 0.19.1"
         ]
     },
     {
-        version: "0.18.6",
-        date: "2026-02-26",
-        changes: [
-            "Shopping Recommendations: Improved algorithm to exclude 'Dead Stock' (items with no sales in the last 90 days).",
-            "Shopping Recommendations: Added stock sufficiency check — products with stock lasting >14 days are no longer recommended.",
-            "Restock AI: Fixed dead stock items being recommended back when they hit minimum stock threshold.",
-            "Purchase Order: Improved 'Below Min Stock' logic to only recommend items with actual sales history."
+        "version": "0.19.0",
+        "date": "2026-03-03",
+        "type": "minor",
+        "title": "Feature Release",
+        "changes": [
+            "**Loyalty Enhancement (Major)**: Implementasi penuh sistem poin dan kartu stamp digital.",
+            "**Manajemen Staf**: Sistem penjadwalan Pet Hotel hybrid (Pola Mingguan + Override Harian), memungkinkan pengaturan shift fleksibel per tanggal tanpa merusak template mingguan.",
+            "**Stok Opname**: Sinkronisasi otomatis dengan data FIFO (Batches). Stok fisik sekarang selalu selaras dengan jumlah total di tabel batches.",
+            "**UI/UX Stability**: Fix bug browser freeze di halaman POS akibat konflik dialog penagihan.",
+            "**Peningkatan UX**: Penambahan tombol \"Selesai\" pada editor shift harian untuk merapikan tampilan setelah proses edit.",
+            "Bumped version to 0.19.0"
         ]
     },
     {
-        version: "0.18.5",
-        date: "2026-02-26",
-        type: "patch",
-        title: "AI Recommendation & Dashboard Accuracy Fixes",
-        changes: [
-            "AI Recommendation: Fixed empty shopping list bug by explicitly fetching product data on page load.",
-            "Stability: Performed global audit and fixed missing product data fetching in Dashboard, Market Basket Analysis, and Profit & Loss pages.",
-            "Purchase Order: Fixed 'ReferenceError: DropdownMenu is not defined' due to missing imports.",
-            "Dashboard: Corrected chart labels from 'Laba Bersih' to 'Laba Kotor' (Gross Profit) to accurately reflect actual data calculations (Sales - COGS).",
-            "Dashboard: Added 'Laba Kotor' prefix to average daily profit chart for better metric clarity."
+        "version": "0.18.10",
+        "date": "2026-02-28",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Smart Strategy**: Introduced a dual-mode algorithm for \"Rekomendasi Belanja\" (Shopping Recommendations). Manual budget input now aggressively maximizes spending to optimize transport layout, while the AI budget maintains a conservative 14-day stock approach.",
+            "**Finance**: Fixed a critical timezone casting bug (`::DATE`) in the Profit & Loss RPC (`get_profit_loss_report`) that caused phantom operational expenses from previous days to bleed into the current month's report.",
+            "Bumped version to 0.18.10"
         ]
     },
     {
-        version: "0.18.2",
-        date: "2026-02-26",
-        type: "patch",
-        title: "Rental UI Refinement & Stability",
-        changes: [
-            "Rental Dashboard: Refined Note Save UI by moving the 'Save' button below the input field for better accessibility.",
-            "Stability: Fixed 'Too many re-renders' infinite loop in Rental Session Details Dialog by consistent null-check logic.",
-            "Rental: Added 'Catatan' (Notes) support for capturing extra info like Down Payments (DP) during sessions.",
-            "Store Management: Fixed Pet Hotel toggle persistence by correcting database columns and frontend mapping.",
-            "Stability: Resolved 400 errors during auto-downgrade by switching from upsert to update logic.",
-            "UI Polish: Fixed Select dropdown text alignment and moved checkmark indicators to the right for better visual balance."
+        "version": "0.18.9",
+        "date": "2026-02-27",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Finance**: Replaced native `window.confirm` with custom `ConfirmDialog` in Cash Flow for better stability and UI consistency.",
+            "**UI**: Fixed calendar icon alignment in date and time inputs by removing `flex` display for those input types.",
+            "**Stability**: Standardized pagination reset logic across Stock Management, Transactions, Customers, and Purchase Orders to ensure the current page resets to 1 upon search or filter changes.",
+            "Bumped version to 0.18.9"
         ]
     },
     {
-        version: "0.17.0",
-        date: "2026-02-24",
-        type: "minor",
-        title: "Rental Minutely & Pet Hotel Management",
-        changes: [
-            "Rental: Added 'Sewa Per Menit' (Minutely Pricing) support for precise duration-based billing (e.g., 30-minute intervals).",
-            "Pet Hotel: Centralized feature management — Superadmin can now enable/disable Pet Hotel features per store.",
-            "Pet Hotel: Restricted module and reports to Enterprise plan only, ensuring premium features are plan-locked.",
-            "UI System: Standardized Pet Hotel summary cards using InfoCard for design consistency across all reports.",
-            "Stability: Fixed a critical Sidebar crash issue where userPlan was undefined during logic filtering."
+        "version": "0.18.8",
+        "date": "2026-02-27",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**UI Standardization**: Unified component rounding to `rounded-[10px]` (10px) across the entire application.",
+            "**Design System**: Integrated rounding defaults into core `Button`, `Input`, and `Select` components for better maintainability.",
+            "**Search Precision**: Implemented standardized search styling with `pl-10` padding and precisely centered icons (`left-3.5`).",
+            "**Alignment**: Right-aligned `SmartDatePicker` in Shift and Expense reports for improved layout balance.",
+            "**Cleanup**: Removed redundant `rounded-full` and explicit styling overrides from Transactions, Products, Customers, Suppliers, and Report pages.",
+            "Bumped version to 0.18.8"
         ]
     },
     {
-        version: "0.16.18",
-        date: "2026-02-23",
-        type: "minor",
-        title: "AI Insights Persistence & UI Polish",
-        changes: [
-            "Smart Strategy: AI Insights are now saved to the database (ai_insights table), preventing constant re-triggering and quota limits.",
-            "Smart Strategy: Fixed '42P01: relation user_stores does not exist' by updating the Row Level Security (RLS) policy to correctly reference the profiles table.",
-            "Smart Strategy: Standardized formatting for 'Performa & Analisis AI' heading and text size to match the app's overall typography.",
-            "Sales Forecast: Redesigned the top summary cards to use the unified design system's InfoCard."
+        "version": "0.18.7",
+        "date": "2026-02-27",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Margin Priority**: Scoring now gives a boost to products with higher profit margins.",
+            "**Urgency Badges**: Visual indicators for items that are 'Kritis' (<3 days) or 'Menipis' (<7 days).",
+            "**Supplier Filter**: Users can now filter recommendations to specific suppliers based on purchase history."
         ]
     },
     {
-        version: "0.16.16",
-        date: "2026-02-22",
-        type: "patch",
-        title: "Profit Metrics Separation (Gross vs Net)",
-        changes: [
-            "Dashboard: Added 'Laba Kotor' (Gross Profit) card to both Store and Owner dashboards.",
-            "Dashboard: Fixed 'Laba Bersih' chart to accurately reflect Net Profit (after OPEX).",
-            "Reports: Refined Profit & Loss report to show both Gross and Net Profit summaries.",
-            "Database: Updated RPCs (get_dashboard_stats, get_owner_financial_summary, etc.) to calculate dual profit metrics."
+        "version": "0.18.6",
+        "date": "2026-02-26",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Algorithm Improvement**: Excluded dead stock (no sales in 90 days) from shopping recommendations.",
+            "**Stock Sufficiency**: Products with stock lasting >14 days are no longer recommended for restock.",
+            "**Restock AI**: Refined 'Below Min Stock' logic to prioritize items with active sales history.",
+            "Bumped version to 0.18.6"
         ]
     },
     {
-        version: "0.16.15",
-        date: "2026-02-22",
-        type: "patch",
-        title: "Report Label Accuracy",
-        changes: [
-            "Reports: Changed 'Laba Bersih' to 'Laba Kotor' (Gross Profit) in Profit & Loss report to accurately reflect Sales - COGS calculation.",
-            "Reports: Updated PDF export layout for Profit & Loss to use correct naming."
+        "version": "0.18.5",
+        "date": "2026-02-26",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**AI Recommendation**: Fixed empty shopping list bug by explicitly fetching product data on page load.",
+            "**Dashboard**: Corrected chart labels from 'Laba Bersih' to 'Laba Kotor' (Gross Profit) to reflect actual data.",
+            "**Purchase Order**: Fixed 'ReferenceError: DropdownMenu is not defined' due to missing imports.",
+            "**Stability**: Performed global audit and fixed missing product data fetching in Dashboard, Market Basket Analysis, and Profit & Loss pages.",
+            "Bumped version to 0.18.5"
         ]
     },
     {
-        version: "0.16.14",
-        date: "2026-02-22",
-        type: "patch",
-        title: "Dashboard Profit, OPEX Fixes & Scanner Stability",
-        changes: [
-            "Dashboard: Fixed 'Profit' calculation logic. Now accurately deducts total COGS and total OPEX from Sales.",
-            "Dashboard: Fixed OPEX charts in Owner and Store dashboards. 'Uang Keluar' for stock purchases (COGS) no longer inflates the OPEX chart.",
-            "Stock Management: Fixed 'Riwayat Stok' not loading. Recreated RPC with Security Definer to bypass restrictive RLS policies.",
-            "POS: Fixed Barcode Scanner duplicate input bug. Scanning a product while the search box is active now only adds 1 qty (prevented event bubbling)."
+        "version": "0.18.4",
+        "date": "2026-02-26",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.18.4"
         ]
     },
     {
-        version: "0.16.13",
-        date: "2026-02-20",
-        type: "patch",
-        title: "PWA Printer Settings Fix",
-        changes: [
-            "Settings: Fixed an issue where the Kasir (Cashier) account could not save the receipt's Header and Footer text locally in the PWA.",
-            "Database: Properly mapped receipt header and footer settings to correctly load from cloud backups when logged in."
+        "version": "0.18.4",
+        "date": "2026-02-26",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Telegram**: Added Customer Name to the transaction receipt template for better clarity.",
+            "**Telegram**: Included AI-generated shift analysis summaries in the shift closing notification messages.",
+            "**Stability**: Fixed a double-submission bug when opening or closing shifts that caused duplicate Telegram alerts.",
+            "**Smart Restock**: Resolved a mathematical error (`Infinity` budget) that occurred when the product recommendation list was empty.",
+            "Bumped version to 0.18.4"
         ]
     },
     {
-        version: "0.16.11",
-        date: "2026-02-20",
-        type: "patch",
-        title: "Staff Registration & Dashboard Timezone",
-        changes: [
-            "Dashboard: Fixed timezone mismatches causing empty charts or wrong days in Daily Sales and Financial Summaries.",
-            "Staff Management: Added strict validation requiring a password/PIN (min 6 chars) for new staff registration."
+        "version": "0.18.3",
+        "date": "2026-02-26",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Loyalty**: Fixed \"stuck\" history by bypassing transaction cache and fetching directly from Supabase for selected date ranges.",
+            "**Loyalty**: Improved point history display to include spendings (redemptions) and void reversals.",
+            "**Loyalty**: Enhanced transaction mapping in `DataContext` to support legacy point data formats.",
+            "**UI**: Added refresh button and loading indicators to Loyalty Points Report.",
+            "**Stability**: Fixed loyalty points reversal in `void_transaction` RPC to ensure total lifetime points are correctly adjusted.",
+            "Bumped version to 0.18.3"
         ]
     },
     {
-        version: "0.16.10",
-        date: "2026-02-18",
-        type: "patch",
-        title: "Land Profile UI Consistency",
-        changes: [
-            "Land Profile: Synchronized search and filter component styling with Land Availability section for consistency.",
-            "Land Profile: Fixed tabs layout to be properly positioned relative to the table container.",
-            "Code Quality: Cleaned up unused variables and imports in Dashboard and OwnerDashboard."
+        "version": "0.18.2",
+        "date": "2026-02-26",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Rental Dashboard**: Refined Note Save UI by moving the 'Save' button below the input field for better accessibility.",
+            "**Stability**: Fixed 'Too many re-renders' infinite loop in Rental Session Details Dialog by consistent null-check logic.",
+            "**Rental**: Added 'Catatan' (Notes) support for capturing extra info like Down Payments (DP) during sessions.",
+            "**Store Management**: Fixed Pet Hotel toggle persistence by correcting database columns and frontend mapping.",
+            "**Stability**: Resolved 400 errors during auto-downgrade by switching from upsert to update logic.",
+            "**UI Polish**: Fixed Select dropdown text alignment and moved checkmark indicators to the right for better visual balance.",
+            "Bumped version to 0.18.2"
         ]
     },
     {
-        version: "0.16.9",
-        date: "2026-02-17",
-        type: "patch",
-        title: "Sales Forecast & Maintenance",
-        changes: [
-            "Sales Forecast: Fixed zero prediction bug caused by timezone mismatch (UTC vs Local).",
-            "Maintenance: Fixed `npm run lint` hanging issue by optimizing ignore patterns.",
-            "Sysadmin: Installed `baseline-browser-mapping` for development."
+        "version": "0.18.1",
+        "date": "2026-02-26",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Rental**: Added 'Catatan' (Notes) support for capturing extra info like Down Payments (DP) during sessions.",
+            "**Rental Dashboard**: Added ability to edit notes/DP for active rental sessions directly from the details dialog.",
+            "**Rental Dashboard**: Synchronized search and filter UI styling with Transactions and Products pages for a unified design.",
+            "**Store Management**: Fixed Pet Hotel toggle persistence by correcting database columns and frontend mapping.",
+            "**Stability**: Resolved 400 errors during auto-downgrade by switching from upsert to update logic.",
+            "**UI Polish**: Fixed Select dropdown text alignment and moved checkmark indicators to the right for better visual balance.",
+            "**Products**: Fixed a bug where 'Stock Type' and 'Pricing Model' dropdowns would show incorrect values in Edit Mode.",
+            "Bumped version to 0.18.1"
         ]
     },
     {
-        version: "0.16.8",
-        date: "2026-02-16",
-        type: "patch",
-        title: "Printer Perfection & Staging Environment",
-        changes: [
-            "Printer: Optimized 'Safe Mode' image processing (360px) to prevent logo scrambling on various 58mm printers.",
-            "Printer: Implemented Dynamic Character Width (32 vs 48 chars) based on paper setting for perfect right-alignment.",
-            "Staging: Renamed PWA and HTML title to 'KULA POS (Staging)' for better environment distinction.",
-            "Stability: Fixed Web Bluetooth connection issues by enforcing Secure Context checks."
+        "version": "0.17.0",
+        "date": "2026-02-24",
+        "type": "minor",
+        "title": "Feature Release",
+        "changes": [
+            "Bumped version to 0.17.0"
         ]
     },
     {
-        version: "0.16.7",
-        date: "2026-02-16",
-        type: "patch",
-        title: "Mobile POS Payment & Stability Fixes",
-        changes: [
-            "Mobile POS: Fixed 'Bayar' button unresponsive and 'loyaltyPoints' crash — added defensive checks for guest transactions.",
-            "POS: Fixed critical crash in Desktop POS when processing transaction without selected customer.",
-            "Customer Segmentation: Added 'Include Name' toggle for custom greetings in Broadcast feature.",
-            "Code Quality: Resolved linting errors in Customer Segmentation module."
+        "version": "0.16.18",
+        "date": "2026-02-22",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.16.18"
         ]
     },
     {
-        version: "0.16.6",
-        date: "2026-02-16",
-        type: "patch",
-        title: "Stock Filtering & Bug Fixes",
-        changes: [
-            "Stock Management: Added Category Filter — kini bisa filter produk berdasarkan kategori di halaman stok.",
-            "Login History: Fixed empty history — menampilkan log login meskipun data store belum ter-load (null store_id).",
-            "Cash Flow: Fixed deletion bug — transaksi dari POS kini bisa dihapus dengan benar dari database.",
-            "Stability: Removed debug logs and fixed linting issues."
+        "version": "0.16.17",
+        "date": "2026-02-22",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.16.17"
         ]
     },
     {
-        version: "0.16.5",
-        date: "2026-02-14",
-        type: "patch",
-        title: "Printer Optimization & Shift Triggers",
-        changes: [
-            "Printer: Optimized Bluetooth printing — image chunking & logo centering support.",
-            "Shift: Added database triggers to auto-calculate shift totals (sales, cash, diff).",
-            "Code Quality: Fixed linter errors and removed unused references."
+        "version": "0.16.16",
+        "date": "2026-02-21",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.16.16"
         ]
     },
     {
-        version: "0.15.0",
-        date: "2026-02-10",
-        type: "minor",
-        title: "Dashboard Data Fix & Smart Date Picker",
-        changes: [
-            "Dashboard: Replaced dropdown date filter with SmartDatePicker — pilih tanggal bebas dengan shortcuts (Hari Ini, Kemarin, 7/30 Hari, Bulan Ini).",
-            "Dashboard: Fixed all empty stats cards — Total Penjualan, Rata-rata Order, Produk Terlaris, Transaksi Terakhir kini tampil dengan benar.",
-            "Dashboard: Added Penjualan per Kategori chart — query baru kalkulasi sales per kategori dari item transaksi.",
-            "Database: Fixed duplicate RPC function signatures yang menyebabkan HTTP 300 'Multiple Choices' error.",
-            "Database: Fixed NanoID product ID compatibility — menggunakan TEXT comparison alih-alih UUID cast di query kategori.",
-            "Database: Relaxed transaction status filter — kini include NULL, 'completed', 'success', dan 'paid'.",
-            "Security: Rebuilt semua RLS policies dan RPC functions dengan SECURITY DEFINER yang benar.",
-            "Stability: Fixed get_my_store_id() dan get_store_initial_snapshot() untuk memastikan data selalu accessible."
+        "version": "0.16.15",
+        "date": "2026-02-21",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.16.15"
         ]
     },
     {
-        version: "0.14.0",
-        date: "2026-02-08",
-        type: "minor",
-        title: "Version Management & Dashboard Charts Fix",
-        changes: [
-            "Version: Centralized version management ke src/version.js — semua komponen baca dari satu sumber.",
-            "Dashboard Charts: Fixed monthly charts kosong — menggunakan RPC get_dashboard_monthly_summary dengan SECURITY DEFINER untuk bypass RLS.",
-            "Cash Flow: Fixed tanggal Rekap Penjualan yang rusak akibat fitur 'Perbaiki Tanggal' — script repair untuk restore tanggal dari deskripsi.",
-            "POS: Fixed process_sale RPC error — standardisasi camelCase parameter antara frontend dan database."
+        "version": "0.16.14",
+        "date": "2026-02-21",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.16.14"
         ]
     },
     {
-        version: "0.13.5",
-        date: "2026-02-06",
-        type: "patch",
-        title: "POS Quick Add Customer & Release Tooling",
-        changes: [
-            "POS: Quick Add Customer — tambah pelanggan baru langsung dari halaman kasir tanpa berpindah menu.",
-            "Tooling: Standardized release script (scripts/release.cjs) untuk otomasi version bump.",
-            "Discount: Fixed item-level discount persistence — diskon kini tersimpan dan tampil di receipt, laporan, dan cash flow."
+        "version": "0.16.13",
+        "date": "2026-02-21",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.16.13"
         ]
     },
     {
-        version: "0.13.3",
-        date: "2026-02-03",
-        type: "patch",
-        title: "Scanner Auto-Add & PWA Orientation",
-        changes: [
-            "Scanner: Auto-add product ke cart setelah scan barcode — tidak perlu klik manual lagi.",
-            "PWA: Fixed orientation issue — landscape mode kini bekerja dengan benar di tablet.",
-            "Receipt: Breakdown item discounts secara eksplisit di struk thermal.",
-            "Unit Tests: Added integration tests untuk proses transaksi (processSale)."
+        "version": "0.16.12",
+        "date": "2026-02-20",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.16.12"
         ]
     },
     {
-        version: "0.13.2",
-        date: "2026-02-02",
-        type: "patch",
-        title: "Staff Onboarding & Critical Fixes",
-        changes: [
-            "Staff Onboarding: Added secure Edge Function to bypass email confirmation, allowing immediate staff login.",
-            "POS: Added manual Refresh Button to reload product data instantly.",
-            "Profit Report: Fixed 'Laba' column calculation (snake_case mismatch resolution).",
-            "Stability: Enhanced duplicate barcode validation with direct database checks."
+        "version": "0.16.11",
+        "date": "2026-02-20",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.16.11"
         ]
     },
     {
-        version: "0.13.1",
-        date: "2026-01-31",
-        type: "patch",
-        title: "Refresh Controls & Stability Fixes",
-        changes: [
-            "UI Enhancements: Added manual 'Refresh' buttons to Transactions, Rental, Products, and Report pages.",
-            "Subscription: Added 'Subscription History' and 'Rejection Reason' features.",
-            "Stability: Fixed critical Transaction page crash and re-upload logic for payment proofs.",
-            "Code Quality: Resolved linting errors across the codebase."
+        "version": "0.16.10",
+        "date": "2026-02-17",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.16.10"
         ]
     },
     {
-        version: "0.13.0",
-        date: "2026-01-30",
-        type: "minor",
-        title: "Standardized UI & Visual Consistency",
-        changes: [
-            "Experience: Standardized 'Stats Cards' across the entire application using a unified design.",
-            "Visuals: Updated all Table and Status components with modern subtle badges.",
-            "Transactions: Refactored transaction summary stats.",
-            "Login History: Enhanced readability with role-based coloring (Owner, Admin, Staff).",
-            "Reports: Optimized stats layout in Category Sales report."
+        "version": "0.16.9",
+        "date": "2026-02-17",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.16.9"
         ]
     },
     {
-        version: "0.12.0",
-        date: "2026-01-30",
-        type: "minor",
-        title: "Multi-Store Architecture & Security Hardening",
-        changes: [
-            "Multi-Store: Implemented Per-Owner Subscription model and global Store Branching logic.",
-            "Owner Dashboard: Added comprehensive dashboard for store owners with aggregated financial summaries, daily sales charts, and low stock alerts.",
-            "Security: Hardened transactions with process_sale stock protection.",
-            "Security: Implemented staff email conflict checks to prevent account hijacking.",
-            "Sync: Automatic plan synchronization from owner profile to all managed stores."
+        "version": "0.16.8",
+        "date": "2026-02-16",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.16.8"
         ]
     },
     {
-        version: "0.11.1",
-        date: "2026-01-28",
-        type: "patch",
-        title: "Subscription Approval Workflow",
-        changes: [
-            "Subscription: Added 'Approval Langganan' page for Super Admin to review and approve PRO/Enterprise subscriptions.",
-            "Subscription: Enabled Direct Checkout for Enterprise Plan.",
-            "Security: Implemented Signed URLs for secure viewing of private payment proof files."
+        "version": "0.16.7",
+        "date": "2026-02-16",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.16.7"
         ]
     },
     {
-        version: "0.11.0",
-        date: "2026-01-28",
-        type: "minor",
-        title: "UI/UX Overhaul with shadcn/ui",
-        changes: [
-            "UI/UX Overhaul: Refactored 7 major pages to use modern shadcn/ui components.",
-            "Design: Implemented a consistent, modern, mobile-first design system.",
-            "Codebase: Large-scale cleanup of legacy CSS files in favor of Tailwind CSS."
+        "version": "0.16.6",
+        "date": "2026-02-15",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.16.6"
         ]
     },
     {
-        version: "0.10.0",
-        date: "2026-01-27",
-        type: "minor",
-        title: "Mobile UI Premium Optimization & AI Refinement",
-        changes: [
-            "POS: Overhauled POS Header for ultra-responsive mobile experience.",
-            "POS: Implemented 'Focus-Switch' logic for better small-screen usability.",
-            "Purchase Order: Refined 'Restock AI' calculations and UI.",
-            "Stability: Fixed multiple critical reference errors across Dashboard and PO Form."
+        "version": "0.16.1",
+        "date": "2026-02-15",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.16.1"
         ]
     },
     {
-        version: "0.9.0",
-        date: "2026-01-27",
-        type: "feature",
-        title: "Wholesale Strategy & Advanced Resilience",
-        changes: [
-            "Wholesale: Added 'Wholesale/Grosir Bertingkat' (Strategy B) with threshold-based pricing.",
-            "Rental: Added Overtime Penalty (Denda) for Daily service products.",
-            "Universal Strategy: Bundling and Wholesale strategies now support all product types.",
-            "Persistence: Implemented 'API-First' strategy in supabaseHelper.js to bypass SDK connection issues.",
-            "Resilience: Enhanced robustFetch with intelligent retries for network stability."
+        "version": "0.16.0",
+        "date": "2026-02-12",
+        "type": "minor",
+        "title": "Feature Release",
+        "changes": [
+            "Bumped version to 0.16.0"
         ]
     },
     {
-        version: "0.8.20",
-        date: "2026-01-24",
-        type: "minor",
-        title: "Rental Dashboard & F&B Menu UX Improvements",
-        changes: [
-            "Rental: Replaced browser 'confirm' with custom confirmation popup for unit deletion.",
-            "Rental: Fixed z-index layering and focus trap issues in management dialogs.",
-            "Rental: Added automatic UI refresh after unit addition/deletion.",
-            "F&B Menu: Implemented server-side search in ProductSelectorDialog to bypass pagination limits.",
-            "F&B Menu: Auto-load default items on dialog open for immediate browsing.",
-            "F&B Menu: Optimized loading states to reduce UI flickering.",
-            "Stability: Fixed 500 parse errors and build syntax issues in RentalDashboard.jsx.",
-            "Cleanup: Resolved linting errors (unused vars, missing dependencies) across critical files."
+        "version": "0.15.0",
+        "date": "2026-02-10",
+        "type": "minor",
+        "title": "Feature Release",
+        "changes": [
+            "Bumped version to 0.15.0"
         ]
     },
     {
-        version: "0.8.14",
-        date: "2026-01-08",
-        type: "feature",
-        title: "Super Admin Plan & Features Management",
-        changes: [
-            "Management: Dedicated page for Super Admin to manage subscription plan details.",
-            "Dynamic Features: Configure feature access (Reports, Staff, Settings, Advanced) per plan level.",
-            "Dynamic Pricing: Update monthly and 'original' prices directly from the UI.",
-            "Firestore Sync: All plan and feature configurations are stored in system settings and applied globally.",
-            "Sidebar & Routing: Dynamic access checks for menu items and routes based on current store plan settings."
+        "version": "0.14.0",
+        "date": "2026-02-09",
+        "type": "minor",
+        "title": "Feature Release",
+        "changes": [
+            "Bumped version to 0.14.0"
         ]
     },
     {
-        version: "0.8.13",
-        date: "2026-01-08",
-        type: "patch",
-        title: "Unlimited Stock & Rental Discount",
-        changes: [
-            "Unlimited Stock: Fixed display across POS, Products, Stock Management, and LowStockAlert.",
-            "POS: Unlimited stock products now show '∞' badge (blue) and are clickable.",
-            "Products: Unlimited stock shows 'Unlimited' status with distinct blue color.",
-            "Stock Management: Sorting now correctly handles unlimited stock products.",
-            "Rental: Added discount feature at checkout (percent or fixed amount).",
-            "Rental: Discount is now saved to transaction and displayed on receipt.",
-            "Reports: Verified discount integration across P&L, Transactions, and Cash Flow."
+        "version": "0.13.5",
+        "date": "2026-02-08",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.13.5"
         ]
     },
     {
-        version: "0.8.12",
-        date: "2026-01-08",
-        type: "patch",
-        title: "Fix Rental Mode Visibility",
-        changes: [
-            "Fixed 'Rental' menu appearing in sidebar even when disabled in settings.",
-            "Ensured proper Store Setting check for all top-level menu items."
+        "version": "0.13.4",
+        "date": "2026-02-08",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**POS**: Added \"Quick Add Customer\" button (+) in the cart panel. Allows creating new customers directly without leaving the transaction screen."
         ]
     },
     {
-        version: "0.8.11",
-        date: "2026-01-08",
-        type: "patch",
-        title: "Rental Turnover & UI Fixes",
-        changes: [
-            "Turnover: Fixed reporting to include rental transactions with missing/legacy statuses.",
-            "Rental: Added 'completed' status to new rental transactions for better tracking.",
-            "UI: Improved Rental Card layout to prevent 'Total Tagihan' truncation.",
-            "UI: Added visual distinction between Members (Indigo) and Guests (Gray) in Rental Cards.",
-            "Code: General linting fixes and performance improvements."
+        "version": "0.13.3",
+        "date": "2026-02-08",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Scanner**: Enhanced Barcode Scanner integration. Fast input ending with \"Enter\" (typical scanner behavior) now automatically triggers \"Add to Cart\" and clears the search field, even if the search bar is not focused.",
+            "**PWA**: Fixed PWA Orientation lock. The application now supports auto-rotation (Portrait/Landscape) on mobile devices."
         ]
     },
     {
-        version: "0.8.7",
-        date: "2026-01-05",
-        type: "patch",
-        title: "Report Accuracy & Void Transaction Fixes",
-        changes: [
-            "Fixed Shift Closing: Total Penjualan, Tunai Diterima, and Payment Method breakdown now correctly exclude voided/refunded transactions.",
-            "Fixed Category Sales Report: Now excludes voided/refunded transactions from calculations.",
-            "Fixed Top Selling Products Report: Now excludes voided/refunded transactions from rankings.",
-            "Fixed Sales Forecast: Predictions now exclude voided/refunded transactions for more accurate forecasting.",
-            "Fixed Product Page Access: Restored access for admins with missing 'products.manage' permission."
+        "version": "0.13.2",
+        "date": "2026-02-03",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Receipt Discount**: Corrected logic in POS and Receipt to accurately display item-level discounts, fixing discrepancies between screen and print.",
+            "**Lint**: Resolved various unused variable and import linting errors.",
+            "**Codebase**: Refactored POS transaction logic into `src/lib/transactionLogic.js` and receipt generation into `src/lib/receiptHelper.js` for better maintainability.",
+            "**Testing**: Added comprehensive unit tests for transaction calculation and receipt HTML generation (100+ tests passing)."
         ]
     },
     {
-        version: "0.7.0",
-        date: "2025-12-24",
-        type: "minor",
-        title: "Purchase Order, Stock Opname & Notifications",
-        changes: [
-            "Purchase Order: Added Bidirectional Unit Conversion (e.g., Box <-> Pcs) and Smart Supplier Price History.",
-            "Stock Opname: Full stock reconciliation feature with difference analysis (Unit & Value) and history.",
-            "Telegram Integration: Real-time notifications for Shift (Open/Close), Transactions, and Low Stock alerts.",
-            "Performance: Optimized product image compression (reduced size by ~40%) and cleaned up unused code."
+        "version": "0.13.2",
+        "date": "2026-02-02",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Staff Onboarding**: Implemented secure Supabase Edge Function (`create-user`) to allow adding new staff without requiring email confirmation. Staff can now login immediately with Email or Username.",
+            "**POS**: Added manual **Refresh Button** to POS Header (Desktop & Mobile) to reload product data without refreshing the page.",
+            "**Profit Report**: Fixed \"Laba\" column calculation in Profit/Loss report. It was incorrectly showing Total Sales due to a case-sensitivity issue (`buy_price` vs `buyPrice`).",
+            "**Barcode Validation**: Strengthened duplicate barcode check in Product Form to directly query the database, preventing duplicates even if the local product list wasn't fully loaded."
         ]
     },
     {
-        version: "0.6.0",
-        date: "2025-12-20",
-        type: "minor",
-        title: "Real-time Data, Alerts & Professional Reporting",
-        changes: [
-            "Dashboard: 'New Customers' metric now calculates real data based on the selected date range.",
-            "POS: Added Proactive Low Stock Alert (Stock <= Min Stock) when adding items to cart.",
-            "Reports: Enhanced 'Profit & Loss' and 'Transactions' with professional PDF export (jspdf-autotable).",
-            "Performance: Implemented Route-based Code Splitting (React.lazy) for faster initial load.",
-            "Stability: Fixed multiple lint errors and removed unused legacy variables."
+        "version": "0.13.1",
+        "date": "2026-01-31",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**UI Enhancements**: Added manual \"Refresh\" buttons to Transactions, Rental Dashboard, Products, Login History, Cash Flow, and all Report/Insight pages to allow data reloading without refreshing the browser.",
+            "**Subscription**: Added \"Subscription History\" table in Settings to view past invoices and status.",
+            "**Subscription**: Added \"Rejection Reason\" dialog for admins to provide feedback when rejecting payment proofs.",
+            "**Transactions**: Fixed critical `ReferenceError` crash and regained standard functionality.",
+            "**Subscription**: Fixed issue where re-uploaded payment proofs did not correctly update invoice status to \"Pending\" (Implemented remote `reupload_payment_proof` RPC).",
+            "**Code Quality**: Resolved multiple linting errors across the codebase."
         ]
     },
     {
-        version: "0.5.0",
-        date: "2025-12-20",
-        type: "minor",
-        title: "Daily Book Closing & Summary Cards",
-        changes: [
-            "Transactions: Added 'Tutup Buku Harian' to aggregate daily sales into Cash Flow.",
-            "Transactions: Added Real-time Summary Cards (Sales, COGS, Gross Profit).",
-            "UI: Replaced browser alerts with custom AlertDialog components."
+        "version": "0.13.0",
+        "date": "2026-01-30",
+        "type": "minor",
+        "title": "Feature Release",
+        "changes": [
+            "**UI Design System**: Standardized \"Stats Cards\" across the entire application using a unified `InfoCard` component (Transactions, Login History, Category Sales, etc.).",
+            "**Visual Consistency**: updated all Table and Status components to use new `Badge` variants (`success-subtle`, `warning-subtle`, etc.) for a modern, clean look.",
+            "**Transactions Page**: Refactored transaction summary stats to match the new design system.",
+            "**Login History**: Enhanced readability with role-based coloring (Owner, Admin, Staff) and improved mobile view.",
+            "**Category Sales**: Optimized layout by positioning stats cards below the header for better hierarchy."
         ]
     },
     {
-        version: "0.4.3",
-        date: "2025-12-12",
-        type: "patch",
-        title: "Thermal Printer & ID Enhancements",
-        changes: [
-            "Fixed receipt printing: Logo now prints correctly on thermal receipts.",
-            "Optimized receipt layout: Reduced top and bottom margins for paper saving.",
-            "Visual Sync: Synced thermal print content with screen preview (Discounts, Service Charge, Points).",
-            "Improved Transaction IDs: Switched to Numeric Timestamp format (e.g., #251212...) for better readability and searchability.",
-            "Fixed Printing Bugs: Resolved 'undefined slice' crash and '#000000' ID issue on receipts.",
-            "Enhanced Transaction History: 'Cetak' button now auto-connects to Bluetooth printer if disconnected.",
-            "Stability: Fixed '500 Internal Server Error' and 'ReferenceError' crashes."
+        "version": "0.12.0",
+        "date": "2026-01-30",
+        "type": "minor",
+        "title": "Feature Release",
+        "changes": [
+            "**Multi-Store**: Implemented Per-Owner Subscription model and global Store Branching logic.",
+            "**Owner Dashboard**: Added comprehensive dashboard for store owners with aggregated financial summaries, daily sales charts (hourly/daily), and cross-store low stock alerts.",
+            "**Database (RPC)**: Added `get_owner_dashboard_stats`, `get_owner_low_stock_alerts`, `get_owner_financial_summary`, and `get_owner_daily_sales` to support multi-store analytics.",
+            "**Security**: Hardened transactions with `process_sale` stock protection and implemented staff email conflict checks to prevent account hijacking.",
+            "**Registration**: Fixed critical error in `handle_new_user` trigger that blocked staff registration.",
+            "**Permissions (RLS)**: Fixed Row Level Security policies to allow Owners to correctly view and manage their staff across all branch stores.",
+            "**Sync**: Implemented automatic plan synchronization from owner profile to all managed stores."
         ]
     },
     {
-        version: "0.4.0",
-        date: "2025-12-06",
-        type: "minor",
-        title: "Loyalty Points Enhancement",
-        changes: [
-            "Added Manual Point Adjustment: Admin can manually add or deduct customer loyalty points with mandatory reason for audit trail.",
-            "Added Point Adjustment History: View complete history of all point adjustments with date, type, amount, reason, and performer details.",
-            "Added Point Expiry Settings: Set expiry date for automatic point reset with last reset date tracking.",
-            "Added Lifetime Points Tracking: Separate columns for 'Total Poin Sepanjang Masa' (cumulative from transactions) and 'Poin Saat Ini' (current balance after adjustments).",
-            "Enhanced Leaderboard: Added 'Sesuaikan' button for point adjustment and 'History' button to view adjustment logs per customer.",
-            "Improved Backward Compatibility: Handles both old 'points' and new 'loyaltyPoints' fields for existing customers.",
-            "Added Firestore Index: Composite index for efficient point adjustment history queries.",
-            "Fixed UI Refresh: Leaderboard now updates immediately after point adjustments.",
-            "Added Audit Trail: All point adjustments are logged with immutable records for compliance and tracking."
+        "version": "0.11.1",
+        "date": "2026-01-28",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Subscription**: Added \"Approval Langganan\" page for Super Admin to review and approve PRO/Enterprise subscriptions.",
+            "**Subscription**: Enabled Direct Checkout for Enterprise Plan (previously required WhatsApp contact).",
+            "**Settings**: Added 1MB max file size limit for payment proof uploads to ensure performance.",
+            "**Security**: Implemented Signed URLs for secure viewing of private payment proof files."
         ]
     },
     {
-        version: "0.3.1",
-        date: "2025-12-03",
-        type: "minor",
-        title: "Transaction & Shift Management Enhancements",
-        changes: [
-            "Added dedicated Transactions page with filtering and void functionality.",
-            "Enhanced POS Shift Management: Added Open/Close Shift buttons, shift summary, and admin terminate capability.",
-            "Implemented Debt Payment: Customers can now pay off debts directly from their transaction history.",
-            "Improved Transaction Saving: Fixed issues with service items and stock validation.",
-            "Added Category Sorting: Products table now supports sorting by category.",
-            "Updated Firestore Rules: Optimized permissions for smoother transaction and shift operations.",
-            "Fixed Bulk Import: Resolved issues with category handling during product import."
+        "version": "0.11.0",
+        "date": "2026-01-28",
+        "type": "minor",
+        "title": "Feature Release",
+        "changes": [
+            "**UI/UX Overhaul**: Successfully refactored 7 major pages (Dashboard, Products, Stores, Categories, Staff, Settings, Login) to use **shadcn/ui** components and Tailwind CSS.",
+            "**Design**: Implemented a consistent, modern, mobile-first design system with professional card-based layouts and dark mode readiness.",
+            "**Components**: Added reusable `dialog.jsx` and `textarea.jsx` components.",
+            "**Codebase**: Removed legacy CSS files (`Dashboard.css`, `Products.css`, etc.) in favor of utility classes."
         ]
     },
     {
-        version: "0.3.0",
-        date: "2025-12-01",
-        type: "major",
-        title: "Major Security & Import Update",
-        changes: [
-            "Migrated Authentication System: Fully integrated with Firebase Authentication for enhanced security.",
-            "Refined Security Rules: Comprehensive Firestore rules for all collections (Users, Stores, Products, etc.).",
-            "Added Excel Import Support: Import products using .xlsx files with auto-mapping.",
-            "Added Template Download: Downloadable Excel template for product import.",
-            "Fixed Permission Errors: Resolved 'Missing or insufficient permissions' across various modules.",
-            "Updated WhatsApp Integration: Direct WhatsApp link for plan upgrades."
+        "version": "0.10.0",
+        "date": "2026-01-27",
+        "type": "minor",
+        "title": "Feature Release",
+        "changes": [
+            "**Shopping Recommendations**: Added premium AI/Excel configuration modal with responsive padding and optimized layouts.",
+            "**Purchase Order**: Re-enabled and refined **Restock AI** (AI Sales Analysis) suggestions UI and logic.",
+            "**Mobile UI**: Enhanced \"Shopping Recommendations\" header with wrapping buttons and full-width mobile actions.",
+            "**Mobile UI**: Optimized Purchase Order Form for smaller screens, including responsive item cards and full-width action buttons.",
+            "**Mobile POS**: Improved haptic feedback and interaction flow.",
+            "**Layout**: Applied consistent `px-6` padding to configuration modals for better visual balance.",
+            "**Stability**: Fixed 10+ critical lint errors and reference errors (`addToCart`, `Icon`, etc.) in `Dashboard.jsx`, `MobilePOS.jsx`, and `PurchaseOrderForm.jsx`.",
+            "**UI Bug**: Fixed button cut-off issues on mobile across multiple screens."
         ]
     },
     {
-        version: "0.2.9",
-        date: "2025-12-01",
-        type: "patch",
-        title: "Bug Fixes & Cleanup",
-        changes: [
-            "Fixed initialization errors in Shift Report and Stock Opname.",
-            "Removed unused Rentals feature to reduce bundle size.",
-            "Added pending checkout state for discount PIN authorization.",
-            "Fixed date parsing error in Sales Forecast.",
-            "General code cleanup and conflict resolution."
+        "version": "0.9.0",
+        "date": "2026-01-27",
+        "type": "minor",
+        "title": "Feature Release",
+        "changes": [
+            "**Wholesale Price**: Added Strategy B (Wholesale/Grosir Bertingkat). Uses threshold replacement logic (e.g. qty >= 10, price becomes Rp 8.000 for all items).",
+            "**Rental Penalty**: Added Overtime Penalty (Denda) for Daily service products.",
+            "**Universal Strategy**: Both Bundling and Wholesale strategies are now available for all product types (Retail & Service/Rental).",
+            "**Stability**: Implemented \"API-First\" strategy in `supabaseHelper.js` to bypass SDK connection issues.",
+            "**Resilience**: Enhanced `robustFetch` to retry on common network errors (Failed to fetch, Timeout).",
+            "**UI UX**: Improved `ProductForm` labels for tiered pricing (Minimal Qty & Harga Grosir).",
+            "**Persistence**: Fixed `is_wholesale` field not saving in `DataContext`.",
+            "**UI Bug**: Fixed strategy selector hidden in Edit mode due to `pricingType` mismatch.",
+            "**Linting**: Fixed 8 critical lint errors in `RentalDashboard.jsx` and `GeneralSettings.jsx`."
         ]
     },
     {
-        version: "0.2.8",
-        date: "2025-12-01",
-        type: "patch",
-        title: "Deployment & Cache Fixes",
-        changes: [
-            "Bumped version to ensure fresh deployment.",
-            "Verified PWA auto-update configuration.",
-            "Minor UI adjustments."
+        "version": "0.8.19",
+        "date": "2026-01-24",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Linting**: Fixed 12 lint errors across multiple files including `DataContext.jsx`, `CategorySales.jsx`, `Dashboard.jsx`, and others.",
+            "**Data Cleanup**: Removed unused `supabase` imports and resolved undefined `error` variables."
         ]
     },
     {
-        version: "0.2.7",
-        date: "2025-11-30",
-        type: "patch",
-        title: "Stability & Feature Control Updates",
-        changes: [
-            "Fixed Super Admin login crash by handling missing store context safely.",
-            "Implemented conditional visibility for 'Sales' menu based on store settings.",
-            "Optimized Telegram Settings page to prevent unnecessary re-renders.",
-            "Code cleanup and linting fixes for better stability."
+        "version": "0.8.18",
+        "date": "2026-01-19",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Unit Tests**: Added comprehensive unit tests for `smartCashier.js` (13 tests) and `dataCleanup.js` (5 tests). Total tests: 87.",
+            "**SQL Scripts**: Added `fix-profile-timeout.sql` to fix profile query timeout issues.",
+            "**SQL Scripts**: Added `add-logo-column.sql` to add missing logo column to stores table.",
+            "**RPC Functions**: Fixed `get_product_sales_report` to handle both `buyPrice` (camelCase) and `buy_price` (snake_case) in transaction items JSON.",
+            "**Profile Query Timeout**: Fixed 25+ second profile fetch timeout caused by complex RLS policies with recursive subqueries. Replaced with simple `USING(true)` policies.",
+            "**Sidebar**: Fixed icon alignment in collapsed state (icons were not properly centered).",
+            "**Store Logo**: Fixed logo not persisting after upload - added `logo` field mapping in `updateStore` function in `DataContext.jsx`.",
+            "**Store Logo**: Added `logo`, `latitude`, `longitude`, and `email` fields to store update mapping.",
+            "**Store Settings**: Added `printerPaperSize` field mapping from database to frontend.",
+            "**Receipt**: Fixed store logo not appearing in receipts by adding `logo` field mapping in `fetchStores`."
         ]
     },
     {
-        version: "0.2.2",
-        date: "2025-11-30",
-        type: "patch",
-        title: "Performance Optimization & Security Enhancements",
-        changes: [
-            "Enhanced Profit & Loss Report: Added transaction status column and ability to cancel transactions directly from the report.",
-            "Added 'CANCELLED' watermark to receipts for voided transactions.",
-            "Added Cancel Transaction feature: Admins can now void transactions with mandatory reason input.",
-            "Implemented automatic stock reversal for cancelled transactions.",
-            "Optimized Database Usage: Implemented Optimistic UI updates to significantly reduce Firestore reads and prevent quota limits.",
-            "Enhanced Security: Migrated from PIN to Password system for stronger account security.",
-            "Improved UX: Added Show/Hide Password toggle on Login and Staff Management forms.",
-            "Refined Stock Management: Added comprehensive sorting, sticky columns, and fixed image sizing.",
-            "Fixed various bugs in pagination and data fetching logic."
+        "version": "0.8.17",
+        "date": "2026-01-08",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Purchase Order**: Added \"Duplicate PO\" (Duplikat) button. Clones items and notes to a new draft, resetting the supplier.",
+            "**Purchase Order**: Added \"PDF Without Price\" (PDF Tanpa Harga) option in a dropdown menu. Allows hiding price columns/totals for supplier copies."
         ]
     },
     {
-        version: "0.2.1",
-        date: "2025-11-30",
-        type: "minor",
-        title: "FIFO Inventory System & POS Refinements",
-        changes: [
-            "Implemented FIFO (First-In-First-Out) inventory system for accurate COGS calculation",
-            "Added Batch Tracking for all stock movements (Manual Add, Bulk Import, Stock Management)",
-            "Refined POS Product Grid: Fixed card heights, 4:3 image ratio, and consistent category chips",
-            "Enhanced Stock Management: Added sorting, search by barcode/code, and history view",
-            "Improved Product Form: Disabled stock editing (must use Stock Management) and added informative notes",
-            "Fixed various bugs in product filtering and stock reduction logic",
-            "Added PWA Support: Installable on devices and basic Offline Mode",
-            "Enabled Firestore Offline Persistence for reliable offline transactions",
-            "Enhanced Shift Management: Petty Cash (In/Out), Payment Method Breakdown, and Detailed Shift Report",
-            "Added Detailed Shift View: View list of transactions and cash movements per shift",
-            "Enhanced Shift Closing: Input for Non-Cash verification and detailed Telegram report (Expenses & Deposits)",
-            "Added Expense Report: View and export detailed expense reports by date range",
-            "Added Top Selling Products Report: View best-selling products with ranking and revenue analysis",
-            "Added Customer Transaction History: View complete purchase history per customer",
-            "Added Low Stock Alert: Automatic alerts on Dashboard for products running low or out of stock",
-            "Added PDF Export: Export reports to PDF format (Expense, Top Selling Products, and more)",
-            "Added Stock Opname: Physical stock counting with system comparison and automatic adjustment",
-            "Added Login History Tracking: Track all login/logout activities with detailed logs",
-            "Added User Status Indicator: Real-time online/offline status for staff members",
-            "Enhanced Stock Opname: Added history/report view, value difference in Rupiah, and quick adjustment actions",
-            "Fixed Login History: Simplified query to avoid Firestore composite index requirement"
+        "version": "0.8.16",
+        "date": "2026-01-08",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Purchase Order**: Added \"Berat (Kg)\" column to the item table. Displays calculated weight per item `(Qty * Weight) / 1000`.",
+            "**Purchase Order**: Items with 0 Kg weight are highlighted in red for easy detection.",
+            "**Purchase Order**: The Tonnage column is visible in the UI but hidden in Print/PDF mode."
         ]
     },
     {
-        version: "0.2.0",
-        date: "2025-11-29",
-        type: "minor",
-        title: "Subscription Plans & Multi-Device Support",
-        changes: [
-            "Introduced Subscription Plans (Free, Pro, Enterprise)",
-            "Added Subscription Settings page for plan management",
-            "Implemented strict limits for Users and Products based on plan",
-            "Updated Store Management for Super Admin to manage plans",
-            "Enabled network access for multi-device testing (host: true)",
-            "Fixed Registration functionality and AuthContext bugs"
+        "version": "0.8.15",
+        "date": "2026-01-08",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Subscription**: Enabled Custom Package Plans. Limits (products, users) are now dynamically enforced based on Firestore settings.",
+            "**Stores**: Added \"Duration\" selection (1-12 Months) for standard plans.",
+            "**Stores**: Added Auto-Downgrade logic. Stores with expired plans are automatically reverted to Free plan.",
+            "**Purchase Order**: Added \"Total Tonnage\" (Total Berat) display calculated from item weight (Grams -> Kg/Ton).",
+            "**Settings**: Added \"Rental Mode\" toggle in Plan Management.",
+            "**Sidebar**: \"Rental\" menu now correctly appears based on Plan Feature availability + Role Permission.",
+            "**Settings**: Fixed \"Rental\" menu visibility issue where it was hidden even if enabled in plan.",
+            "**Lint**: Fixed unused variables in `SubscriptionSettings.jsx`.",
+            "**Tests**: Added unit tests for Purchase Order Tonnage calculation."
         ]
     },
     {
-        version: "0.1.0",
-        date: "2025-11-28",
-        type: "minor", // major, minor, patch
-        title: "Tablet & POS Optimization Update",
-        changes: [
-            "Added camera barcode scanner integration for tablet devices",
-            "Implemented collapsible sidebar for both Dashboard and POS Cart",
-            "Optimized POS layout for tablet screens (responsive cart width)",
-            "Refined product card design (16:9 aspect ratio, compact text)",
-            "Improved Dashboard responsiveness and font sizing for tablets",
-            "Added version display in sidebar footer"
+        "version": "0.8.10",
+        "date": "2026-01-06",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Products**: Barcode Label Printing feature with support for multiple label sizes (Thermal 58mm, 80mm, and standard label sizes).",
+            "**Products**: Bulk select products and print barcode labels with customizable quantity per product.",
+            "**POS**: Fixed shift closing not recording sales for backdated transactions. Changed query from date filter to shiftId filter."
         ]
     },
     {
-        version: "0.0.5",
-        date: "2025-11-27",
-        type: "patch",
-        title: "UI Refactoring & Modernization",
-        changes: [
-            "Migrated POS page to Tailwind CSS and Shadcn UI",
-            "Refactored POS components (Header, Grid, Cart) into separate files",
-            "Implemented modern glassmorphism design language",
-            "Fixed layout issues in product grid rendering"
+        "version": "0.8.9",
+        "date": "2026-01-06",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**POS**: Fixed backdate transaction not being saved correctly - `DataContext.processSale` was overriding the date field.",
+            "**POS**: Fixed backdate time showing 00:00:00 - now preserves current time when selecting a past date.",
+            "**POS**: Fixed Firestore permission error for `store_settings` collection.",
+            "**Transactions**: Fixed inconsistent status badge color - all \"Berhasil\" transactions now show green badge."
         ]
     },
     {
-        version: "0.0.1",
-        date: "2025-11-20",
-        type: "major",
-        title: "Initial Release",
-        changes: [
-            "Initial project setup with React and Vite",
-            "Basic POS functionality (Add to cart, Checkout)",
-            "Dashboard with basic statistics",
-            "Product and Category management"
+        "version": "0.8.8",
+        "date": "2026-01-06",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**POS**: Backdate Transaction feature for Admin/Super Admin. When enabled, admin users can create transactions with past dates for data migration or corrections.",
+            "**Settings**: Added \"Izinkan Backdate Transaksi\" toggle in General Settings to enable/disable backdate feature.",
+            "**Transaction**: Added `createdAt` field to track actual transaction creation time vs. transaction date."
+        ]
+    },
+    {
+        "version": "0.8.6",
+        "date": "2026-01-03",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Products**: Added \"Satuan PO\" column in Product Table to display Purchase Unit (e.g., Sak, Dus).",
+            "**Products**: Added \"Satuan PO\" filter grouped with Category filter for easier navigation.",
+            "**Validation**: Added validation in Product Form to ensure \"Isi per Satuan Beli\" (Conversion) is filled if \"Satuan Beli\" is present.",
+            "**Linting**: Fixed various lint errors in `GeneralSettings.jsx`, `ProfitLoss.jsx`, `ProductGrid.jsx`, and `dataCleanup.js`.",
+            "**Layout**: Fixed layout issues with filter grouping in Products page.",
+            "**Tests**: Verified all unit tests pass."
+        ]
+    },
+    {
+        "version": "0.8.4",
+        "date": "2025-12-29",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Dashboard**: Fixed \"Produk Terlaris\" not updating `sold` count logic. Future transactions will now correctly increment this counter.",
+            "**Dashboard**: Simplified \"Produk Terlaris\" card to remove confusing \"Selamanya\" tab. The list now strictly respects the global Date Filter (use \"Semua Waktu\" for All Time stats)."
+        ]
+    },
+    {
+        "version": "0.8.3",
+        "date": "2025-12-29",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Reports**: Fixed \"Produk Terlaris\" showing 0 values by supporting legacy data fields (`quantity` vs `qty`)."
+        ]
+    },
+    {
+        "version": "0.8.2",
+        "date": "2025-12-29",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Printer**: Further reduced logo size to 33% (128 dots) to resolve \"Big Logo\" issue in Production."
+        ]
+    },
+    {
+        "version": "0.8.1",
+        "date": "2025-12-29",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Printer**: Added Auto-Connect feature. The POS will now confirm connection to the previously paired Bluetooth printer automatically on load.",
+            "**Promotions**: Added \"Berlaku Kelipatan\" (Allow Multiples) toggle. Bundle and Fixed discounts can now be applied multiple times in a single transaction.",
+            "**Store Branding**: Added Store Name and Logo to POS Header.",
+            "**Printer**: Resized thermal receipt logo to 50% width for better fit.",
+            "**POS**: Fixed dynamic discount calculation. Discount amounts now update automatically when cart quantities change.",
+            "**Sidebar**: Fixed \"Illegal constructor\" crash by fixing `Lock` icon import.",
+            "**Performance**: Fixed \"400 Bad Request\" error in Promo fetch logic.",
+            "**Promo Form**: Fixed Layout issues (Grid structure).",
+            "**Settings**: Fixed Image Compressor to support PNG transparency."
+        ]
+    },
+    {
+        "version": "0.8.0",
+        "date": "2025-12-29",
+        "type": "minor",
+        "title": "Feature Release",
+        "changes": [
+            "**Smart Strategy (AI Insights)**:",
+            "**Improved Sidebar**: Added \"Smart Strategy\" menu item.",
+            "**Access Control**: Added `smart_insights` permission toggle in Settings."
+        ]
+    },
+    {
+        "version": "0.7.5",
+        "date": "2025-12-28",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Receive Stock**:"
+        ]
+    },
+    {
+        "version": "0.7.4",
+        "date": "2025-12-28",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Purchase Order**: Perbaikan logika perhitungan Subtotal. Sekarang Subtotal dihitung berdasarkan `Harga Satuan (Base) x Total Pcs (Qty Base)`, bukan Qty PO. Ini memastikan perhitungan harga akurat saat menggunakan satuan konversi (misal: Sak)."
+        ]
+    },
+    {
+        "version": "0.7.3",
+        "date": "2025-12-28",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Purchase Order**:",
+            "**Dashboard**: Fixed \"Periode Ini\" vs \"Selamanya\" revenue calculation.",
+            "**Data**: Robust transaction list parsing.",
+            "**PO Form**: Fixed numeric sorting for quantity/price columns."
+        ]
+    },
+    {
+        "version": "0.7.2",
+        "date": "2025-12-28",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Dashboard**: Fixed \"Top Selling Products\" chart connection to real data.",
+            "**Context**: Fixed looping re-renders in DataContext stats calculation."
+        ]
+    },
+    {
+        "version": "0.7.1",
+        "date": "2025-12-25",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**PWA**: Added Installable PWA support with manifest and service worker.",
+            "**Dashboard**: Added \"Top Selling Products\" pie chart (Mock Data)."
+        ]
+    },
+    {
+        "version": "0.7.0",
+        "date": "2025-12-24",
+        "type": "minor",
+        "title": "Feature Release",
+        "changes": [
+            "**Receipt**: Added Browser Native Print support as fallback.",
+            "**Settings**: Added \"Printer Settings\" (Bluetooth/Browser).",
+            "**Receipt**: Fixed Total Item calculation tax.",
+            "**Pagination**: Fixed pagination syncing in Transactions page."
         ]
     }
 ];

@@ -6,6 +6,7 @@ import { useAuth } from './AuthContext';
 import { useData } from './DataContext';
 import { safeSupabaseQuery, safeSupabaseRpc } from '../utils/supabaseHelper';
 import { getShiftClosingInsight } from '../utils/ai';
+import { calculateShiftClosure } from '../lib/shiftLogic';
 
 const ShiftContext = createContext(null);
 
@@ -249,15 +250,20 @@ export const ShiftProvider = ({ children }) => {
 
             const endTime = new Date().toISOString();
 
-            const expectedCash = (Number(shiftData.initial_cash) || 0) +
-                (Number(shiftData.totalCashSales) || 0) +
-                (Number(shiftData.total_cash_in) || 0) -
-                (Number(shiftData.total_cash_out) || 0);
-
-            const cashDifference = Number(finalCash) - expectedCash;
-
-            const expectedNonCash = Number(shiftData.totalNonCashSales) || 0;
-            const nonCashDifference = Number(finalNonCash) - expectedNonCash;
+            const {
+                expectedCash,
+                cashDifference,
+                expectedNonCash,
+                nonCashDifference
+            } = calculateShiftClosure({
+                initialCash: shiftData.initial_cash,
+                totalCashSales: shiftData.totalCashSales,
+                totalCashIn: shiftData.total_cash_in,
+                totalCashOut: shiftData.total_cash_out,
+                finalCash,
+                totalNonCashSales: shiftData.totalNonCashSales,
+                finalNonCash
+            });
 
             const endData = {
                 end_time: endTime,

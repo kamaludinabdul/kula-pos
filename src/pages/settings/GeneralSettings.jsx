@@ -6,8 +6,9 @@ import { Switch } from '../../components/ui/switch';
 import { Label } from '../../components/ui/label';
 import { Input } from '../../components/ui/input';
 import { useToast } from '../../components/ui/use-toast';
-import { Loader2, RefreshCw, Calendar, Sparkles } from 'lucide-react';
+import { Loader2, RefreshCw, Calendar, Sparkles, Settings2, Database, Wrench } from 'lucide-react';
 import AlertDialog from '../../components/AlertDialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
 import { supabase } from '../../supabase';
 
@@ -308,205 +309,232 @@ const GeneralSettings = () => {
 
     return (
         <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Pengaturan Umum</h2>
+            <div>
+                <h2 className="text-2xl font-bold tracking-tight">Pengaturan Umum</h2>
+                <p className="text-muted-foreground mt-1">
+                    Konfigurasi dasar, fitur tambahan, dan pemeliharaan sistem.
+                </p>
+            </div>
 
-            {/* AI Configuration */}
-            <Card className="border-purple-200 bg-purple-50/30">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-purple-900">
-                        <Sparkles className="h-5 w-5 fill-purple-600 text-purple-600" />
-                        Konfigurasi AI (Gemini)
-                    </CardTitle>
-                    <CardDescription className="text-purple-700/70">
-                        Pengaturan fungsi kecerdasan buatan untuk fitur Enterprise POS.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="gemini-api-key" className="font-medium text-purple-900">
-                            Gemini API Key
-                        </Label>
-                        <div className="flex gap-2">
-                            <Input
-                                id="gemini-api-key"
-                                type="password"
-                                placeholder="Masukkan API Key Gemini Anda mulai dengan AIzaSy..."
-                                value={geminiApiKey}
-                                onChange={(e) => setGeminiApiKey(e.target.value)}
-                                className="bg-white"
-                            />
-                            <Button
-                                onClick={handleAiKeySave}
-                                disabled={isSavingAiKey}
-                                className="bg-purple-600 hover:bg-purple-700 text-white"
-                            >
-                                {isSavingAiKey ? 'Menyimpan...' : 'Simpan Key'}
-                            </Button>
-                        </div>
-                        <p className="text-xs text-purple-700/70 mt-2">
-                            Anda bisa mendapatkan API Key gratis di{' '}
-                            <a
-                                href="https://aistudio.google.com/app/apikey"
-                                target="_blank"
-                                rel="noreferrer"
-                                className="font-bold underline text-purple-800"
-                            >
-                                Google AI Studio
-                            </a>.
-                            Fitur AI hanya akan berjalan jika key ini diisi dan valid.
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
+            <Tabs defaultValue="features" className="space-y-6">
+                <TabsList className="bg-slate-100 p-1">
+                    <TabsTrigger value="features" className="gap-2">
+                        <Settings2 className="h-4 w-4" />
+                        Fitur POS
+                    </TabsTrigger>
+                    <TabsTrigger value="ai" className="gap-2">
+                        <Sparkles className="h-4 w-4" />
+                        Kecerdasan Buatan
+                    </TabsTrigger>
+                    <TabsTrigger value="maintenance" className="gap-2">
+                        <Wrench className="h-4 w-4" />
+                        Pemeliharaan & Data
+                    </TabsTrigger>
+                </TabsList>
 
-            {/* POS Features */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Calendar className="h-5 w-5" />
-                        Fitur Transaksi POS
-                    </CardTitle>
-                    <CardDescription>
-                        Pengaturan fitur tambahan untuk transaksi POS.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="space-y-1">
-                            <Label htmlFor="backdate-switch" className="font-medium">
-                                Izinkan Backdate Transaksi
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                                Jika aktif, Admin/Super Admin bisa membuat transaksi dengan tanggal lampau.
-                            </p>
-                        </div>
-                        <Switch
-                            id="backdate-switch"
-                            checked={allowBackdate}
-                            onCheckedChange={handleBackdateToggle}
-                            disabled={isSavingBackdate}
-                        />
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="space-y-1">
-                            <Label htmlFor="rental-switch" className="font-medium">
-                                Aktifkan Mode Rental / Sewa
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                                Mengaktifkan fitur manajemen durasi (timer) untuk rental PS, Billiard, Studio, dll.
-                            </p>
-                        </div>
-                        <Switch
-                            id="rental-switch"
-                            checked={enableRental}
-                            onCheckedChange={handleRentalToggle}
-                            disabled={isSavingRental}
-                        />
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="space-y-1">
-                            <Label htmlFor="shared-customers-switch" className="font-medium">
-                                Berbagi Database Pelanggan
-                            </Label>
-                            <p className="text-xs text-muted-foreground">
-                                Gabungkan database pelanggan dari seluruh toko Anda dalam satu daftar.
-                            </p>
-                        </div>
-                        <Switch
-                            id="shared-customers-switch"
-                            checked={enableSharedCustomers}
-                            onCheckedChange={handleSharedCustomersToggle}
-                            disabled={isSavingSharedCustomers}
-                        />
-                    </div>
-
-                    {enableRental && (
-                        <div className="flex items-center justify-between p-4 border rounded-lg bg-indigo-50/30 border-indigo-100">
-                            <div className="space-y-1">
-                                <Label htmlFor="grace-period" className="font-medium text-indigo-900">
-                                    Masa Toleransi (Menit)
-                                </Label>
-                                <p className="text-xs text-indigo-700/70">
-                                    Waktu tambahan sebelum denda/tambahan jam dihitung (Grace Period).
-                                </p>
-                            </div>
-                            <div className="flex gap-2">
-                                <Input
-                                    id="grace-period"
-                                    type="number"
-                                    value={gracePeriod}
-                                    onChange={(e) => handleGracePeriodChange(e.target.value)}
-                                    className="w-20 bg-white"
+                {/* Tab 1: POS Features */}
+                <TabsContent value="features" className="space-y-6 mt-0">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Calendar className="h-5 w-5 text-indigo-500" />
+                                Operasional & Transaksi
+                            </CardTitle>
+                            <CardDescription>
+                                Kelola fitur tambahan untuk alur transaksi di kasir.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 transition-colors">
+                                <div className="space-y-1">
+                                    <Label htmlFor="backdate-switch" className="font-medium">
+                                        Izinkan Backdate Transaksi
+                                    </Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Admin/Super Admin bisa mencatat transaksi dengan tanggal lampau.
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="backdate-switch"
+                                    checked={allowBackdate}
+                                    onCheckedChange={handleBackdateToggle}
+                                    disabled={isSavingBackdate}
                                 />
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 transition-colors">
+                                <div className="space-y-1">
+                                    <Label htmlFor="rental-switch" className="font-medium">
+                                        Aktifkan Mode Rental / Sewa
+                                    </Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Fitur manajemen durasi (timer) untuk rental PS, Billiard, Studio, dll.
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="rental-switch"
+                                    checked={enableRental}
+                                    onCheckedChange={handleRentalToggle}
+                                    disabled={isSavingRental}
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 transition-colors">
+                                <div className="space-y-1">
+                                    <Label htmlFor="shared-customers-switch" className="font-medium">
+                                        Berbagi Database Pelanggan
+                                    </Label>
+                                    <p className="text-xs text-muted-foreground">
+                                        Gunakan database pelanggan yang sama untuk seluruh cabang/toko Anda.
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="shared-customers-switch"
+                                    checked={enableSharedCustomers}
+                                    onCheckedChange={handleSharedCustomersToggle}
+                                    disabled={isSavingSharedCustomers}
+                                />
+                            </div>
+
+                            {enableRental && (
+                                <div className="flex items-center justify-between p-4 border rounded-lg bg-indigo-50/50 border-indigo-100 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="grace-period" className="font-medium text-indigo-900">
+                                            Masa Toleransi (Menit)
+                                        </Label>
+                                        <p className="text-xs text-indigo-700/70">
+                                            Waktu tambahan sebelum denda atau jam berikutnya dihitung.
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            id="grace-period"
+                                            type="number"
+                                            value={gracePeriod}
+                                            onChange={(e) => handleGracePeriodChange(e.target.value)}
+                                            className="w-20 bg-white"
+                                        />
+                                        <Button
+                                            size="sm"
+                                            onClick={saveGracePeriod}
+                                            disabled={isSavingGrace}
+                                            className="bg-indigo-600 hover:bg-indigo-700"
+                                        >
+                                            {isSavingGrace ? '...' : 'Simpan'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Tab 2: AI Configuration */}
+                <TabsContent value="ai" className="mt-0">
+                    <Card className="border-purple-200 bg-purple-50/20">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-purple-900">
+                                <Sparkles className="h-5 w-5 fill-purple-600 text-purple-600" />
+                                Konfigurasi AI (Gemini)
+                            </CardTitle>
+                            <CardDescription className="text-purple-700/70">
+                                Fitur Enterprise POS menggunakan Google Gemini untuk analisis data.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-3">
+                                <Label htmlFor="gemini-api-key" className="font-medium text-purple-900">
+                                    Gemini API Key
+                                </Label>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                    <Input
+                                        id="gemini-api-key"
+                                        type="password"
+                                        placeholder="AIzaSy..."
+                                        value={geminiApiKey}
+                                        onChange={(e) => setGeminiApiKey(e.target.value)}
+                                        className="bg-white border-purple-200 focus-visible:ring-purple-500"
+                                    />
+                                    <Button
+                                        onClick={handleAiKeySave}
+                                        disabled={isSavingAiKey}
+                                        className="bg-purple-600 hover:bg-purple-700 text-white shrink-0"
+                                    >
+                                        {isSavingAiKey ? 'Menyimpan...' : 'Simpan API Key'}
+                                    </Button>
+                                </div>
+                                <div className="bg-white/50 border border-purple-100 rounded-lg p-3">
+                                    <p className="text-xs text-purple-800 leading-relaxed">
+                                        Dapatkan kunci gratis di <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="font-bold underline">Google AI Studio</a>.
+                                        AI digunakan untuk prediksi omset, analisis stok, dan rekomendasi promo.
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Tab 3: Maintenance */}
+                <TabsContent value="maintenance" className="space-y-6 mt-0">
+                    <Card className="border-orange-200 bg-orange-50/30">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-orange-900">
+                                <Database className="h-5 w-5 text-orange-500" />
+                                Perbaikan Tanggal & Timezone
+                            </CardTitle>
+                            <CardDescription className="text-orange-800/70">
+                                Perbaiki data transaksi yang memiliki tanggal tidak sesuai dengan waktu input.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Button
+                                variant="outline"
+                                onClick={handleFixDates}
+                                disabled={isReseting}
+                                className="w-full sm:w-auto bg-white border-orange-200 text-orange-700 hover:bg-orange-100 hover:text-orange-800"
+                            >
+                                {isReseting ? (
+                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memproses...</>
+                                ) : (
+                                    'Jalankan Fix Tanggal Arus Kas'
+                                )}
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <RefreshCw className="h-5 w-5 text-slate-500" />
+                                Sinkronisasi Statistik
+                            </CardTitle>
+                            <CardDescription>
+                                Hitung ulang data agregasi produk jika statistik terlaris terlihat tidak muncul.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg bg-slate-50 gap-4">
+                                <div className="space-y-1">
+                                    <div className="text-sm font-semibold">Hitung Ulang Statistik Penjualan</div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Mengkalkulasi ulang kolom "Terjual" di tabel produk berdasarkan histori.
+                                    </p>
+                                </div>
                                 <Button
+                                    variant="outline"
                                     size="sm"
-                                    onClick={saveGracePeriod}
-                                    disabled={isSavingGrace}
-                                    className="bg-indigo-600 hover:bg-indigo-700"
+                                    onClick={handleRecalculateStats}
+                                    disabled={isRecalculating}
+                                    className="gap-2 shrink-0"
                                 >
-                                    {isSavingGrace ? '...' : 'Simpan'}
+                                    {isRecalculating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                                    Proses Sekarang
                                 </Button>
                             </div>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* Data Correction Tools */}
-            <Card className="border-orange-200 bg-orange-50">
-                <CardHeader>
-                    <CardTitle className="text-orange-800">Perbaikan Data</CardTitle>
-                    <CardDescription>Tools untuk memperbaiki data yang tidak sinkron.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Button
-                        variant="outline"
-                        onClick={handleFixDates}
-                        disabled={isReseting}
-                        className="bg-white border-orange-300 hover:bg-orange-100 text-orange-700"
-                    >
-                        {isReseting ? 'Memproses...' : 'Perbaiki Tanggal Arus Kas (Timezone Fix)'}
-                    </Button>
-                </CardContent>
-            </Card>
-            <p className="text-sm text-muted-foreground">
-                Konfigurasi dasar dan pemeliharaan sistem.
-            </p>
-
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>Pemeliharaan Data</CardTitle>
-                    <CardDescription>
-                        Lakukan kalkulasi ulang jika data statistik produk (terlaris) tidak sesuai.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between p-4 border rounded-lg bg-slate-50">
-                        <div className="space-y-0.5">
-                            <div className="text-sm font-medium">Hitung Ulang Statistik Penjualan</div>
-                            <div className="text-xs text-muted-foreground">
-                                Mengkalkulasi total "Terjual" untuk semua produk berdasarkan riwayat transaksi.
-                                Proses ini mungkin memakan waktu.
-                            </div>
-                        </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleRecalculateStats}
-                            disabled={isRecalculating}
-                            className="gap-2"
-                        >
-                            {isRecalculating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                            Hitung Ulang
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-
-
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 };

@@ -435,7 +435,8 @@ const POS = () => {
             amountPaid: cashAmount,
             change,
             notes: '',
-            store: currentStore
+            store: currentStore,
+            shiftId: currentShift?.id
         });
 
         // Add extra fields not covered by shared logic or specific to POS.jsx if any
@@ -471,9 +472,6 @@ const POS = () => {
         transactionData.pointsEarned += stampResult.bonusPoints;
         transactionData.customerTotalPoints += stampResult.bonusPoints;
         transactionData.stampUpdates = stampResult.updates;
-
-        console.log("DEBUG: Loyalty Logic Result", { loyaltyResult, stampResult });
-
 
         const result = await processSale(transactionData);
 

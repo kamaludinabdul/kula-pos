@@ -6,7 +6,7 @@ import {
   ChevronDown, ChevronRight, Receipt, Store, Printer, UserCog, Layers, Shield, Percent,
   Gift, Sparkles, PanelLeftClose, PanelLeftOpen, Crown, ClipboardCheck, History, TrendingUp,
   Clock, TrendingDown, Send, Cloud, FileText, Copy, DollarSign, BrainCircuit, Lightbulb,
-  Key, BadgePercent, Factory, Ticket, Lock, Gamepad2, CheckCircle, Building2, Wallet, UserCircle
+  Key, BadgePercent, Factory, Ticket, Lock, Gamepad2, CheckCircle, Building2, Wallet, UserCircle, AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -64,6 +64,7 @@ const REPORTS_ITEMS = [
   { path: '/reports/sales-performance', icon: TrendingUp, label: 'Laporan Target & Performa', feature: 'reports.performance', checkSetting: 'enableSalesPerformance', requiredPlan: 'pro' },
   { path: '/reports/pet-hotel-fee', icon: Wallet, label: 'Fee Pet Hotel', feature: 'reports.shifts', requiredPlan: 'enterprise', checkSetting: 'petCareEnabled' },
   { path: '/reports/customer-profiling', icon: UserCircle, label: 'Profil Pelanggan', feature: 'reports.customer_profiling', requiredPlan: 'pro' },
+  { path: '/reports/expiry', icon: AlertTriangle, label: 'Laporan Kedaluwarsa', feature: 'reports.expiry' },
 ];
 
 const FINANCE_ITEMS = [
@@ -180,7 +181,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
     const settingEnabled = !item.checkSetting || currentStore?.[item.checkSetting];
     const currentPlan = (currentStore?.plan || user?.plan || 'free').toLowerCase();
     const planRequired = item.requiredPlan ? (currentPlan === item.requiredPlan || currentPlan === 'enterprise') : true;
-    return hasPerm && (isSuperAdmin || (settingEnabled && planRequired));
+    return hasPerm && (isSuperAdmin || user?.role === 'owner' || (settingEnabled && planRequired));
   }), [hasPermission, user?.role, user?.plan, currentStore]);
 
   const visibleSettingsItems = useMemo(() => SETTINGS_ITEMS.filter(item => {
@@ -189,7 +190,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
     const settingEnabled = !item.checkSetting || currentStore?.[item.checkSetting];
     const currentPlan = (currentStore?.plan || user?.plan || 'free').toLowerCase();
     const planRequired = item.requiredPlan ? (currentPlan === item.requiredPlan || currentPlan === 'enterprise') : true;
-    return hasPerm && (isSuperAdmin || settingEnabled) && planRequired;
+    return hasPerm && (isSuperAdmin || user?.role === 'owner' || (settingEnabled && planRequired));
   }), [hasPermission, user?.role, user?.plan, currentStore]);
 
   const isDatabaseActive = visibleDatabaseItems.some(item => location.pathname.startsWith(item.path));

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateCartTotals, calculateChange } from './cartLogic';
+import { calculateCartTotals, calculateChange, calculateWholesaleUnitPrice } from './cartLogic';
 
 describe('Cart Logic', () => {
     describe('calculateCartTotals', () => {
@@ -36,12 +36,6 @@ describe('Cart Logic', () => {
         });
 
         it('should calculate exclusive tax correctly', () => {
-            // Price: 100,000
-            // Discount: 10,000 (10%)
-            // TaxBase: 90,000
-            // Tax (10%): 9,000
-            // Service (5%): 4,500
-            // Total: 103,500
             const cart = [{ price: 100000, qty: 1 }];
             const result = calculateCartTotals(cart, 'percentage', 10, 10, 5, 'exclusive');
             expect(result.taxBase).toBe(90000);
@@ -51,17 +45,8 @@ describe('Cart Logic', () => {
         });
 
         it('should calculate inclusive tax correctly', () => {
-            // Price: 110,000 (Includes 10% Tax) -> Base ≈ 100,000
-            // Discount: 0
-            // Expected TaxBase + Tax = 110,000
-            // Tax = 110000 - (110000 / 1.1) = 10,000
-            // Base = 100,000
-            // Service (5% of Gross 110k): 5,500
-            // Final Total: 110,000 + 5,500 = 115,500
-
             const cart = [{ price: 110000, qty: 1 }];
             const result = calculateCartTotals(cart, null, 0, 10, 5, 'inclusive');
-
             expect(result.subtotal).toBe(110000);
             expect(Math.round(result.taxAmount)).toBe(10000);
             expect(Math.round(result.taxBase)).toBe(100000);
@@ -78,6 +63,51 @@ describe('Cart Logic', () => {
 
         it('should return 0 if underpaid', () => {
             expect(calculateChange(50000, 40000)).toBe(0);
+        });
+    });
+
+    describe('calculateWholesaleUnitPrice', () => {
+        const product = {
+            id: 'p1',
+            price: 10000,
+            isWholesale: true,
+            pricingTiers: [
+                { duration: 5, price: 9000 },
+                { duration: 10, price: 8000 }
+            ]
+        };
+
+        it('should apply wholesale threshold price for all units', () => {
+            expect(calculateWholesaleUnitPrice(product, 1)).toBe(10000);
+            expect(calculateWholesaleUnitPrice(product, 5)).toBe(9000);
+            expect(calculateWholesaleUnitPrice(product, 8)).toBe(9000);
+            expect(calculateWholesaleUnitPrice(product, 12)).toBe(8000);
+        });
+
+        it('should calculate bundling step-wise price (average per unit)', () => {
+            const bundleProduct = {
+                ...product,
+                isWholesale: false,
+                pricingTiers: [
+                    { duration: 5, price: 40000 },
+                ]
+            };
+            expect(calculateWholesaleUnitPrice(bundleProduct, 3)).toBe(10000);
+            expect(calculateWholesaleUnitPrice(bundleProduct, 5)).toBe(8000);
+            const result7 = calculateWholesaleUnitPrice(bundleProduct, 7);
+            expect(Math.round(result7)).toBe(Math.round(60000 / 7));
+        });
+
+        it('should handle complex multi-tier bundling', () => {
+            const complexBundle = {
+                price: 100,
+                isWholesale: false,
+                pricingTiers: [
+                    { duration: 10, price: 800 },
+                    { duration: 5, price: 450 }
+                ]
+            };
+            expect(calculateWholesaleUnitPrice(complexBundle, 16)).toBe(1350 / 16);
         });
     });
 });

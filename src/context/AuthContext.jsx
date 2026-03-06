@@ -711,10 +711,10 @@ export const AuthProvider = ({ children }) => {
 
         const perms = user.permissions || [];
         // Check exact match OR if permission is a parent of held permission (e.g. asking for 'dashboard' but has 'dashboard.view')
-        // Actually, usually it's: "Does user have permission X?"
-        // If X is 'transactions.refund', we need exact match.
-        // If X is 'dashboard', we accept 'dashboard.view'.
-        return perms.includes(permission) || perms.some(p => p.startsWith(permission + '.'));
+        // OR if user has a parent permission (e.g. asking for 'reports.expiry' but has 'reports')
+        return perms.includes(permission) ||
+            perms.some(p => p.startsWith(permission + '.')) ||
+            perms.some(p => permission.startsWith(p + '.'));
     }, [user]);
 
     return (

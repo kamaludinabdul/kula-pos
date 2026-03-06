@@ -117,143 +117,151 @@ const ProfileSettings = () => {
     if (!currentStore) return <div>Loading...</div>;
 
     return (
-        <Card>
-            <CardHeader>
-                <div className="flex items-center gap-2">
-                    <UserCog className="h-5 w-5" />
-                    <CardTitle>Informasi Umum</CardTitle>
-                </div>
-                <CardDescription>Kelola informasi dasar toko Anda.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="name">Nama Toko</Label>
-                        <Input
-                            id="name"
-                            name="name"
-                            value={formData.name}
-                            onChange={handleChange}
-                            required
-                        />
+        <div className="space-y-6">
+            <div>
+                <h2 className="text-2xl font-bold tracking-tight">Profil Toko</h2>
+                <p className="text-muted-foreground">
+                    Kelola informasi dasar dan identitas toko Anda.
+                </p>
+            </div>
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center gap-2">
+                        <UserCog className="h-5 w-5" />
+                        <CardTitle>Informasi Umum</CardTitle>
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="email">Email Toko</Label>
-                        <Input
-                            id="email"
-                            name="email"
-                            type="email"
-                            value={formData.email || ''}
-                            onChange={handleChange}
-                            placeholder="email@toko.com"
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="logo">Logo Toko</Label>
-                        <div className="flex items-center gap-4">
-                            {formData.logo && (
-                                <div className="relative group">
-                                    <img src={formData.logo} alt="Logo Preview" className="h-16 w-16 object-contain border rounded bg-white" />
-                                    <button
-                                        type="button"
-                                        onClick={handleRemoveLogo}
-                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow hover:bg-red-600 transition-colors"
-                                        title="Hapus Logo"
-                                    >
-                                        <Trash2 className="h-3 w-3" />
-                                    </button>
-                                </div>
-                            )}
-                            <Input
-                                id="logo"
-                                type="file"
-                                accept="image/*"
-                                onChange={handleLogoChange}
-                            />
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="address">Alamat</Label>
-                        <Textarea
-                            id="address"
-                            name="address"
-                            value={formData.address}
-                            onChange={handleChange}
-                            rows={3}
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="phone">Nomor Telepon</Label>
-                        <Input
-                            id="phone"
-                            name="phone"
-                            type="text"
-                            value={formData.phone}
-                            onChange={handleChange}
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
+                    <CardDescription>Kelola informasi dasar toko Anda.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="latitude">Latitude</Label>
+                            <Label htmlFor="name">Nama Toko</Label>
                             <Input
-                                id="latitude"
-                                name="latitude"
-                                type="text"
-                                value={formData.latitude}
+                                id="name"
+                                name="name"
+                                value={formData.name}
                                 onChange={handleChange}
-                                placeholder="-6.200000"
+                                required
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="longitude">Longitude</Label>
+                            <Label htmlFor="email">Email Toko</Label>
                             <Input
-                                id="longitude"
-                                name="longitude"
-                                type="text"
-                                value={formData.longitude}
+                                id="email"
+                                name="email"
+                                type="email"
+                                value={formData.email || ''}
                                 onChange={handleChange}
-                                placeholder="106.816666"
+                                placeholder="email@toko.com"
                             />
                         </div>
-                    </div>
-                    <Button type="button" variant="outline" size="sm" onClick={() => {
-                        if (navigator.geolocation) {
-                            navigator.geolocation.getCurrentPosition((position) => {
-                                setFormData(prev => ({
-                                    ...prev,
-                                    latitude: position.coords.latitude,
-                                    longitude: position.coords.longitude
-                                }));
-                            }, (error) => {
-                                alert("Gagal mendapatkan lokasi: " + error.message);
-                            });
-                        } else {
-                            alert("Geolocation tidak didukung browser ini.");
-                        }
-                    }}>
-                        📍 Gunakan Lokasi Saat Ini
-                    </Button>
+                        <div className="space-y-2">
+                            <Label htmlFor="logo">Logo Toko</Label>
+                            <div className="flex items-center gap-4">
+                                {formData.logo && (
+                                    <div className="relative group">
+                                        <img src={formData.logo} alt="Logo Preview" className="h-16 w-16 object-contain border rounded bg-white" />
+                                        <button
+                                            type="button"
+                                            onClick={handleRemoveLogo}
+                                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow hover:bg-red-600 transition-colors"
+                                            title="Hapus Logo"
+                                        >
+                                            <Trash2 className="h-3 w-3" />
+                                        </button>
+                                    </div>
+                                )}
+                                <Input
+                                    id="logo"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleLogoChange}
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="address">Alamat</Label>
+                            <Textarea
+                                id="address"
+                                name="address"
+                                value={formData.address}
+                                onChange={handleChange}
+                                rows={3}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="phone">Nomor Telepon</Label>
+                            <Input
+                                id="phone"
+                                name="phone"
+                                type="text"
+                                value={formData.phone}
+                                onChange={handleChange}
+                            />
+                        </div>
 
-
-                    <div className="flex justify-end pt-4">
-                        <Button type="submit" disabled={isSaving}>
-                            <Save className="h-4 w-4 mr-2" />
-                            {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="latitude">Latitude</Label>
+                                <Input
+                                    id="latitude"
+                                    name="latitude"
+                                    type="text"
+                                    value={formData.latitude}
+                                    onChange={handleChange}
+                                    placeholder="-6.200000"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="longitude">Longitude</Label>
+                                <Input
+                                    id="longitude"
+                                    name="longitude"
+                                    type="text"
+                                    value={formData.longitude}
+                                    onChange={handleChange}
+                                    placeholder="106.816666"
+                                />
+                            </div>
+                        </div>
+                        <Button type="button" variant="outline" size="sm" onClick={() => {
+                            if (navigator.geolocation) {
+                                navigator.geolocation.getCurrentPosition((position) => {
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        latitude: position.coords.latitude,
+                                        longitude: position.coords.longitude
+                                    }));
+                                }, (error) => {
+                                    alert("Gagal mendapatkan lokasi: " + error.message);
+                                });
+                            } else {
+                                alert("Geolocation tidak didukung browser ini.");
+                            }
+                        }}>
+                            📍 Gunakan Lokasi Saat Ini
                         </Button>
-                    </div>
-                </form>
-            </CardContent>
 
-            <AlertDialog
-                isOpen={isAlertOpen}
-                onClose={() => setIsAlertOpen(false)}
-                title={alertData.title}
-                message={alertData.message}
-                onConfirm={alertData.onConfirm}
-                confirmText="Hapus"
-            />
-        </Card >
+
+                        <div className="flex justify-end pt-4">
+                            <Button type="submit" disabled={isSaving}>
+                                <Save className="h-4 w-4 mr-2" />
+                                {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                            </Button>
+                        </div>
+                    </form>
+                </CardContent>
+
+                <AlertDialog
+                    isOpen={isAlertOpen}
+                    onClose={() => setIsAlertOpen(false)}
+                    title={alertData.title}
+                    message={alertData.message}
+                    onConfirm={alertData.onConfirm}
+                    confirmText="Hapus"
+                />
+            </Card>
+        </div >
     );
 };
 

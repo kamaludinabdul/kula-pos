@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { calculateAssociations, getSmartRecommendations } from '../utils/smartCashier';
 import { calculateCartTotals, calculateWholesaleUnitPrice } from '../lib/cartLogic';
+import { calculateActivePromotions } from '../lib/promoLogic';
 
 export const usePOS = () => {
     const { products, transactions, currentStore } = useData();
@@ -224,75 +225,7 @@ export const usePOS = () => {
 
     // Helper to check if a promo is applicable to current cart
     const activePromotions = useMemo(() => {
-        if (!promotions || promotions.length === 0 || cart.length === 0) return [];
-
-        return promotions.map(promo => {
-            let isApplicable = false;
-            let potentialDiscount = 0;
-            let missingItems = [];
-
-            // 1. Bundle Logic
-            if (promo.type === 'bundle') {
-                const targetIds = promo.targetIds || [];
-
-                // If no targets defined, bundle is invalid
-                if (targetIds.length === 0) {
-                    return { ...promo, isApplicable: false, potentialDiscount: 0, missingItems: [] };
-                }
-
-                let minSets = Infinity;
-
-                for (const id of targetIds) {
-                    const item = cart.find(c => c.id === id);
-                    const qty = item ? item.qty : 0;
-                    if (qty < minSets) minSets = qty;
-                }
-
-                if (minSets >= 1 && minSets !== Infinity) {
-                    isApplicable = true;
-                    const oneSetNormalPrice = targetIds.reduce((sum, id) => {
-                        const product = products.find(p => p.id === id);
-                        const price = Number(product?.sellPrice || product?.price) || 0;
-                        return sum + price;
-                    }, 0);
-                    const bundlePrice = Number(promo.value) || 0;
-                    const oneSetDiscount = Math.max(0, oneSetNormalPrice - bundlePrice);
-                    const multiplier = (promo.allowMultiples === false) ? 1 : minSets;
-                    potentialDiscount = oneSetDiscount * multiplier;
-                    if (isNaN(potentialDiscount)) potentialDiscount = 0;
-                } else {
-                    missingItems = targetIds.filter(id => {
-                        const item = cart.find(c => c.id === id);
-                        return !item || item.qty < 1;
-                    });
-                }
-            }
-            // 2. Percentage on Total Transaction
-            else if (promo.type === 'percentage' && (!promo.targetType || promo.targetType === 'transaction')) {
-                if (rawTotal >= (Number(promo.minPurchase) || 0)) {
-                    isApplicable = true;
-                    potentialDiscount = rawTotal * (Number(promo.value || 0) / 100);
-                }
-            }
-            // 3. Fixed Amount on Total
-            else if (promo.type === 'fixed' && (!promo.targetType || promo.targetType === 'transaction')) {
-                const minPurchase = Number(promo.minPurchase) || 0;
-                const promoValue = Number(promo.value) || 0;
-                if (rawTotal >= minPurchase) {
-                    isApplicable = true;
-                    if (promo.allowMultiples && minPurchase > 0) {
-                        const multiplier = Math.floor(rawTotal / minPurchase);
-                        potentialDiscount = promoValue * multiplier;
-                    } else {
-                        potentialDiscount = promoValue;
-                    }
-                }
-            }
-
-            if (potentialDiscount <= 0) isApplicable = false;
-
-            return { ...promo, isApplicable, potentialDiscount, missingItems };
-        }).filter(p => p.isActive);
+        return calculateActivePromotions(promotions, cart, rawTotal, products);
     }, [cart, promotions, rawTotal, products]);
 
     // Recalculate totals including dynamic promo discount

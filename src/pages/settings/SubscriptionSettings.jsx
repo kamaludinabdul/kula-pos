@@ -205,9 +205,9 @@ const SubscriptionSettings = () => {
     };
 
     return (
-        <div className="space-y-10">
+        <div className="space-y-6">
             {/* Pricing Section */}
-            <div className="p-4 space-y-8">
+            <div className="space-y-6">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Langganan & Paket</h2>
                     <p className="text-muted-foreground">
@@ -288,24 +288,26 @@ const SubscriptionSettings = () => {
             </div>
 
             {/* History Section */}
-            <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 bg-slate-100 rounded-lg flex items-center justify-center">
-                        <FileText className="h-4 w-4 text-slate-600" />
+            <Card className="border-none shadow-sm overflow-hidden rounded-xl">
+                <CardHeader className="bg-white border-b flex flex-row items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 bg-indigo-50 rounded-lg flex items-center justify-center">
+                            <FileText className="h-4 w-4 text-indigo-600" />
+                        </div>
+                        <div>
+                            <CardTitle className="text-base font-bold">Riwayat Langganan</CardTitle>
+                            <CardDescription className="text-xs">Daftar semua invoice dan status tagihan</CardDescription>
+                        </div>
                     </div>
-                    <div>
-                        <h3 className="text-lg font-semibold tracking-tight">Riwayat Langganan</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Semua tagihan dan riwayat pembelian paket Anda.
-                        </p>
+                    <div className="text-[10px] text-slate-400 font-medium">
+                        {invoices.length} transaksi
                     </div>
-                </div>
-
-                <div className="rounded-md border">
+                </CardHeader>
+                <CardContent className="p-0">
                     <Table>
                         <TableHeader>
-                            <TableRow>
-                                <TableHead>No. Invoice</TableHead>
+                            <TableRow className="bg-slate-50/50">
+                                <TableHead className="py-4">No. Invoice</TableHead>
                                 <TableHead>Tanggal</TableHead>
                                 <TableHead>Paket</TableHead>
                                 <TableHead className="text-center">Durasi</TableHead>
@@ -330,24 +332,24 @@ const SubscriptionSettings = () => {
                             ) : (
                                 invoices.map((invoice) => (
                                     <TableRow key={invoice.id}>
-                                        <TableCell className="font-medium font-mono">
+                                        <TableCell className="font-medium font-mono text-xs">
                                             {invoice.unique_code
                                                 ? `INV-${dayjs(invoice.created_at).format('YYYYMM')}-${invoice.unique_code}`
                                                 : invoice.id.slice(0, 8).toUpperCase()
                                             }
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="text-xs">
                                             {dayjs(invoice.created_at).format('DD MMM YYYY, HH:mm')}
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant="outline" className="capitalize">
+                                            <Badge variant="outline" className="capitalize text-[10px] py-0">
                                                 {invoice.plan_id}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-center">
-                                            {invoice.duration_months} Bulan
+                                        <TableCell className="text-center text-sm">
+                                            {invoice.duration_months} Bln
                                         </TableCell>
-                                        <TableCell className="text-right font-medium">
+                                        <TableCell className="text-right font-semibold text-sm">
                                             Rp {invoice.amount.toLocaleString('id-ID')}
                                         </TableCell>
                                         <TableCell className="text-center">
@@ -358,15 +360,15 @@ const SubscriptionSettings = () => {
                                                 {invoice.status === 'failed' && (
                                                     <Button
                                                         variant="outline"
-                                                        size="sm"
-                                                        className="text-red-600 border-red-200 hover:bg-red-50"
+                                                        size="xs"
+                                                        className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50 px-2"
                                                         onClick={() => handleReupload(invoice)}
                                                     >
                                                         Perbaiki
                                                     </Button>
                                                 )}
-                                                <Button variant="ghost" size="sm" onClick={() => handleViewInvoice(invoice)}>
-                                                    <Eye className="h-4 w-4 mr-2" />
+                                                <Button variant="ghost" size="xs" className="h-7 text-xs gap-1.5 px-2" onClick={() => handleViewInvoice(invoice)}>
+                                                    <Eye className="h-3.5 w-3.5" />
                                                     Lihat
                                                 </Button>
                                             </div>
@@ -376,8 +378,8 @@ const SubscriptionSettings = () => {
                             )}
                         </TableBody>
                     </Table>
-                </div>
-            </div>
+                </CardContent>
+            </Card>
 
             <CheckoutDialog
                 isOpen={isCheckoutOpen}

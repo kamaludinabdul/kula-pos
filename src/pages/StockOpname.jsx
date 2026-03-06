@@ -11,6 +11,7 @@ import { Search, Save, CheckCircle2, History, Plus, Minus, DollarSign, ChevronDo
 import { Textarea } from '../components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { calculateStockDifference, calculateStockDifferenceValue } from '../lib/stockLogic';
 
 const StockOpname = () => {
     const { products, currentStore, refreshData, fetchAllProducts } = useData();
@@ -151,14 +152,12 @@ const StockOpname = () => {
 
     const getDifference = (product) => {
         const physical = opnameData[product.id]?.physicalStock;
-        if (physical === undefined || physical === '') return null;
-        return physical - (product.stock || 0);
+        return calculateStockDifference(physical, product.stock);
     };
 
     const getDifferenceValue = (product) => {
         const diff = getDifference(product);
-        if (diff === null) return null;
-        return diff * (product.buyPrice || product.buy_price || 0);
+        return calculateStockDifferenceValue(diff, product.buyPrice || product.buy_price || 0);
     };
 
     const handleSaveOpname = async () => {
@@ -175,9 +174,9 @@ const StockOpname = () => {
 
                 const systemStock = product.stock || 0;
                 const physicalStock = data.physicalStock;
-                const difference = physicalStock - systemStock;
+                const difference = calculateStockDifference(physicalStock, systemStock);
                 const buyPrice = product.buy_price || product.buyPrice || 0;
-                const differenceValue = difference * buyPrice;
+                const differenceValue = calculateStockDifferenceValue(difference, buyPrice);
 
                 opnameRecords.push({
                     productId,

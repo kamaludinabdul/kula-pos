@@ -86,7 +86,7 @@ BEGIN
       AND cf.date >= p_start_date::DATE
       AND cf.date <= p_end_date::DATE
       AND cf.type IN ('out', 'expense')
-      AND COALESCE(cf.expense_group, 'operational') IN ('OPEX', 'operational');
+      AND COALESCE(cf.expense_group, 'operational') IN ('OPEX', 'operational', 'write_off');
 
     -- Aggregate from cash_flow (Other Income) - Tetap original
     SELECT COALESCE(SUM(amount), 0)

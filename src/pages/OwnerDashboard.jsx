@@ -9,6 +9,7 @@ import { Badge } from '../components/ui/badge';
 import { InfoCard } from '../components/ui/info-card';
 import { safeSupabaseRpc } from '../utils/supabaseHelper';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
+import { formatCompactNumber } from '../lib/utils';
 
 
 
@@ -443,7 +444,7 @@ const OwnerDashboard = () => {
                             <div className="flex items-center justify-center h-full text-muted-foreground">Memuat...</div>
                         ) : (
                             <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={transformedDailySales}>
+                                <AreaChart data={transformedDailySales} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                     <defs>
                                         {activeSeries.map(store => (
                                             <linearGradient key={store.id} id={`color_${store.id}`} x1="0" y1="0" x2="0" y2="1">
@@ -461,10 +462,11 @@ const OwnerDashboard = () => {
                                         minTickGap={dateRange === 'today' ? 10 : 30}
                                     />
                                     <YAxis
+                                        width={45}
                                         axisLine={false}
                                         tickLine={false}
                                         tick={{ fontSize: 10, fill: '#94a3b8' }}
-                                        tickFormatter={(v) => v >= 1000000 ? `Rp ${(v / 1000000).toFixed(1)} jt` : `Rp ${v.toLocaleString('en-US')}`}
+                                        tickFormatter={(v) => formatCompactNumber(v)}
                                     />
                                     <Tooltip
                                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
@@ -499,38 +501,38 @@ const OwnerDashboard = () => {
             {/* Summary Stats Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 <InfoCard
-                    title="Total Omzet"
-                    value={`Rp ${stats.sales.toLocaleString('en-US')}`}
+                    title="Total Omset"
+                    value={`Rp ${stats.sales.toLocaleString('id-ID')}`}
                     icon={DollarSign}
                     variant="primary"
                 />
                 <InfoCard
                     title="Laba Kotor"
-                    value={`Rp ${(dashboardData.totalGrossProfit || 0).toLocaleString('en-US')}`}
+                    value={`Rp ${(dashboardData.totalGrossProfit || 0).toLocaleString('id-ID')}`}
                     icon={TrendingUp}
                     variant="primary"
                 />
                 <InfoCard
                     title="Laba Bersih"
-                    value={`Rp ${(dashboardData.totalNetProfit || 0).toLocaleString('en-US')}`}
+                    value={`Rp ${(dashboardData.totalNetProfit || 0).toLocaleString('id-ID')}`}
                     icon={TrendingUp}
                     variant="success"
                 />
                 <InfoCard
                     title="Total Transaksi"
-                    value={stats.transactions.toLocaleString('en-US')}
+                    value={stats.transactions.toLocaleString('id-ID')}
                     icon={ShoppingBag}
                     variant="pink"
                 />
                 <InfoCard
                     title="Rata-rata Order"
-                    value={`Rp ${Math.round(stats.avgOrder).toLocaleString('en-US')}`}
+                    value={`Rp ${Math.round(stats.avgOrder).toLocaleString('id-ID')}`}
                     icon={TrendingUp}
                     variant="warning"
                 />
                 <InfoCard
                     title="Jumlah Toko"
-                    value={stats.storeCount.toLocaleString('en-US')}
+                    value={formatCompactNumber(stats.storeCount)}
                     icon={Building2}
                     variant="success"
                 />
@@ -561,7 +563,7 @@ const OwnerDashboard = () => {
                         <CardContent className="p-4">
                             <div className="h-[200px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={transformedFinancials} barGap={4}>
+                                    <BarChart data={transformedFinancials} barGap={4} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                                         <defs>
                                             <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8} />
@@ -570,7 +572,7 @@ const OwnerDashboard = () => {
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8fafc" />
                                         <XAxis dataKey="monthLabel" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => v >= 1000000 ? `${Number((v / 1000000).toFixed(2))} jt` : v.toLocaleString('en-US')} />
+                                        <YAxis width={45} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => formatCompactNumber(v)} />
                                         <Tooltip
                                             cursor={{ fill: '#f1f5f9' }}
                                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
@@ -604,10 +606,10 @@ const OwnerDashboard = () => {
                         <CardContent className="p-4">
                             <div className="h-[200px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={transformedFinancials} barGap={4}>
+                                    <BarChart data={transformedFinancials} barGap={4} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8fafc" />
                                         <XAxis dataKey="monthLabel" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => v >= 1000000 ? `${Number((v / 1000000).toFixed(2))} jt` : v.toLocaleString('en-US')} />
+                                        <YAxis width={45} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => formatCompactNumber(v)} />
                                         <Tooltip
                                             cursor={{ fill: '#f1f5f9' }}
                                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
@@ -641,10 +643,10 @@ const OwnerDashboard = () => {
                         <CardContent className="p-4">
                             <div className="h-[200px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={transformedFinancials} barGap={4}>
+                                    <BarChart data={transformedFinancials} barGap={4} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8fafc" />
                                         <XAxis dataKey="monthLabel" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => v >= 1000000 ? `${Number((v / 1000000).toFixed(2))} jt` : v.toLocaleString('en-US')} />
+                                        <YAxis width={45} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => formatCompactNumber(v)} />
                                         <Tooltip
                                             cursor={{ fill: '#f1f5f9' }}
                                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
@@ -678,10 +680,10 @@ const OwnerDashboard = () => {
                         <CardContent className="p-4">
                             <div className="h-[200px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={transformedFinancials} barGap={4}>
+                                    <BarChart data={transformedFinancials} barGap={4} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8fafc" />
                                         <XAxis dataKey="monthLabel" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)} jt` : v.toLocaleString('en-US')} />
+                                        <YAxis width={45} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => formatCompactNumber(v)} />
                                         <Tooltip
                                             cursor={{ fill: '#f1f5f9' }}
                                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
@@ -715,10 +717,10 @@ const OwnerDashboard = () => {
                         <CardContent className="p-4">
                             <div className="h-[200px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={transformedFinancials} barGap={4}>
+                                    <BarChart data={transformedFinancials} barGap={4} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8fafc" />
                                         <XAxis dataKey="monthLabel" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(1)} jt` : v.toLocaleString('en-US')} />
+                                        <YAxis width={45} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => formatCompactNumber(v)} />
                                         <Tooltip
                                             cursor={{ fill: '#f1f5f9' }}
                                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
@@ -762,7 +764,7 @@ const OwnerDashboard = () => {
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={breakdownChartData} layout="vertical">
                                         <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
-                                        <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(value) => `Rp ${(value / 1000000).toFixed(1)}jt`} />
+                                        <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(v) => formatCompactNumber(v)} />
                                         <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#475569', fontWeight: 600 }} width={100} />
                                         <Tooltip
                                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}

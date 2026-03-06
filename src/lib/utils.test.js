@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { formatPaymentMethod, calculateAge, formatAge, cn } from './utils';
+import { formatPaymentMethod, calculateAge, formatAge, cn, formatCompactNumber } from './utils';
 
 describe('Utility Functions', () => {
     describe('cn (ClassName utility)', () => {
@@ -68,6 +68,38 @@ describe('Utility Functions', () => {
 
         it('should handle null birthdate', () => {
             expect(formatAge(null)).toBe('-');
+        });
+    });
+
+    describe('formatCompactNumber', () => {
+
+        it('should format thousands correctly with rb', () => {
+            expect(formatCompactNumber(1000)).toBe('1 rb');
+            expect(formatCompactNumber(1500)).toBe('1,5 rb');
+            expect(formatCompactNumber(10500)).toBe('10,5 rb');
+        });
+
+        it('should format millions correctly with jt', () => {
+            expect(formatCompactNumber(1000000)).toBe('1 jt');
+            expect(formatCompactNumber(1500000)).toBe('1,5 jt');
+            expect(formatCompactNumber(10500000)).toBe('10,5 jt');
+        });
+
+        it('should handle negative numbers', () => {
+            expect(formatCompactNumber(-1000)).toBe('-1 rb');
+            expect(formatCompactNumber(-1500000)).toBe('-1,5 jt');
+        });
+
+        it('should handle numbers less than 1000', () => {
+            expect(formatCompactNumber(500)).toBe('500');
+            expect(formatCompactNumber(0)).toBe('0');
+            expect(formatCompactNumber(-500)).toBe('-500');
+        });
+
+        it('should handle non-number inputs gracefully', () => {
+            expect(formatCompactNumber(null)).toBe('0');
+            expect(formatCompactNumber(undefined)).toBe('0');
+            expect(formatCompactNumber('1000')).toBe('1 rb');
         });
     });
 });

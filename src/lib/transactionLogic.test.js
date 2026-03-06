@@ -113,4 +113,28 @@ describe('Transaction Logic', () => {
         expect(result).not.toHaveProperty('payment_method');
         expect(result).not.toHaveProperty('amount_paid');
     });
+
+    it('should include shiftId in transaction data', () => {
+        const mockShiftId = 'test-shift-uuid';
+        const result = constructTransactionData({
+            cart: [],
+            totals: { finalTotal: 0, discountAmount: 0 },
+            user: mockUser,
+            activeStoreId: 'store1',
+            shiftId: mockShiftId
+        });
+
+        expect(result.shiftId).toBe(mockShiftId);
+    });
+
+    it('should default shiftId to null if not provided', () => {
+        const result = constructTransactionData({
+            cart: [],
+            totals: { finalTotal: 0, discountAmount: 0 },
+            user: mockUser,
+            activeStoreId: 'store1'
+        });
+
+        expect(result.shiftId).toBeNull();
+    });
 });

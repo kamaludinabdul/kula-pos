@@ -101,7 +101,8 @@ const MobilePOS = () => {
                 amountPaid: cashAmount,
                 change,
                 notes: '',
-                store: currentStore
+                store: currentStore,
+                shiftId: currentShift?.id
             });
 
             if (!transactionData) { throw new Error("Gagal menyusun data transaksi"); }
@@ -110,7 +111,6 @@ const MobilePOS = () => {
             transactionData.discountType = 'percentage';
             transactionData.discountValue = 0;
             transactionData.storeName = currentStore?.name;
-            transactionData.shiftId = currentShift?.id;
 
             // Defensive: Only calculate customer points if customer exists
             // MobilePOS doesn't always have selectedCustomer in context if not using full POS hook state?

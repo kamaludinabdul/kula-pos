@@ -15,8 +15,8 @@ const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, description, message
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>{title}</DialogTitle>
-                    <DialogDescription>
-                        {description || message}
+                    <DialogDescription asChild>
+                        <div>{description || message}</div>
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>

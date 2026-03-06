@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useData } from '../context/DataContext';
+import { useShift } from '../context/ShiftContext';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -1059,6 +1060,7 @@ const RentalDashboard = () => {
         customers,
         processSale
     } = useData();
+    const { currentShift } = useShift();
     const navigate = useNavigate();
     const { toast } = useToast();
 
@@ -1643,6 +1645,7 @@ const RentalDashboard = () => {
                 customerId: paymentSession.customer_id || null,
                 pointsEarned: pointsEarned,
                 date: transactionDate ? transactionDate.toISOString() : new Date().toISOString(),
+                shiftId: currentShift?.id,
                 payment_details: {
                     snapshot: {
                         start_time: paymentSession.start_time

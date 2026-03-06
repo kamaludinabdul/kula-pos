@@ -4,6 +4,7 @@ import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { formatCompactNumber } from '../../lib/utils';
 
 const DashboardCharts = ({ currentStore }) => {
     const [chartData, setChartData] = useState([]);
@@ -98,15 +99,7 @@ const DashboardCharts = ({ currentStore }) => {
         return <div className="text-center py-10 text-muted-foreground">Memuat grafik...</div>;
     }
 
-    const formatCurrency = (val) => {
-        if (val >= 1000000) {
-            // Show up to 2 decimals, but remove trailing zeros (e.g., 12.06 jt, 12 jt)
-            const num = (val / 1000000).toFixed(2);
-            return `${Number(num)} jt`;
-        }
-        if (val >= 1000) return `${(val / 1000).toFixed(0)} rb`;
-        return `${val}`;
-    };
+    const formatCurrency = (val) => formatCompactNumber(val);
 
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
@@ -158,7 +151,7 @@ const DashboardCharts = ({ currentStore }) => {
                     <CardContent className="p-4">
                         <div className="h-[250px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={chartData}>
+                                <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                                     <defs>
                                         <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="0%" stopColor="#4f46e5" stopOpacity={1} />
@@ -167,7 +160,7 @@ const DashboardCharts = ({ currentStore }) => {
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                     <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
-                                    <YAxis width={60} fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
+                                    <YAxis width={45} fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
                                     <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
                                     <Bar dataKey="totalRevenue" fill="url(#colorRevenue)" radius={[6, 6, 0, 0]} name="Total Omset" barSize={24} />
                                 </BarChart>
@@ -184,7 +177,7 @@ const DashboardCharts = ({ currentStore }) => {
                     <CardContent className="p-4">
                         <div className="h-[250px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={chartData}>
+                                <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                                     <defs>
                                         <linearGradient id="colorGrossProfit" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="0%" stopColor="#d97706" stopOpacity={1} />
@@ -193,7 +186,7 @@ const DashboardCharts = ({ currentStore }) => {
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                     <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
-                                    <YAxis width={50} fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
+                                    <YAxis width={45} fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
                                     <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
                                     <Bar dataKey="avgDailyGrossProfit" fill="url(#colorGrossProfit)" radius={[6, 6, 0, 0]} name="Laba Kotor Rata-rata" barSize={24} />
                                 </BarChart>
@@ -210,7 +203,7 @@ const DashboardCharts = ({ currentStore }) => {
                     <CardContent className="p-4">
                         <div className="h-[250px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={chartData}>
+                                <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                                     <defs>
                                         <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="0%" stopColor="#059669" stopOpacity={1} />
@@ -219,7 +212,7 @@ const DashboardCharts = ({ currentStore }) => {
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                     <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
-                                    <YAxis width={60} fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
+                                    <YAxis width={45} fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
                                     <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
                                     <Bar dataKey="avgDailyProfit" fill="url(#colorProfit)" radius={[6, 6, 0, 0]} name="Laba Rata-rata" barSize={24} />
                                 </BarChart>
@@ -236,7 +229,7 @@ const DashboardCharts = ({ currentStore }) => {
                     <CardContent className="p-4">
                         <div className="h-[250px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={chartData}>
+                                <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                                     <defs>
                                         <linearGradient id="colorDailyRev" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="0%" stopColor="#2563eb" stopOpacity={1} />
@@ -245,7 +238,7 @@ const DashboardCharts = ({ currentStore }) => {
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                     <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
-                                    <YAxis width={60} fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
+                                    <YAxis width={45} fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
                                     <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
                                     <Bar dataKey="avgDailyRevenue" fill="url(#colorDailyRev)" radius={[6, 6, 0, 0]} name="Omset Rata-rata" barSize={24} />
                                 </BarChart>
@@ -262,7 +255,7 @@ const DashboardCharts = ({ currentStore }) => {
                     <CardContent className="p-4">
                         <div className="h-[250px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={chartData}>
+                                <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                                     <defs>
                                         <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="0%" stopColor="#e11d48" stopOpacity={1} />
@@ -271,7 +264,7 @@ const DashboardCharts = ({ currentStore }) => {
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                     <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
-                                    <YAxis width={60} fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
+                                    <YAxis width={45} fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
                                     <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
                                     <Bar dataKey="totalOpEx" fill="url(#colorExpense)" radius={[6, 6, 0, 0]} name="Pengeluaran Ops" barSize={24} />
                                 </BarChart>
@@ -288,7 +281,7 @@ const DashboardCharts = ({ currentStore }) => {
                     <CardContent className="p-4">
                         <div className="h-[250px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={chartData}>
+                                <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                                     <defs>
                                         <linearGradient id="colorNetProfit" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
@@ -297,7 +290,7 @@ const DashboardCharts = ({ currentStore }) => {
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                     <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
-                                    <YAxis width={60} fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
+                                    <YAxis width={45} fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatCurrency} tick={{ fill: '#94a3b8', fontWeight: 600 }} />
                                     <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc' }} />
                                     <Bar dataKey="totalProfit" fill="url(#colorNetProfit)" radius={[6, 6, 0, 0]} name="Laba Bersih" barSize={24} />
                                 </BarChart>

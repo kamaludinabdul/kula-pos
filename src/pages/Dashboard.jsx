@@ -10,12 +10,9 @@ import { safeSupabaseRpc } from '../utils/supabaseHelper';
 
 import { SmartDatePicker } from '../components/SmartDatePicker';
 import { useAuth } from '../context/AuthContext';
+import { formatCompactNumber } from '../lib/utils';
 
-const formatCurrency = (val) => {
-    if (val >= 1000000) return `${(val / 1000000).toFixed(1)} jt`;
-    if (val >= 1000) return `${(val / 1000).toFixed(0)} rb`;
-    return `${val}`;
-};
+const formatCurrency = (val) => formatCompactNumber(val);
 
 const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#8b5cf6'];
 
@@ -257,24 +254,21 @@ const Dashboard = () => {
                     <>
                         <InfoCard
                             title="Total Penjualan"
-                            value={stats.totalSales}
+                            value={`Rp ${stats.totalSales.toLocaleString('id-ID')}`}
                             icon={DollarSign}
                             variant="primary"
-                            isCurrency
                         />
                         <InfoCard
                             title="Laba Bersih"
-                            value={stats.totalNetProfit}
+                            value={`Rp ${stats.totalNetProfit.toLocaleString('id-ID')}`}
                             icon={TrendingUp}
                             variant="success"
-                            isCurrency
                         />
                         <InfoCard
                             title="Laba Kotor"
-                            value={stats.totalGrossProfit}
+                            value={`Rp ${stats.totalGrossProfit.toLocaleString('id-ID')}`}
                             icon={TrendingUp}
                             variant="warning"
-                            isCurrency
                         />
                     </>
                 )}
@@ -385,7 +379,7 @@ const Dashboard = () => {
                                                     </div>
                                                 )}
                                                 <ResponsiveContainer width="100%" height="100%">
-                                                    <ComposedChart data={hourlyPatternData}>
+                                                    <ComposedChart data={hourlyPatternData} margin={{ top: 5, right: 10, left: 0, bottom: 20 }}>
                                                         <defs>
                                                             <linearGradient id="rangeGradient" x1="0" y1="0" x2="0" y2="1">
                                                                 <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
@@ -394,7 +388,7 @@ const Dashboard = () => {
                                                         </defs>
                                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} dy={10} />
-                                                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} tickFormatter={(value) => `Rp ${formatCurrency(value)}`} />
+                                                        <YAxis width={50} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} tickFormatter={(value) => formatCurrency(value)} />
                                                         <Tooltip
                                                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                                                             formatter={(value, name) => {
@@ -412,10 +406,10 @@ const Dashboard = () => {
                                         )
                                     ) : chartData && chartData.length > 0 ? (
                                         <ResponsiveContainer width="100%" height="100%">
-                                            <LineChart data={chartData}>
+                                            <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 20 }}>
                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} dy={10} />
-                                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} tickFormatter={(value) => `Rp ${formatCurrency(value)}`} />
+                                                <YAxis width={45} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} tickFormatter={(value) => formatCurrency(value)} />
                                                 <Tooltip
                                                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                                                     formatter={(value) => [`Rp ${value.toLocaleString()}`, 'Penjualan']}

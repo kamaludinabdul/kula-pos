@@ -44,7 +44,7 @@ BEGIN
         WHERE cf.store_id = p_store_id::UUID
           AND EXTRACT(YEAR FROM cf.date) = p_year
           AND cf.type IN ('out', 'expense')
-          AND COALESCE(cf.expense_group, 'operational') IN ('OPEX', 'operational')
+          AND COALESCE(cf.expense_group, 'operational') IN ('OPEX', 'operational', 'write_off')
         GROUP BY EXTRACT(MONTH FROM cf.date)
     ),
     all_months AS (

@@ -76,6 +76,12 @@ const FeesSettings = () => {
 
     return (
         <div className="space-y-6">
+            <div>
+                <h2 className="text-2xl font-bold tracking-tight">Biaya & Pajak</h2>
+                <p className="text-muted-foreground">
+                    Atur pajak, biaya layanan, dan fitur diskon transaksi.
+                </p>
+            </div>
             <Card>
                 <CardHeader>
                     <div className="flex items-center gap-2">

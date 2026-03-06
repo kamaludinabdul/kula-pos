@@ -30,13 +30,14 @@ const SalesForecast = () => {
 
             const startDate = new Date(today);
             startDate.setDate(today.getDate() - 45);
+            const startDateStr = startDate.toLocaleDateString('en-CA');
 
             // Fetch transactions
             const { data: txList, error } = await supabase
                 .from('transactions')
-                .select('*')
+                .select('date, total, status')
                 .eq('store_id', currentStore.id)
-                .gte('date', startDate.toISOString())
+                .gte('date', startDateStr)
                 .order('date', { ascending: true });
 
             if (error) throw error;
@@ -45,9 +46,10 @@ const SalesForecast = () => {
             const dailyMap = {};
             (txList || []).forEach(data => {
                 if (data.status === 'void' || data.status === 'refunded' || data.status === 'cancelled') return;
-                // Use en-CA for YYYY-MM-DD format in local time
+
+                // Ensure we get YYYY-MM-DD regardless of whether data.date is a string or ISO
                 const dateKey = new Date(data.date).toLocaleDateString('en-CA');
-                dailyMap[dateKey] = (dailyMap[dateKey] || 0) + (data.total || 0);
+                dailyMap[dateKey] = (dailyMap[dateKey] || 0) + (Number(data.total) || 0);
             });
 
             // 3. Generate Continuous Timeline (Fill Gaps with 0)

@@ -56,6 +56,20 @@ export const getSalesForecastInsights = async (data, customApiKey = null) => {
 };
 
 /**
+ * Internal helper to parse and extract JSON from AI response.
+ * @param {string} text - AI response text.
+ * @returns {Object|null}
+ */
+export const parseAIResponse = (text) => {
+    try {
+        const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+        return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+    } catch {
+        return null;
+    }
+};
+
+/**
  * Generates AI-based reasoning for shopping recommendations.
  * @param {Object} productData - Product performance and budget data.
  * @param {string} [customApiKey] - Custom Gemini API key.
@@ -84,9 +98,7 @@ export const getRecommendationReasoning = async (productData, customApiKey = nul
         const response = await result.response;
         const text = response.text();
 
-        // Basic JSON extraction in case AI adds markdown
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        return jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+        return parseAIResponse(text) || {};
     } catch (error) {
         console.error("Gemini Recommendation Error:", error);
         return {};
@@ -375,4 +387,14 @@ export const getSalesPerformanceAnalysis = async (data, isMonthly = false, custo
         console.error("Gemini Performance Analysis Error:", error);
         return "Gagal menghasilkan analisis AI. Silakan coba lagi nanti.";
     }
+};
+
+/**
+ * Formats financial data for AI prompt.
+ * @param {Array} data - Array of objects with date, sales, profit.
+ * @returns {string} Formatted string.
+ */
+export const formatDataForAI = (data) => {
+    if (!data || !data.length) return '';
+    return data.map(d => `${d.date}: Sales Rp ${d.total_sales.toLocaleString()}, Profit Rp ${d.total_profit.toLocaleString()}`).join('\n');
 };

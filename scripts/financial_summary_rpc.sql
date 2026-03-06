@@ -47,7 +47,11 @@ BEGIN
     monthly_expenses AS (
         SELECT 
             date_trunc('month', cf.date)::DATE as m_date,
-            SUM(CASE WHEN cf.type = 'expense' AND (cf.expense_group != 'asset' OR cf.expense_group IS NULL) THEN cf.amount ELSE 0 END) as expenses,
+            SUM(CASE 
+                WHEN cf.type IN ('expense', 'out') AND (cf.expense_group != 'asset' OR cf.expense_group IS NULL) 
+                THEN cf.amount 
+                ELSE 0 
+            END) as expenses,
             SUM(CASE WHEN cf.type = 'income' THEN cf.amount ELSE 0 END) as other_income
         FROM cash_flow cf
         JOIN stores s ON cf.store_id = s.id

@@ -212,70 +212,78 @@ const AccessSettings = () => {
     if (!currentStore) return <div>Loading...</div>;
 
     return (
-        <Card>
-            <CardHeader>
-                <div className="flex items-center gap-2">
-                    <Shield className="h-5 w-5" />
-                    <CardTitle>Hak Akses Role (Granular)</CardTitle>
-                </div>
-                <CardDescription>Atur hak akses secara detail untuk setiap menu dan submenu.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList className="grid w-full grid-cols-3 mb-4">
-                        <TabsTrigger value="admin">Admin Store</TabsTrigger>
-                        <TabsTrigger value="staff">Staff (Kasir)</TabsTrigger>
-                        <TabsTrigger value="sales">Sales</TabsTrigger>
-                    </TabsList>
+        <div className="space-y-6">
+            <div>
+                <h2 className="text-2xl font-bold tracking-tight">Hak Akses Role</h2>
+                <p className="text-muted-foreground">
+                    Atur izin akses untuk setiap jabatan (Admin, Staff, Sales) secara detail.
+                </p>
+            </div>
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center gap-2">
+                        <Shield className="h-5 w-5" />
+                        <CardTitle>Hak Akses Role (Granular)</CardTitle>
+                    </div>
+                    <CardDescription>Atur hak akses secara detail untuk setiap menu dan submenu.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Tabs value={activeTab} onValueChange={setActiveTab}>
+                        <TabsList className="grid w-full grid-cols-3 mb-4">
+                            <TabsTrigger value="admin">Admin Store</TabsTrigger>
+                            <TabsTrigger value="staff">Staff (Kasir)</TabsTrigger>
+                            <TabsTrigger value="sales">Sales</TabsTrigger>
+                        </TabsList>
 
-                    {['admin', 'staff', 'sales'].map(role => (
-                        <TabsContent key={role} value={role}>
-                            <form onSubmit={handleSubmit} className="space-y-6">
-                                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                    {featureGroups.map(group => (
-                                        group.features.length > 0 && (
-                                            <Card key={group.title} className="bg-muted/30 border-muted">
-                                                <CardHeader className="py-2 px-3">
-                                                    <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{group.title}</CardTitle>
-                                                </CardHeader>
-                                                <CardContent className="py-2 px-3 space-y-1.5">
-                                                    {group.features.map(feature => (
-                                                        <label
-                                                            key={feature.id}
-                                                            className="flex items-start gap-2 cursor-pointer select-none"
-                                                        >
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={(permissions[role] || []).includes(feature.id)}
-                                                                onChange={() => handlePermissionChange(role, feature.id)}
-                                                                className="mt-0.5 cursor-pointer rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
-                                                            />
-                                                            <span className="text-xs text-slate-700 leading-tight pt-0.5">
-                                                                {feature.label}
-                                                            </span>
-                                                        </label>
-                                                    ))}
-                                                </CardContent>
-                                            </Card>
-                                        )
-                                    ))}
-                                </div>
+                        {['admin', 'staff', 'sales'].map(role => (
+                            <TabsContent key={role} value={role}>
+                                <form onSubmit={handleSubmit} className="space-y-6">
+                                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                        {featureGroups.map(group => (
+                                            group.features.length > 0 && (
+                                                <Card key={group.title} className="bg-muted/30 border-muted">
+                                                    <CardHeader className="py-2 px-3">
+                                                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{group.title}</CardTitle>
+                                                    </CardHeader>
+                                                    <CardContent className="py-2 px-3 space-y-1.5">
+                                                        {group.features.map(feature => (
+                                                            <label
+                                                                key={feature.id}
+                                                                className="flex items-start gap-2 cursor-pointer select-none"
+                                                            >
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={(permissions[role] || []).includes(feature.id)}
+                                                                    onChange={() => handlePermissionChange(role, feature.id)}
+                                                                    className="mt-0.5 cursor-pointer rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                                                                />
+                                                                <span className="text-xs text-slate-700 leading-tight pt-0.5">
+                                                                    {feature.label}
+                                                                </span>
+                                                            </label>
+                                                        ))}
+                                                    </CardContent>
+                                                </Card>
+                                            )
+                                        ))}
+                                    </div>
 
-                                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t">
-                                    <p className="text-xs text-muted-foreground w-full text-center sm:text-left">
-                                        *Hak akses ini berlaku instan setelah disimpan.
-                                    </p>
-                                    <Button type="submit" disabled={isSaving} className="w-full sm:w-auto">
-                                        <Save className="h-4 w-4 mr-2" />
-                                        {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
-                                    </Button>
-                                </div>
-                            </form>
-                        </TabsContent>
-                    ))}
-                </Tabs>
-            </CardContent>
-        </Card>
+                                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t">
+                                        <p className="text-xs text-muted-foreground w-full text-center sm:text-left">
+                                            *Hak akses ini berlaku instan setelah disimpan.
+                                        </p>
+                                        <Button type="submit" disabled={isSaving} className="w-full sm:w-auto">
+                                            <Save className="h-4 w-4 mr-2" />
+                                            {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                                        </Button>
+                                    </div>
+                                </form>
+                            </TabsContent>
+                        ))}
+                    </Tabs>
+                </CardContent>
+            </Card>
+        </div>
     );
 };
 

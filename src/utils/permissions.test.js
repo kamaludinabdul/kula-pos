@@ -8,6 +8,8 @@ describe('Permissions System', () => {
             expect(permissions).toContain('transactions.refund');
             expect(permissions).toContain('products.delete');
             expect(permissions).toContain('settings.users');
+            expect(permissions).toContain('reports.forecast');
+            expect(permissions).toContain('smart_insights.bundling');
         });
 
         it('should return correct permissions for "staff"', () => {

@@ -105,6 +105,26 @@ describe('calculateLoyaltyPoints', () => {
         });
         expect(result.pointsEarned).toBe(0);
     });
+    it('should calculate points correctly for "per_product" rule', () => {
+        const productRules = [
+            { id: 'rule_1', rule_type: 'per_product', is_active: true, product_ids: ['p1'], points_per_item: 5 },
+            { id: 'rule_2', rule_type: 'per_product', is_active: true, product_ids: ['p2'], points_per_item: 10 }
+        ];
+        const cartItems = [
+            { id: 'p1', qty: 2 }, // 2 * 5 = 10 points
+            { id: 'p2', qty: 1 }  // 1 * 10 = 10 points
+        ];
+        const result = calculateLoyaltyPoints({
+            loyaltySettings: { isActive: true, ruleType: 'per_product' },
+            transactionTotal: 100000,
+            cartItems,
+            loyaltyProductRules: productRules,
+            selectedCustomer: mockCustomer
+        });
+
+        expect(result.pointsEarned).toBe(20);
+        expect(result.customerTotalPoints).toBe(120);
+    });
 });
 
 describe('calculateStampUpdates', () => {

@@ -1,15 +1,33 @@
 # Changelog
 
-## [0.19.4] - 2026-03-06
+## [0.19.5] - 2026-03-06
 ### Changed
-- Bumped version to 0.19.4
+- Bumped version to 0.19.5
+
+## [0.19.5] - 2026-03-07
+
+### Added
+
+- **Expiry Management**:
+  - New **Expiry Report** page for tracking expired and nearly expired batches.
+  - **Write-off (Pemusnahan)** functionality: Automatically reduces stock and records non-cash expenses.
+  - Support for editing and adding `expired_date` to product batches.
+- **Testing**: Added comprehensive unit test suite for `utils`, `AI`, `permissions`, and `planLimits`.
+
+### Changed
+
+- **Dashboard Optimization**:
+  - Fixed chart alignment (removed large left spacing).
+  - Adjusted Y-Axis width to prevent label truncation.
+  - Display full currency values in InfoCards (e.g., `Rp 40.567.098`).
+- **Formatting**: Standardized `formatCompactNumber` to use Indonesian decimal separators (`,`) and suffixes (`rb`, `jt`).
+- **Finance**: Updated `get_profit_loss_report` and `get_owner_financial_summary` RPCs to support dual profit metrics and timezone-aware calculations.
 
 ## [0.19.4] - 2026-03-06
 
 ### Fixed
 
 - **POS**: Fixed a bug where searching for a non-existent product resulted in a blank screen. The "Empty State" message is now correctly displayed.
-- Bumped version to 0.19.4
 
 ## [0.19.3] - 2026-03-05
 

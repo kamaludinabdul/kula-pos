@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
-import { Search, Plus, Minus, History as HistoryIcon, ArrowUp, ArrowDown, ArrowUpDown, Trash2, Wrench } from 'lucide-react';
+import { Search, Plus, Minus, History as HistoryIcon, ArrowUp, ArrowDown, ArrowUpDown, Trash2, Wrench, Layers } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../components/ui/badge';
 import Pagination from '../components/Pagination';
 import ProductHistoryDialog from '../components/ProductHistoryDialog';
+import BatchDetailDialog from '../components/BatchDetailDialog';
 
 import * as XLSX from 'xlsx';
 import { Upload, FileDown, CheckCircle, AlertCircle } from 'lucide-react';
@@ -44,6 +45,7 @@ const StockManagement = () => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [isReduceModalOpen, setIsReduceModalOpen] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+    const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
 
     // Reset to page 1 when search or filter changes
     React.useEffect(() => {
@@ -55,6 +57,7 @@ const StockManagement = () => {
     const [newBuyPrice, setNewBuyPrice] = useState('');
     const [newSellPrice, setNewSellPrice] = useState('');
     const [addNote, setAddNote] = useState('');
+    const [addExpiredDate, setAddExpiredDate] = useState('');
 
     // Reduce stock form
     const [reduceQuantity, setReduceQuantity] = useState('');
@@ -163,6 +166,7 @@ const StockManagement = () => {
         setNewBuyPrice(product.buyPrice || '');
         setNewSellPrice(product.sellPrice || product.price || '');
         setAddNote('');
+        setAddExpiredDate('');
         setIsAddModalOpen(true);
     };
 
@@ -176,6 +180,11 @@ const StockManagement = () => {
     const handleViewHistory = (product) => {
         setSelectedProduct(product);
         setIsHistoryModalOpen(true);
+    };
+
+    const handleViewBatches = (product) => {
+        setSelectedProduct(product);
+        setIsBatchModalOpen(true);
     };
 
     const handleSubmitAdd = async (e) => {
@@ -207,7 +216,8 @@ const StockManagement = () => {
             qty,
             buyPrice,
             sellPrice,
-            addNote || 'Stok masuk'
+            addNote || 'Stok masuk',
+            addExpiredDate || null
         );
 
         if (result.success) {
@@ -738,6 +748,14 @@ const StockManagement = () => {
                                                     >
                                                         <HistoryIcon className="h-4 w-4" />
                                                     </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleViewBatches(product)}
+                                                        title="Detail Batch & Kedaluwarsa"
+                                                    >
+                                                        <Layers className="h-4 w-4" />
+                                                    </Button>
                                                 </div>
                                             </TableCell>
                                         </TableRow>
@@ -826,6 +844,13 @@ const StockManagement = () => {
                                             >
                                                 <HistoryIcon className="h-4 w-4" />
                                             </Button>
+                                            <Button
+                                                variant="outline"
+                                                className="h-10 px-3"
+                                                onClick={() => handleViewBatches(product)}
+                                            >
+                                                <Layers className="h-4 w-4" />
+                                            </Button>
                                         </div>
                                     </div>
                                 );
@@ -886,6 +911,15 @@ const StockManagement = () => {
                                 value={newSellPrice}
                                 onChange={(e) => setNewSellPrice(e.target.value)}
                                 placeholder="Kosongkan jika tidak berubah"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="addExpiredDate">Tanggal Kedaluwarsa (Opsional)</Label>
+                            <Input
+                                id="addExpiredDate"
+                                type="date"
+                                value={addExpiredDate}
+                                onChange={(e) => setAddExpiredDate(e.target.value)}
                             />
                         </div>
                         <div className="space-y-2">
@@ -963,6 +997,14 @@ const StockManagement = () => {
                 onClose={() => setIsHistoryModalOpen(false)}
                 product={selectedProduct}
             />
+
+            {/* Batch Detail Modal */}
+            <BatchDetailDialog
+                isOpen={isBatchModalOpen}
+                onClose={() => setIsBatchModalOpen(false)}
+                product={selectedProduct}
+            />
+
             {/* Import Result Dialog */}
             <Dialog open={isImportResultOpen} onOpenChange={setIsImportResultOpen}>
                 <DialogContent>

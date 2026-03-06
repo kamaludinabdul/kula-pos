@@ -52,7 +52,7 @@ const CashFlow = () => {
 
     const categories = React.useMemo(() => ({
         in: ['Penjualan (Manual)', 'Penjualan (Rekap)', 'Modal Tambahan', 'Selisih Stok (Opname)', 'Pendapatan Lain-lain'],
-        out: ['Operasional', 'Gaji Karyawan', 'Sewa Tempat', 'Listrik & Air', 'Internet', 'Maintenance', 'Perlengkapan', 'Belanja Pakan', 'Selisih Stok (Opname)', 'Lain-lain']
+        out: ['Operasional', 'Gaji Karyawan', 'Sewa Tempat', 'Listrik & Air', 'Internet', 'Maintenance', 'Perlengkapan', 'Belanja Pakan', 'Selisih Stok (Opname)', 'Pemusnahan Stok', 'Lain-lain']
     }), []);
 
 
@@ -304,8 +304,8 @@ const CashFlow = () => {
 
                 const cashData = await safeSupabaseQuery({
                     tableName: 'cash_flow',
-                    queryBuilder: (q) => q.select('amount, type').eq('store_id', currentStore.id),
-                    fallbackParams: `?store_id=eq.${currentStore.id}&select=amount,type`
+                    queryBuilder: (q) => q.select('amount, type, expense_group').eq('store_id', currentStore.id),
+                    fallbackParams: `?store_id=eq.${currentStore.id}&select=amount,type,expense_group`
                 });
 
                 let totalCashIn = 0;
@@ -313,7 +313,12 @@ const CashFlow = () => {
 
                 cashData.forEach(data => {
                     if (data.type === 'in') totalCashIn += (Number(data.amount) || 0);
-                    else totalCashOut += (Number(data.amount) || 0);
+                    else {
+                        // Exclude write_offs from physical cash balance
+                        if (data.expense_group !== 'write_off') {
+                            totalCashOut += (Number(data.amount) || 0);
+                        }
+                    }
                 });
 
                 setAllTimeBalance({
@@ -447,6 +452,20 @@ const CashFlow = () => {
                                                     Belanja Aset/Modal <span className="text-[10px] text-slate-500 block sm:inline">(Aset Tetap, Tidak Mengurangi Profit)</span>
                                                 </label>
                                             </div>
+                                            <div className="flex items-center space-x-2">
+                                                <input
+                                                    type="radio"
+                                                    id="write_off"
+                                                    name="expenseGroup"
+                                                    value="write_off"
+                                                    checked={formData.expenseGroup === 'write_off'}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, expenseGroup: e.target.value }))}
+                                                    className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                                                />
+                                                <label htmlFor="write_off" className="text-sm font-medium leading-none cursor-pointer">
+                                                    Pemusnahan/Write-off <span className="text-[10px] text-slate-500 block sm:inline">(Non-Tunai, Mengurangi Profit)</span>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -566,6 +585,7 @@ const CashFlow = () => {
                             <SelectItem value="all">Semua Grup</SelectItem>
                             <SelectItem value="operational">OPEX (Operasional)</SelectItem>
                             <SelectItem value="non_operational">CAPEX (Aset/Modal)</SelectItem>
+                            <SelectItem value="write_off">NON-TUNAI (Pemusnahan)</SelectItem>
                         </SelectContent>
                     </Select>
 
@@ -669,8 +689,12 @@ const CashFlow = () => {
                                         </TableCell>
                                         <TableCell>
                                             {t.type === 'out' && t.expenseGroup ? (
-                                                <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${t.expenseGroup === 'operational' ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-200' : 'bg-amber-50 text-amber-600 ring-1 ring-amber-200'}`}>
-                                                    {t.expenseGroup === 'operational' ? 'OPEX' : 'CAPEX'}
+                                                <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${t.expenseGroup === 'write_off' ? 'bg-slate-100 text-slate-600 ring-1 ring-slate-300' :
+                                                    t.expenseGroup === 'operational' ? 'bg-blue-50 text-blue-600 ring-1 ring-blue-200' :
+                                                        'bg-amber-50 text-amber-600 ring-1 ring-amber-200'
+                                                    }`}>
+                                                    {t.expenseGroup === 'write_off' ? 'NON-TUNAI' :
+                                                        t.expenseGroup === 'operational' ? 'OPEX' : 'CAPEX'}
                                                 </span>
                                             ) : (
                                                 <span className="text-slate-300">-</span>
@@ -727,8 +751,12 @@ const CashFlow = () => {
                                         {t.category}
                                     </Badge>
                                     {t.type === 'out' && t.expenseGroup && (
-                                        <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${t.expenseGroup === 'operational' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'}`}>
-                                            {t.expenseGroup === 'operational' ? 'OPEX' : 'CAPEX'}
+                                        <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider ${t.expenseGroup === 'write_off' ? 'bg-slate-100 text-slate-500' :
+                                            t.expenseGroup === 'operational' ? 'bg-blue-50 text-blue-600' :
+                                                'bg-amber-50 text-amber-600'
+                                            }`}>
+                                            {t.expenseGroup === 'write_off' ? 'NON-TUNAI' :
+                                                t.expenseGroup === 'operational' ? 'OPEX' : 'CAPEX'}
                                         </span>
                                     )}
                                     <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{t.performedBy}</p>
