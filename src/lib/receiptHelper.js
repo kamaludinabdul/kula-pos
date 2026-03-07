@@ -233,17 +233,34 @@ export const generateReceiptHtml = (transaction, store) => {
 
 export const printReceiptBrowser = (transaction, store) => {
     try {
-        const receiptWindow = window.open('', '_blank', 'width=400,height=600');
-
-        if (!receiptWindow) {
-            console.error("Popup blocked! Cannot print receipt.");
-            alert("Pop-up diblokir. Izinkan pop-up untuk mencetak struk.");
-            return;
+        // Create a hidden iframe for printing
+        let iframe = document.getElementById('print-iframe');
+        if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.id = 'print-iframe';
+            iframe.style.position = 'absolute';
+            iframe.style.width = '0px';
+            iframe.style.height = '0px';
+            iframe.style.border = 'none';
+            document.body.appendChild(iframe);
         }
 
         const html = generateReceiptHtml(transaction, store);
-        receiptWindow.document.write(html);
-        receiptWindow.document.close();
+
+        const doc = iframe.contentWindow?.document || iframe.contentDocument;
+        if (!doc) throw new Error("Could not access iframe document");
+
+        doc.open();
+        doc.write(html);
+        doc.close();
+
+        // The generated HTML already has window.print() inside window.onload
+        // But for iframe, it's safer to ensure it prints
+        setTimeout(() => {
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+        }, 800);
+
     } catch (e) {
         console.error("Error printing receipt:", e);
         alert("Gagal mencetak struk di browser: " + e.message);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ShoppingCart } from 'lucide-react';
 import { supabase } from '../supabase';
@@ -403,6 +403,9 @@ const POS = () => {
             ...(currentStore?.settings || {})
         };
 
+        // Safety: ensure we don't try to print empty data
+        if (!lastTransaction.items || lastTransaction.items.length === 0) return;
+
         if (printerService.isConnected()) {
             const res = await printerService.printReceipt(lastTransaction, config);
             if (res.success) return;
@@ -411,7 +414,37 @@ const POS = () => {
         printReceiptBrowser(lastTransaction, config);
     }, [lastTransaction, currentStore]);
 
-    const processPayment = async (paymentDetails) => {
+    // --- Memoized Loyalty/Stamp Results for Modal ---
+    const memoizedPointsEarned = useMemo(() => {
+        if (!currentStore?.loyaltySettings?.isActive || !selectedCustomer || !isCheckoutOpen) return 0;
+
+        const pResult = calculateLoyaltyPoints({
+            loyaltySettings: currentStore.loyaltySettings,
+            transactionTotal: totals.finalTotal,
+            cartItems: cart,
+            loyaltyProductRules: loyaltyRules,
+            selectedCustomer
+        });
+
+        const sResult = calculateStampUpdates({
+            cartItems: cart,
+            loyaltyProductRules: loyaltyRules,
+            customerStamps: currentStamps
+        });
+
+        return (pResult.pointsEarned || 0) + (sResult.bonusPoints || 0);
+    }, [currentStore?.loyaltySettings, selectedCustomer, totals.finalTotal, cart, loyaltyRules, currentStamps, isCheckoutOpen]);
+
+    const memoizedStampUpdates = useMemo(() => {
+        if (!currentStore?.loyaltySettings?.isActive || !selectedCustomer || !isCheckoutOpen) return [];
+        return calculateStampUpdates({
+            cartItems: cart,
+            loyaltyProductRules: loyaltyRules,
+            customerStamps: currentStamps
+        }).updates || [];
+    }, [currentStore?.loyaltySettings, selectedCustomer, cart, loyaltyRules, currentStamps, isCheckoutOpen]);
+
+    const processPayment = useCallback(async (paymentDetails) => {
         const { paymentMethod, cashAmount, change, transactionDate } = paymentDetails;
 
         // Use provided transaction date or default to now
@@ -507,7 +540,7 @@ const POS = () => {
         } else {
             showAlert('Gagal', `Transaksi gagal: ${result?.error || 'Unknown error'}`);
         }
-    };
+    }, [cart, totals, user, selectedCustomer, currentStore, currentShift, discountType, discountValue, appliedPromoId, salesPerson, loyaltyRules, currentStamps, processSale, updateShiftStats, updateCustomer, updateCustomerStamps, showAlert]);
 
     // --- Shortcuts ---
     useEffect(() => {
@@ -716,33 +749,8 @@ const POS = () => {
                 store={{ ...currentStore, ...storeSettings }}
                 user={user}
                 selectedCustomer={selectedCustomer}
-                pointsEarned={(() => {
-                    if (!currentStore?.loyaltySettings?.isActive || !selectedCustomer) return 0;
-
-                    const pResult = calculateLoyaltyPoints({
-                        loyaltySettings: currentStore.loyaltySettings,
-                        transactionTotal: totals.finalTotal,
-                        cartItems: cart,
-                        loyaltyProductRules: loyaltyRules,
-                        selectedCustomer
-                    });
-
-                    const sResult = calculateStampUpdates({
-                        cartItems: cart,
-                        loyaltyProductRules: loyaltyRules,
-                        customerStamps: currentStamps
-                    });
-
-                    return (pResult.pointsEarned || 0) + (sResult.bonusPoints || 0);
-                })()}
-                stampUpdates={(() => {
-                    if (!currentStore?.loyaltySettings?.isActive || !selectedCustomer) return [];
-                    return calculateStampUpdates({
-                        cartItems: cart,
-                        loyaltyProductRules: loyaltyRules,
-                        customerStamps: currentStamps
-                    }).updates;
-                })()}
+                pointsEarned={memoizedPointsEarned}
+                stampUpdates={memoizedStampUpdates}
             />
 
             <BarcodeScannerDialog

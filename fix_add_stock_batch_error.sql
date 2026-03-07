@@ -1,9 +1,18 @@
--- ==========================================
--- RPC: add_stock_batch
--- Description: Handles manual stock addition with FIFO support
--- Updates product stock, buy price, sell price, and logs movements/batches
--- ==========================================
+-- Consolidation script to fix add_stock_batch error
+-- Run this in Supabase SQL Editor
 
+BEGIN;
+
+-- 1. Ensure batches table has expired_date column
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'batches' AND column_name = 'expired_date') THEN
+        ALTER TABLE public.batches ADD COLUMN expired_date DATE;
+        CREATE INDEX IF NOT EXISTS idx_batches_expired_date ON public.batches(expired_date);
+    END IF;
+END $$;
+
+-- 2. Update add_stock_batch RPC
 CREATE OR REPLACE FUNCTION public.add_stock_batch(
     p_store_id UUID,
     p_product_id UUID,
@@ -29,52 +38,21 @@ BEGIN
     END IF;
 
     -- 2. Record Stock Movement
-    INSERT INTO public.stock_movements (
-        store_id, 
-        product_id, 
-        type, 
-        qty, 
-        date, 
-        note
-    )
-    VALUES (
-        p_store_id,
-        p_product_id,
-        'in',
-        p_qty,
-        NOW(),
-        COALESCE(p_note, 'Manual Stock Addition')
-    );
+    INSERT INTO public.stock_movements (store_id, product_id, type, qty, date, note)
+    VALUES (p_store_id, p_product_id, 'in', p_qty, NOW(), COALESCE(p_note, 'Manual Stock Addition'));
 
     -- 3. Create Batch (for FIFO tracking)
-    INSERT INTO public.batches (
-        store_id, 
-        product_id, 
-        initial_qty, 
-        current_qty, 
-        buy_price, 
-        date, 
-        note,
-        expired_date
-    )
-    VALUES (
-        p_store_id,
-        p_product_id,
-        p_qty,
-        p_qty,
-        p_buy_price,
-        NOW(),
-        COALESCE(p_note, 'Manual Stock Addition'),
-        p_expired_date
-    )
+    INSERT INTO public.batches (store_id, product_id, initial_qty, current_qty, buy_price, date, note, expired_date)
+    VALUES (p_store_id, p_product_id, p_qty, p_qty, p_buy_price, NOW(), COALESCE(p_note, 'Manual Stock Addition'), p_expired_date)
     RETURNING id INTO v_batch_id;
 
     RETURN jsonb_build_object('success', true, 'batch_id', v_batch_id);
-
 EXCEPTION WHEN OTHERS THEN
     RETURN jsonb_build_object('success', false, 'error', SQLERRM);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Set search path for security
+-- Reapply search path for security
 ALTER FUNCTION public.add_stock_batch(UUID, UUID, NUMERIC, NUMERIC, NUMERIC, TEXT, DATE) SET search_path = public;
+
+COMMIT;

@@ -8,6 +8,19 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        "version": "0.21.0",
+        "date": "2026-03-08",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**POS Performance**: Resolved a critical 15-second freeze during browser printing by refactoring the printing engine to use a non-blocking hidden iframe instead of popups.",
+            "**Optimization**: Memoized heavy loyalty and stamp calculations in the POS interface to ensure instant state updates and smoother transitions.",
+            "**Database**: Applied a \"Mega Resync\" to 40+ Supabase functions, ensuring full synchronization and resolving various schema/RPC errors (categories, loyalty_history).",
+            "**Inventory**: Fixed a bug in the add stock batch process that caused errors when creating new stock entries.",
+            "**Changed**: Bumped version to 0.21.0"
+        ]
+    },
+    {
         "version": "0.20.0",
         "date": "2026-03-07",
         "type": "minor",

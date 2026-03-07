@@ -1,78 +1,52 @@
 -- MASTER: bulk_add_products
--- Purpose: Import multiple products at once from JSON, handles auto-category creation
--- Source: supabase_schema.sql
+-- Purpose: Optimized bulk product import with initial batch creation
 
 CREATE OR REPLACE FUNCTION public.bulk_add_products(
     p_store_id UUID,
     p_products JSONB
-) RETURNS JSONB AS $$
+) RETURNS JSONB 
+LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
-    v_product JSONB;
-    v_cat_id UUID;
-    v_new_prod_id UUID;
-    v_added_count INT := 0;
-    v_skipped_count INT := 0;
-    v_new_cats_count INT := 0;
+    v_product RECORD;
+    v_count INTEGER := 0;
 BEGIN
-    FOR v_product IN SELECT * FROM jsonb_array_elements(p_products)
+    FOR v_product IN SELECT * FROM jsonb_to_recordset(p_products) AS x(
+        name TEXT, 
+        sku TEXT, 
+        barcode TEXT, 
+        category_id UUID, 
+        buy_price NUMERIC, 
+        sell_price NUMERIC, 
+        stock NUMERIC, 
+        unit TEXT, 
+        description TEXT,
+        is_unlimited BOOLEAN,
+        min_stock NUMERIC,
+        expired_date DATE
+    )
     LOOP
-        -- Check duplicate barcode
-        IF v_product->>'barcode' IS NOT NULL AND EXISTS (
-            SELECT 1 FROM products WHERE store_id = p_store_id AND barcode = v_product->>'barcode'
-        ) THEN
-            v_skipped_count := v_skipped_count + 1;
-            CONTINUE;
+        INSERT INTO public.products (
+            store_id, name, sku, barcode, category_id, buy_price, sell_price, 
+            stock, unit, description, is_unlimited, min_stock
+        )
+        VALUES (
+            p_store_id, v_product.name, v_product.sku, v_product.barcode, v_product.category_id, 
+            v_product.buy_price, v_product.sell_price, v_product.stock, v_product.unit, 
+            v_product.description, COALESCE(v_product.is_unlimited, false), COALESCE(v_product.min_stock, 0)
+        )
+        ON CONFLICT (store_id, sku) DO NOTHING;
+
+        -- Create initial batch if stock > 0
+        IF v_product.stock > 0 THEN
+            INSERT INTO public.batches (store_id, product_id, initial_qty, current_qty, buy_price, date, note, expired_date)
+            SELECT p_store_id, id, v_product.stock, v_product.stock, v_product.buy_price, NOW(), 'Initial Stock (Bulk Add)', v_product.expired_date
+            FROM public.products 
+            WHERE sku = v_product.sku AND store_id = p_store_id;
         END IF;
 
-        -- Handle Category
-        IF v_product->>'category' IS NOT NULL THEN
-            SELECT id INTO v_cat_id FROM categories WHERE store_id = p_store_id AND LOWER(TRIM(name)) = LOWER(TRIM(v_product->>'category'));
-            IF NOT FOUND THEN
-                INSERT INTO categories (store_id, name) VALUES (p_store_id, TRIM(v_product->>'category')) RETURNING id INTO v_cat_id;
-                v_new_cats_count := v_new_cats_count + 1;
-            END IF;
-        ELSE
-            v_cat_id := NULL;
-        END IF;
-
-        -- Insert Product
-        INSERT INTO products (
-            store_id, category_id, name, barcode, buy_price, sell_price, stock, unit, min_stock, type
-        ) VALUES (
-            p_store_id,
-            v_cat_id,
-            v_product->>'name',
-            v_product->>'barcode',
-            (v_product->>'buyPrice')::NUMERIC,
-            (v_product->>'sellPrice')::NUMERIC,
-            (v_product->>'stock')::NUMERIC,
-            v_product->>'unit',
-            (v_product->>'minStock')::NUMERIC,
-            COALESCE(v_product->>'type', 'product')
-        ) RETURNING id INTO v_new_prod_id;
-
-        v_added_count := v_added_count + 1;
-
-        -- Initial Stock Tracking
-        IF (v_product->>'stock')::NUMERIC > 0 THEN
-            INSERT INTO stock_movements (store_id, product_id, type, qty, date, note, ref_id)
-            VALUES (p_store_id, v_new_prod_id, 'in', (v_product->>'stock')::NUMERIC, NOW(), 'Initial Stock (Bulk Import)', v_new_prod_id::TEXT);
-
-            -- Compatibility: Create Batch if batches table exists
-            BEGIN
-                INSERT INTO batches (store_id, product_id, initial_qty, current_qty, buy_price, date, note)
-                VALUES (p_store_id, v_new_prod_id, (v_product->>'stock')::NUMERIC, (v_product->>'stock')::NUMERIC, (v_product->>'buyPrice')::NUMERIC, NOW(), 'Initial Stock (Bulk Import)');
-            EXCEPTION WHEN OTHERS THEN NULL; END;
-        END IF;
+        v_count := v_count + 1;
     END LOOP;
 
-    RETURN jsonb_build_object(
-        'success', true,
-        'added_count', v_added_count,
-        'skipped_count', v_skipped_count,
-        'new_categories_count', v_new_cats_count
-    );
-EXCEPTION WHEN OTHERS THEN
-    RETURN jsonb_build_object('success', false, 'error', SQLERRM);
+    RETURN jsonb_build_object('success', true, 'count', v_count);
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+$$;
