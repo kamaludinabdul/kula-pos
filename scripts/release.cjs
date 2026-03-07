@@ -111,8 +111,11 @@ function prependChangelog(version) {
 const packageJson = require(PACKAGE_JSON_PATH);
 const currentVersion = packageJson.version;
 
-console.log(`Current version: ${currentVersion}`);
-rl.question('Enter release type (major, minor, patch) or specific version: ', (answer) => {
+const nextPatch = incrementVersion(currentVersion, 'patch');
+const nextMinor = incrementVersion(currentVersion, 'minor');
+const nextMajor = incrementVersion(currentVersion, 'major');
+
+async function runRelease(answer) {
     let newVersion;
     if (['major', 'minor', 'patch'].includes(answer)) {
         newVersion = incrementVersion(currentVersion, answer);
@@ -124,7 +127,7 @@ rl.question('Enter release type (major, minor, patch) or specific version: ', (a
         process.exit(1);
     }
 
-    console.log(`Bumping to version: ${newVersion}`);
+    console.log(`\nBumping to version: ${newVersion}`);
 
     // Update package.json
     updateFile(PACKAGE_JSON_PATH, `"version": "${currentVersion}"`, `"version": "${newVersion}"`);
@@ -146,4 +149,40 @@ rl.question('Enter release type (major, minor, patch) or specific version: ', (a
     console.log(`git add . && git commit -m "chore: release v${newVersion}"`);
 
     rl.close();
-});
+}
+
+console.log(`Current version: ${currentVersion}`);
+
+// Support CLI arguments
+const arg = process.argv[2];
+if (arg === 'sync') {
+    console.log('Syncing UI from CHANGELOG.md...');
+    updateChangeLogJsx();
+    console.log('Done!');
+    rl.close();
+} else if (arg) {
+    runRelease(arg);
+} else {
+    console.log('\nAvailable options:');
+    console.log(`1. patch  -> ${nextPatch}`);
+    console.log(`2. minor  -> ${nextMinor}`);
+    console.log(`3. major  -> ${nextMajor}`);
+    console.log('4. sync   -> Update UI from CHANGELOG.md (No version bump)');
+    console.log('5. <specific version> (e.g. 1.2.3)\n');
+
+    rl.question('Choose release type or enter version: ', (answer) => {
+        let actualAnswer = answer.toLowerCase();
+        if (actualAnswer === '1' || actualAnswer === 'patch') actualAnswer = 'patch';
+        else if (actualAnswer === '2' || actualAnswer === 'minor') actualAnswer = 'minor';
+        else if (actualAnswer === '3' || actualAnswer === 'major') actualAnswer = 'major';
+        else if (actualAnswer === '4' || actualAnswer === 'sync') {
+            console.log('Syncing UI from CHANGELOG.md...');
+            updateChangeLogJsx();
+            console.log('Done!');
+            rl.close();
+            return;
+        }
+
+        runRelease(actualAnswer);
+    });
+}

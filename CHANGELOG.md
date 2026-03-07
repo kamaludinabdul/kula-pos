@@ -1,11 +1,25 @@
 # Changelog
 
+## [0.20.0] - 2026-03-07
+
+### Added
+
+- **SQL Governance (Major)**: Centralized 41 database functions into a dedicated `sql/functions/` directory.
+  - Established a **Single Source of Truth** for all SQL logic (RPC & Triggers).
+  - Created a master deployment script `sql/deploy_all_functions.sql` and `sql/universal_deploy.sql`.
+  - Masterized critical automation triggers (`handle_new_user`, `sync_owner_plan_to_stores`).
+- **Release Automation**: Enhanced `npm run release` with interactive version prediction and CLI argument support.
+
+### Fixed
+
+- **Finance**: Resolved the QRIS and Transfer reporting bug in `get_profit_loss_report`. Totals are now accurately calculated and displayed in the Transactions dashboard.
+
 ## [0.19.6] - 2026-03-06
-### Changed
-- Bumped version to 0.19.6
 
 ## [0.19.5] - 2026-03-06
+
 ### Changed
+
 - Bumped version to 0.19.5
 
 ## [0.19.5] - 2026-03-07

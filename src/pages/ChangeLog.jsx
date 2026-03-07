@@ -8,12 +8,14 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
-        "version": "0.19.6",
-        "date": "2026-03-06",
-        "type": "patch",
-        "title": "Patch Release",
+        "version": "0.20.0",
+        "date": "2026-03-07",
+        "type": "minor",
+        "title": "Feature Release",
         "changes": [
-            "Bumped version to 0.19.6"
+            "**SQL Governance (Major)**: Centralized 41 database functions into a dedicated `sql/functions/` directory.",
+            "**Release Automation**: Enhanced `npm run release` with interactive version prediction and CLI argument support.",
+            "**Finance**: Resolved the QRIS and Transfer reporting bug in `get_profit_loss_report`. Totals are now accurately calculated and displayed in the Transactions dashboard."
         ]
     },
     {

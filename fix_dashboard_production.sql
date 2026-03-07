@@ -204,8 +204,11 @@ DECLARE
     v_total_discount NUMERIC;
     v_total_transactions INT;
     v_total_items INT;
+    v_total_cash NUMERIC := 0;
+    v_total_qris NUMERIC := 0;
+    v_total_transfer NUMERIC := 0;
 BEGIN
-    -- 1. Calculate Sales, Tax, Discount, COGS
+    -- 1. Calculate Sales, Tax, Discount, COGS, and Payment Method Breakdown
     SELECT 
         COALESCE(SUM(total), 0),
         COALESCE(SUM(tax), 0),
@@ -217,9 +220,13 @@ BEGIN
                 COALESCE((item->>'qty')::numeric, 0) * 
                 COALESCE((item->>'buyPrice')::numeric, (item->>'buy_price')::numeric, 0)
             ) FROM jsonb_array_elements(t.items) as item
-        )), 0)
+        )), 0),
+        COALESCE(SUM(CASE WHEN payment_method ILIKE 'cash' OR payment_method ILIKE 'tunai' THEN total ELSE 0 END), 0),
+        COALESCE(SUM(CASE WHEN payment_method ILIKE 'qris' THEN total ELSE 0 END), 0),
+        COALESCE(SUM(CASE WHEN payment_method ILIKE 'transfer' THEN total ELSE 0 END), 0)
     INTO 
-        v_total_sales, v_total_tax, v_total_discount, v_total_transactions, v_total_items, v_total_cogs
+        v_total_sales, v_total_tax, v_total_discount, v_total_transactions, v_total_items, v_total_cogs,
+        v_total_cash, v_total_qris, v_total_transfer
     FROM transactions t
     WHERE store_id = p_store_id 
       AND date >= p_start_date AND date <= p_end_date 
@@ -264,6 +271,9 @@ BEGIN
         'total_discount', v_total_discount,
         'total_transactions', v_total_transactions,
         'total_items', v_total_items,
+        'total_cash', v_total_cash,
+        'total_qris', v_total_qris,
+        'total_transfer', v_total_transfer,
         'net_profit', v_total_sales - v_total_cogs - v_total_expenses - v_total_write_offs + v_other_income
     );
 END;
