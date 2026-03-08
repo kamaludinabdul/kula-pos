@@ -8,6 +8,16 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        "version": "0.21.1",
+        "date": "2026-03-08",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Dashboard**: Resolved an issue where all dashboard and transaction figures displayed as 0 due to PostgreSQL function overloading when standardizing store IDs.",
+            "**Reporting**: Broadened transaction status filters to correctly include `berhasil` cases, ensuring revenue metrics accurately reflect all paid sales."
+        ]
+    },
+    {
         "version": "0.21.0",
         "date": "2026-03-08",
         "type": "patch",

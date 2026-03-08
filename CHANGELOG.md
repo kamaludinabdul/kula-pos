@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.1] - 2026-03-08
+
+### Fixed
+
+- **Dashboard**: Resolved an issue where all dashboard and transaction figures displayed as 0 due to PostgreSQL function overloading when standardizing store IDs.
+- **Reporting**: Broadened transaction status filters to correctly include `berhasil` cases, ensuring revenue metrics accurately reflect all paid sales.
+
 ## [0.21.0] - 2026-03-08
 
 ### Fixed
