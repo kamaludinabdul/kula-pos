@@ -8,9 +8,9 @@ CREATE OR REPLACE FUNCTION public.process_sale(
     p_discount NUMERIC,
     p_payment_method TEXT,
     p_items JSONB,
-    p_amount_paid NUMERIC DEFAULT 0,
-    p_change NUMERIC DEFAULT 0,
-    p_type TEXT DEFAULT 'sale',
+    p_amount_paid NUMERIC,
+    p_change NUMERIC,
+    p_type TEXT,
     p_rental_session_id UUID DEFAULT NULL,
     p_payment_details JSONB DEFAULT '{}'::jsonb,
     p_points_earned NUMERIC DEFAULT 0,
@@ -20,9 +20,6 @@ CREATE OR REPLACE FUNCTION public.process_sale(
     p_cashier_id UUID DEFAULT NULL,
     p_cashier_name TEXT DEFAULT NULL
 ) RETURNS JSONB 
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
 AS $$
 DECLARE
     v_item RECORD;
@@ -45,7 +42,7 @@ BEGIN
         id, store_id, customer_id, customer_name, total, discount, subtotal, payment_method, 
         amount_paid, "change", "type", rental_session_id, payment_details, 
         items, date, status, shift_id, points_earned,
-        cashier_id, cashier_name
+        cashier_id, cashier
     )
     VALUES (
         v_new_transaction_id, p_store_id, p_customer_id, v_customer_name, p_total, p_discount, v_subtotal, p_payment_method, 

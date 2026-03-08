@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
-import { Search, Plus, Minus, History as HistoryIcon, ArrowUp, ArrowDown, ArrowUpDown, Trash2, Wrench, Layers } from 'lucide-react';
+import { Search, Plus, Minus, History as HistoryIcon, ArrowUp, ArrowDown, ArrowUpDown, Trash2, Wrench, Layers, MoreVertical } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
@@ -820,37 +820,47 @@ const StockManagement = () => {
                                             </div>
                                         </div>
 
-                                        <div className="flex gap-2 pt-2 border-t">
-                                            <Button
-                                                variant="outline"
-                                                className="flex-1 text-green-600 border-green-200 bg-green-50/50 h-10"
-                                                onClick={() => handleAddStock(product)}
-                                                disabled={product.isUnlimited}
-                                            >
-                                                <Plus className="mr-2 h-4 w-4" /> Tambah
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                className="flex-1 text-red-600 border-red-200 bg-red-50/50 h-10"
-                                                onClick={() => handleReduceStock(product)}
-                                                disabled={product.isUnlimited}
-                                            >
-                                                <Minus className="mr-2 h-4 w-4" /> Kurangi
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                className="h-10 px-3"
-                                                onClick={() => handleViewHistory(product)}
-                                            >
-                                                <HistoryIcon className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                className="h-10 px-3"
-                                                onClick={() => handleViewBatches(product)}
-                                            >
-                                                <Layers className="h-4 w-4" />
-                                            </Button>
+                                        <div className="flex gap-2 pt-2 border-t justify-between items-center">
+                                            <div className="flex gap-2 flex-1">
+                                                <Button
+                                                    variant="outline"
+                                                    className="flex-1 text-green-600 border-green-200 bg-green-50/50 h-10 flex items-center justify-center"
+                                                    onClick={() => handleAddStock(product)}
+                                                    disabled={product.isUnlimited}
+                                                    title="Tambah Stok"
+                                                >
+                                                    <Plus className="h-5 w-5" />
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    className="flex-1 text-red-600 border-red-200 bg-red-50/50 h-10 flex items-center justify-center"
+                                                    onClick={() => handleReduceStock(product)}
+                                                    disabled={product.isUnlimited}
+                                                    title="Kurangi Stok"
+                                                >
+                                                    <Minus className="h-5 w-5" />
+                                                </Button>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className="h-10 w-10 shrink-0"
+                                                    onClick={() => handleViewHistory(product)}
+                                                    title="Riwayat Stok"
+                                                >
+                                                    <HistoryIcon className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className="h-10 w-10 shrink-0"
+                                                    onClick={() => handleViewBatches(product)}
+                                                    title="Detail Batch"
+                                                >
+                                                    <Layers className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                 );
@@ -874,65 +884,67 @@ const StockManagement = () => {
                     <DialogHeader>
                         <DialogTitle>Tambah Stok - {selectedProduct?.name}</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSubmitAdd} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label>Stok Saat Ini</Label>
-                            <div className="text-2xl font-bold">{selectedProduct?.stock}</div>
+                    <form onSubmit={handleSubmitAdd} className="flex flex-col max-h-[calc(95vh-120px)]">
+                        <div className="flex-1 overflow-y-auto space-y-4 pr-2 py-1">
+                            <div className="space-y-2">
+                                <Label>Stok Saat Ini</Label>
+                                <div className="text-2xl font-bold">{selectedProduct?.stock}</div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="addQuantity">Jumlah Masuk *</Label>
+                                <Input
+                                    id="addQuantity"
+                                    type="number"
+                                    min="1"
+                                    value={addQuantity}
+                                    onChange={(e) => setAddQuantity(e.target.value)}
+                                    required
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="newBuyPrice">Harga Beli Baru</Label>
+                                <Input
+                                    id="newBuyPrice"
+                                    type="number"
+                                    step="0.01"
+                                    value={newBuyPrice}
+                                    onChange={(e) => setNewBuyPrice(e.target.value)}
+                                    placeholder="Kosongkan jika tidak berubah"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="newSellPrice">Harga Jual Baru</Label>
+                                <Input
+                                    id="newSellPrice"
+                                    type="number"
+                                    step="0.01"
+                                    value={newSellPrice}
+                                    onChange={(e) => setNewSellPrice(e.target.value)}
+                                    placeholder="Kosongkan jika tidak berubah"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="addExpiredDate">Tanggal Kedaluwarsa (Opsional)</Label>
+                                <Input
+                                    id="addExpiredDate"
+                                    type="date"
+                                    value={addExpiredDate}
+                                    onChange={(e) => setAddExpiredDate(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="addNote">Keterangan</Label>
+                                <Textarea
+                                    id="addNote"
+                                    value={addNote}
+                                    onChange={(e) => setAddNote(e.target.value)}
+                                    placeholder="Contoh: Pembelian dari supplier X"
+                                    rows={3}
+                                />
+                            </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="addQuantity">Jumlah Masuk *</Label>
-                            <Input
-                                id="addQuantity"
-                                type="number"
-                                min="1"
-                                value={addQuantity}
-                                onChange={(e) => setAddQuantity(e.target.value)}
-                                required
-                                autoFocus
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="newBuyPrice">Harga Beli Baru</Label>
-                            <Input
-                                id="newBuyPrice"
-                                type="number"
-                                step="0.01"
-                                value={newBuyPrice}
-                                onChange={(e) => setNewBuyPrice(e.target.value)}
-                                placeholder="Kosongkan jika tidak berubah"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="newSellPrice">Harga Jual Baru</Label>
-                            <Input
-                                id="newSellPrice"
-                                type="number"
-                                step="0.01"
-                                value={newSellPrice}
-                                onChange={(e) => setNewSellPrice(e.target.value)}
-                                placeholder="Kosongkan jika tidak berubah"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="addExpiredDate">Tanggal Kedaluwarsa (Opsional)</Label>
-                            <Input
-                                id="addExpiredDate"
-                                type="date"
-                                value={addExpiredDate}
-                                onChange={(e) => setAddExpiredDate(e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="addNote">Keterangan</Label>
-                            <Textarea
-                                id="addNote"
-                                value={addNote}
-                                onChange={(e) => setAddNote(e.target.value)}
-                                placeholder="Contoh: Pembelian dari supplier X"
-                                rows={3}
-                            />
-                        </div>
-                        <DialogFooter>
+                        <DialogFooter className="pt-4 border-t mt-4">
                             <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>
                                 Batal
                             </Button>
@@ -950,36 +962,38 @@ const StockManagement = () => {
                     <DialogHeader>
                         <DialogTitle>Kurangi Stok - {selectedProduct?.name}</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSubmitReduce} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label>Stok Saat Ini</Label>
-                            <div className="text-2xl font-bold">{selectedProduct?.stock}</div>
+                    <form onSubmit={handleSubmitReduce} className="flex flex-col max-h-[calc(95vh-120px)]">
+                        <div className="flex-1 overflow-y-auto space-y-4 pr-2 py-1">
+                            <div className="space-y-2">
+                                <Label>Stok Saat Ini</Label>
+                                <div className="text-2xl font-bold">{selectedProduct?.stock}</div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="reduceQuantity">Jumlah Keluar *</Label>
+                                <Input
+                                    id="reduceQuantity"
+                                    type="number"
+                                    min="1"
+                                    max={selectedProduct?.stock}
+                                    value={reduceQuantity}
+                                    onChange={(e) => setReduceQuantity(e.target.value)}
+                                    required
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="reduceNote">Catatan *</Label>
+                                <Textarea
+                                    id="reduceNote"
+                                    value={reduceNote}
+                                    onChange={(e) => setReduceNote(e.target.value)}
+                                    placeholder="Contoh: Produk rusak, kadaluarsa, dll"
+                                    rows={3}
+                                    required
+                                />
+                            </div>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="reduceQuantity">Jumlah Keluar *</Label>
-                            <Input
-                                id="reduceQuantity"
-                                type="number"
-                                min="1"
-                                max={selectedProduct?.stock}
-                                value={reduceQuantity}
-                                onChange={(e) => setReduceQuantity(e.target.value)}
-                                required
-                                autoFocus
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="reduceNote">Catatan *</Label>
-                            <Textarea
-                                id="reduceNote"
-                                value={reduceNote}
-                                onChange={(e) => setReduceNote(e.target.value)}
-                                placeholder="Contoh: Produk rusak, kadaluarsa, dll"
-                                rows={3}
-                                required
-                            />
-                        </div>
-                        <DialogFooter>
+                        <DialogFooter className="pt-4 border-t mt-4">
                             <Button type="button" variant="outline" onClick={() => setIsReduceModalOpen(false)}>
                                 Batal
                             </Button>

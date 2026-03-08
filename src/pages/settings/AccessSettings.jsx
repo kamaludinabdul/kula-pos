@@ -36,14 +36,16 @@ const AccessSettings = () => {
                 { id: 'products.customers', label: 'Pelanggan' },
                 { id: 'products.suppliers', label: 'Supplier' },
                 { id: 'products.purchase_orders', label: 'Purchase Order' },
+                { id: 'products.stock_opname', label: 'Stock Opname' },
             ]
         },
         {
             title: 'Sales',
             features: [
                 { id: 'sales.target', label: 'Target Sales' },
-                { id: 'reports.forecast', label: 'Forecasting Penjualan (Lama)' },
+                { id: 'reports.forecast', label: 'Forecasting Penjualan' },
                 { id: 'smart_insights', label: 'Smart Strategy (AI)' },
+                { id: 'smart_insights.analysis', label: 'Analisa Penjualan (AI)' },
             ]
         },
         {
@@ -58,6 +60,9 @@ const AccessSettings = () => {
                 { id: 'reports.expenses', label: 'Pengeluaran' },
                 { id: 'reports.loyalty', label: 'Laporan Poin' },
                 { id: 'reports.performance', label: 'Sales Performance' },
+                { id: 'reports.expiry', label: 'Laporan Kadaluarsa' },
+                { id: 'reports.customer_profiling', label: 'Profiling Pelanggan' },
+                { id: 'reports.pet_hotel_fee', label: 'Laporan Pet Hotel' },
             ]
         },
         {
@@ -99,7 +104,9 @@ const AccessSettings = () => {
                         'products.list', 'products.categories', 'products.stock', 'products.stock_opname', 'products.customers',
                         'reports.profit_loss', 'reports.sales_items', 'reports.top_selling', 'reports.sales_categories',
                         'reports.inventory_value', 'reports.shifts', 'reports.expenses', 'reports.loyalty', 'reports.performance',
+                        'reports.expiry', 'reports.customer_profiling', 'reports.pet_hotel_fee',
                         'finance.cash_flow', 'transactions.void', 'transactions.refund',
+                        'smart_insights', 'smart_insights.analysis',
                         'others.staff', 'others.login_history',
                         'settings.profile', 'settings.subscription', 'settings.fees', 'settings.printer',
                         'settings.loyalty', 'settings.sales_performance', 'settings.telegram', 'settings.access'

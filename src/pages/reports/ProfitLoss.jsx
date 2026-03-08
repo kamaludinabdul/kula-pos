@@ -111,15 +111,17 @@ const ProfitLoss = () => {
                     .gte('date', startDateStr)
                     .lte('date', endDateStr)
                     .order('date', { ascending: false })
-                    .limit(100),
-                fallbackParams: `?store_id=eq.${currentStore.id}&date=gte.${startDateStr}&date=lte.${endDateStr}&order=date.desc&limit=100`
+                    .limit(100)
+                    .select('*, profiles:cashier_id(name)'),
+                fallbackParams: `?select=*,profiles:cashier_id(name)&store_id=eq.${currentStore.id}&date=gte.${startDateStr}&date=lte.${endDateStr}&order=date.desc&limit=100`
             });
 
             // Map snake_case to camelCase for UI compatibility
             const mappedTransData = (transData || []).map(t => ({
                 ...t,
                 paymentMethod: t.payment_method,
-                customerName: t.customer_name
+                customerName: t.customer_name,
+                cashier: t.profiles?.name || t.cashier || '-'
             }));
 
             setTransactions(mappedTransData);

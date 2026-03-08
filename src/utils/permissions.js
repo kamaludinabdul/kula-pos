@@ -62,7 +62,8 @@ export const PERMISSION_SCHEMA = [
             { id: 'suppliers.update', label: 'Supplier: Edit' },
             { id: 'suppliers.delete', label: 'Supplier: Hapus' },
 
-            { id: 'products.purchase_orders', label: 'Purchase Order (Kulakan)' }
+            { id: 'products.purchase_orders', label: 'Purchase Order (Kulakan)' },
+            { id: 'products.stock_opname', label: 'Produk: Stock Opname' }
         ]
     },
     {
@@ -83,7 +84,11 @@ export const PERMISSION_SCHEMA = [
             { id: 'reports.inventory_value', label: 'Nilai Aset / Stok' },
             { id: 'reports.shifts', label: 'Laporan Shift & Pengeluaran' },
             { id: 'reports.performance', label: 'Performa Sales' },
-            { id: 'reports.forecast', label: 'Forecasting (Prediksi)' }
+            { id: 'reports.forecast', label: 'Forecasting (Prediksi)' },
+            { id: 'reports.expiry', label: 'Laporan Kadaluarsa' },
+            { id: 'reports.customer_profiling', label: 'Profiling Pelanggan' },
+            { id: 'reports.pet_hotel_fee', label: 'Laporan Pet Hotel' },
+            { id: 'reports.top_selling', label: 'Produk Terlaris' }
         ]
     },
     {
@@ -92,7 +97,8 @@ export const PERMISSION_SCHEMA = [
         children: [
             { id: 'smart_insights.bundling', label: 'Analisa Bundling / Market Basket' },
             { id: 'smart_insights.forecast', label: 'Sales Forecasting' },
-            { id: 'smart_insights.segmentation', label: 'Segmentasi Pelanggan' }
+            { id: 'smart_insights.segmentation', label: 'Segmentasi Pelanggan' },
+            { id: 'smart_insights.analysis', label: 'Analisa Penjualan' }
         ]
     },
     {
@@ -145,14 +151,14 @@ export const ROLE_PRESETS = {
         'pos.access', 'pos.custom_price', 'pos.discount', 'pos.open_price',
 
         // Granular Master Data
-        'products.read', 'products.create', 'products.update', 'products.delete', 'products.stock', 'products.import_export', 'products.purchase_orders',
+        'products.read', 'products.create', 'products.update', 'products.delete', 'products.stock', 'products.import_export', 'products.purchase_orders', 'products.stock_opname',
         'categories.read', 'categories.create', 'categories.update', 'categories.delete',
         'customers.read', 'customers.create', 'customers.update', 'customers.delete',
         'suppliers.read', 'suppliers.create', 'suppliers.update', 'suppliers.delete',
 
         'finance.cash_flow',
-        'reports.view', 'reports.profit_loss', 'reports.sales_items', 'reports.sales_categories', 'reports.inventory_value', 'reports.shifts', 'reports.performance', 'reports.forecast',
-        'smart_insights.bundling', 'smart_insights.forecast', 'smart_insights.segmentation',
+        'reports.view', 'reports.profit_loss', 'reports.sales_items', 'reports.sales_categories', 'reports.inventory_value', 'reports.shifts', 'reports.performance', 'reports.forecast', 'reports.expiry', 'reports.customer_profiling', 'reports.pet_hotel_fee', 'reports.top_selling', 'reports.loyalty',
+        'smart_insights.bundling', 'smart_insights.forecast', 'smart_insights.segmentation', 'smart_insights.analysis',
         'rental.access',
         'others.staff', 'others.login_history',
         'settings.profile', 'settings.printer', 'settings.loyalty', 'settings.users', 'sales.target'

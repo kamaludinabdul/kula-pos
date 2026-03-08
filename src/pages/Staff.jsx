@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, Edit2, Trash2, Shield, User, Circle, History, Eye, EyeOff } from 'lucide-react';
+import { Users, Plus, Edit2, Trash2, Shield, User, Circle, History, Eye, EyeOff, MoreVertical } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -18,6 +18,12 @@ import AlertDialog from '../components/AlertDialog';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { PERMISSION_SCHEMA, getPermissionsForRole, ROLE_PRESETS } from '../utils/permissions';
 import { ChevronDown, ChevronRight, Check } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
 
 const Staff = () => {
     const { user, updateStaffPassword } = useAuth();
@@ -594,34 +600,35 @@ const Staff = () => {
                                             <p className="text-xs text-slate-500">ID: {staff.email && staff.email.endsWith('@kula.id') ? staff.email.split('@')[0] : staff.email}</p>
                                         </div>
                                     </div>
-                                    <div className="flex gap-0.5 -mr-2">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => handleViewHistory(staff)}>
-                                            <History className="h-4 w-4" />
-                                        </Button>
-                                        {canManageStaff(staff) && (
-                                            <>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => handleEditStaff(staff)}>
-                                                    <Edit2 className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 shrink-0 text-amber-500"
-                                                    onClick={() => handleForceLogout(staff)}
-                                                >
-                                                    <Shield className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 shrink-0 text-red-500"
-                                                    onClick={() => handleDeleteStaff(staff.id)}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </>
-                                        )}
-                                    </div>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2">
+                                                <MoreVertical className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => handleViewHistory(staff)}>
+                                                <History className="h-4 w-4 mr-2" />
+                                                <span>Riwayat Login</span>
+                                            </DropdownMenuItem>
+                                            {canManageStaff(staff) && (
+                                                <>
+                                                    <DropdownMenuItem onClick={() => handleEditStaff(staff)}>
+                                                        <Edit2 className="h-4 w-4 mr-2" />
+                                                        <span>Edit Staff</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleForceLogout(staff)} className="text-amber-600 focus:text-amber-600">
+                                                        <Shield className="h-4 w-4 mr-2" />
+                                                        <span>Paksa Logout</span>
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleDeleteStaff(staff.id)} className="text-destructive focus:text-destructive">
+                                                        <Trash2 className="h-4 w-4 mr-2" />
+                                                        <span>Hapus Staff</span>
+                                                    </DropdownMenuItem>
+                                                </>
+                                            )}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </div>
 
                                 <div className="flex items-center justify-between pt-3 border-t">
@@ -654,208 +661,210 @@ const Staff = () => {
                     <DialogHeader>
                         <DialogTitle>{isEditing ? 'Edit Staff' : 'Tambah Staff Baru'}</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="staffName">Nama Lengkap</Label>
-                            <Input
-                                id="staffName"
-                                type="text"
-                                value={currentStaff.name}
-                                onChange={(e) => setCurrentStaff({ ...currentStaff, name: e.target.value })}
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="staffEmail">Username / Email (Login ID)</Label>
-                            <Input
-                                id="staffEmail"
-                                type="text"
-                                value={currentStaff.email || ''}
-                                onChange={(e) => setCurrentStaff({ ...currentStaff, email: e.target.value })}
-                                placeholder="Contoh: 'kasir1' atau 'kasir1@email.com'"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                                Tips: Gunakan username saja (misal: <span className="font-semibold">budi</span>) untuk login instan tanpa verifikasi email.
-                            </p>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="staffPassword">Password / PIN Login {isEditing ? '(Opsional)' : <span className="text-red-500">*</span>}</Label>
-                            <div className="relative">
+                    <form onSubmit={handleSubmit} className="flex flex-col max-h-[calc(95vh-120px)]">
+                        <div className="flex-1 overflow-y-auto space-y-4 pr-2 py-1">
+                            <div className="space-y-2">
+                                <Label htmlFor="staffName">Nama Lengkap</Label>
                                 <Input
-                                    id="staffPassword"
-                                    type={showPassword ? "text" : "password"}
-                                    value={currentStaff.password || ''}
-                                    onChange={(e) => setCurrentStaff({ ...currentStaff, password: e.target.value })}
-                                    placeholder={isEditing ? "(Biarkan kosong jika tidak diubah)" : "Minimal 6 karakter"}
-                                    required={!isEditing}
+                                    id="staffName"
+                                    type="text"
+                                    value={currentStaff.name}
+                                    onChange={(e) => setCurrentStaff({ ...currentStaff, name: e.target.value })}
+                                    required
                                 />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="staffEmail">Username / Email (Login ID)</Label>
+                                <Input
+                                    id="staffEmail"
+                                    type="text"
+                                    value={currentStaff.email || ''}
+                                    onChange={(e) => setCurrentStaff({ ...currentStaff, email: e.target.value })}
+                                    placeholder="Contoh: 'kasir1' atau 'kasir1@email.com'"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Tips: Gunakan username saja (misal: <span className="font-semibold">budi</span>) untuk login instan tanpa verifikasi email.
+                                </p>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="staffPassword">Password / PIN Login {isEditing ? '(Opsional)' : <span className="text-red-500">*</span>}</Label>
+                                <div className="relative">
+                                    <Input
+                                        id="staffPassword"
+                                        type={showPassword ? "text" : "password"}
+                                        value={currentStaff.password || ''}
+                                        onChange={(e) => setCurrentStaff({ ...currentStaff, password: e.target.value })}
+                                        placeholder={isEditing ? "(Biarkan kosong jika tidak diubah)" : "Minimal 6 karakter"}
+                                        required={!isEditing}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                    >
+                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="staffPhoto">Foto Profil</Label>
+                                <div className="flex items-center gap-4">
+                                    <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center overflow-hidden border">
+                                        {currentStaff.photo ? (
+                                            <img src={currentStaff.photo} alt="Preview" className="h-full w-full object-cover" />
+                                        ) : (
+                                            <User className="h-8 w-8 text-muted-foreground" />
+                                        )}
+                                    </div>
+                                    <Input
+                                        id="staffPhoto"
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handlePhotoChange}
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="staffRole">Role / Peran</Label>
+                                <Select
+                                    value={currentStaff.role}
+                                    onValueChange={(value) => {
+                                        setCurrentStaff({ ...currentStaff, role: value });
+                                        // Auto-update permissions when role changes (if user hasn't explicitly customized yet? 
+                                        // Or just overwrite? UX decision: Overwrite to helpful defaults is safer.)
+                                        setPermissions(getPermissionsForRole(value));
+                                    }}
+                                >
+                                    <SelectTrigger id="staffRole">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="staff">Kasir</SelectItem>
+                                        <SelectItem value="sales">Sales</SelectItem>
+                                        <SelectItem value="admin">Administrator</SelectItem>
+                                        {(user?.role === 'super_admin' || user?.role === 'owner') && (
+                                            <SelectItem value="owner">Owner (Pemilik)</SelectItem>
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* --- PERMISSION EDITOR --- */}
+                            <div className="border rounded-md p-3 bg-slate-50">
                                 <button
                                     type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                    onClick={() => setShowPermissions(!showPermissions)}
+                                    className="flex items-center justify-between w-full text-sm font-medium text-slate-700"
                                 >
-                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    <span>Kelola Hak Akses (Advanced)</span>
+                                    {showPermissions ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                                 </button>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="staffPhoto">Foto Profil</Label>
-                            <div className="flex items-center gap-4">
-                                <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center overflow-hidden border">
-                                    {currentStaff.photo ? (
-                                        <img src={currentStaff.photo} alt="Preview" className="h-full w-full object-cover" />
-                                    ) : (
-                                        <User className="h-8 w-8 text-muted-foreground" />
-                                    )}
-                                </div>
-                                <Input
-                                    id="staffPhoto"
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handlePhotoChange}
-                                />
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="staffRole">Role / Peran</Label>
-                            <Select
-                                value={currentStaff.role}
-                                onValueChange={(value) => {
-                                    setCurrentStaff({ ...currentStaff, role: value });
-                                    // Auto-update permissions when role changes (if user hasn't explicitly customized yet? 
-                                    // Or just overwrite? UX decision: Overwrite to helpful defaults is safer.)
-                                    setPermissions(getPermissionsForRole(value));
-                                }}
-                            >
-                                <SelectTrigger id="staffRole">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="staff">Kasir</SelectItem>
-                                    <SelectItem value="sales">Sales</SelectItem>
-                                    <SelectItem value="admin">Administrator</SelectItem>
-                                    {(user?.role === 'super_admin' || user?.role === 'owner') && (
-                                        <SelectItem value="owner">Owner (Pemilik)</SelectItem>
-                                    )}
-                                </SelectContent>
-                            </Select>
-                        </div>
 
-                        {/* --- PERMISSION EDITOR --- */}
-                        <div className="border rounded-md p-3 bg-slate-50">
-                            <button
-                                type="button"
-                                onClick={() => setShowPermissions(!showPermissions)}
-                                className="flex items-center justify-between w-full text-sm font-medium text-slate-700"
-                            >
-                                <span>Kelola Hak Akses (Advanced)</span>
-                                {showPermissions ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                            </button>
-
-                            {showPermissions && (
-                                <div className="mt-3 space-y-4 max-h-[300px] overflow-y-auto pr-2">
-                                    <div className="flex justify-between mb-2">
-                                        <div className="flex gap-2">
+                                {showPermissions && (
+                                    <div className="mt-3 space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                                        <div className="flex justify-between mb-2">
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="text-xs h-6"
+                                                    onClick={() => {
+                                                        const allIds = PERMISSION_SCHEMA.flatMap(g => g.children.map(c => c.id));
+                                                        setPermissions(allIds);
+                                                    }}
+                                                >
+                                                    Pilih Semua
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="text-xs h-6"
+                                                    onClick={() => setPermissions([])}
+                                                >
+                                                    Hapus Semua
+                                                </Button>
+                                            </div>
                                             <Button
                                                 type="button"
-                                                variant="outline"
+                                                variant="ghost"
                                                 size="sm"
-                                                className="text-xs h-6"
-                                                onClick={() => {
-                                                    const allIds = PERMISSION_SCHEMA.flatMap(g => g.children.map(c => c.id));
-                                                    setPermissions(allIds);
-                                                }}
+                                                className="text-xs h-6 text-muted-foreground"
+                                                onClick={() => setPermissions(getPermissionsForRole(currentStaff.role))}
                                             >
-                                                Pilih Semua
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                className="text-xs h-6"
-                                                onClick={() => setPermissions([])}
-                                            >
-                                                Hapus Semua
+                                                Reset ke Default Role
                                             </Button>
                                         </div>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="text-xs h-6 text-muted-foreground"
-                                            onClick={() => setPermissions(getPermissionsForRole(currentStaff.role))}
-                                        >
-                                            Reset ke Default Role
-                                        </Button>
+                                        {PERMISSION_SCHEMA.map((group) => {
+                                            const groupChildrenIds = group.children.map(c => c.id);
+                                            const isAllChecked = groupChildrenIds.every(id => permissions.includes(id));
+                                            const isIndeterminate = groupChildrenIds.some(id => permissions.includes(id)) && !isAllChecked;
+
+                                            const toggleGroup = () => {
+                                                if (isAllChecked) {
+                                                    // Uncheck all
+                                                    setPermissions(prev => prev.filter(p => !groupChildrenIds.includes(p)));
+                                                } else {
+                                                    // Check all (merge unique)
+                                                    setPermissions(prev => [...new Set([...prev, ...groupChildrenIds])]);
+                                                }
+                                            };
+
+                                            return (
+                                                <div key={group.id} className="space-y-2">
+                                                    <div className="flex items-center gap-2 bg-white p-2 rounded border shadow-sm">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                                                            checked={isAllChecked}
+                                                            ref={input => {
+                                                                if (input) input.indeterminate = isIndeterminate;
+                                                            }}
+                                                            onChange={toggleGroup}
+                                                        />
+                                                        <span className="font-semibold text-sm">{group.label}</span>
+                                                    </div>
+                                                    <div className="ml-6 space-y-1">
+                                                        {group.children.map(child => (
+                                                            <label key={child.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-100 p-1 rounded">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5"
+                                                                    checked={permissions.includes(child.id)}
+                                                                    onChange={(e) => {
+                                                                        if (e.target.checked) {
+                                                                            setPermissions(prev => [...prev, child.id]);
+                                                                        } else {
+                                                                            setPermissions(prev => prev.filter(p => p !== child.id));
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <span className="text-slate-600">{child.label}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-                                    {PERMISSION_SCHEMA.map((group) => {
-                                        const groupChildrenIds = group.children.map(c => c.id);
-                                        const isAllChecked = groupChildrenIds.every(id => permissions.includes(id));
-                                        const isIndeterminate = groupChildrenIds.some(id => permissions.includes(id)) && !isAllChecked;
+                                )}
+                            </div>
 
-                                        const toggleGroup = () => {
-                                            if (isAllChecked) {
-                                                // Uncheck all
-                                                setPermissions(prev => prev.filter(p => !groupChildrenIds.includes(p)));
-                                            } else {
-                                                // Check all (merge unique)
-                                                setPermissions(prev => [...new Set([...prev, ...groupChildrenIds])]);
-                                            }
-                                        };
-
-                                        return (
-                                            <div key={group.id} className="space-y-2">
-                                                <div className="flex items-center gap-2 bg-white p-2 rounded border shadow-sm">
-                                                    <input
-                                                        type="checkbox"
-                                                        className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
-                                                        checked={isAllChecked}
-                                                        ref={input => {
-                                                            if (input) input.indeterminate = isIndeterminate;
-                                                        }}
-                                                        onChange={toggleGroup}
-                                                    />
-                                                    <span className="font-semibold text-sm">{group.label}</span>
-                                                </div>
-                                                <div className="ml-6 space-y-1">
-                                                    {group.children.map(child => (
-                                                        <label key={child.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-100 p-1 rounded">
-                                                            <input
-                                                                type="checkbox"
-                                                                className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5"
-                                                                checked={permissions.includes(child.id)}
-                                                                onChange={(e) => {
-                                                                    if (e.target.checked) {
-                                                                        setPermissions(prev => [...prev, child.id]);
-                                                                    } else {
-                                                                        setPermissions(prev => prev.filter(p => p !== child.id));
-                                                                    }
-                                                                }}
-                                                            />
-                                                            <span className="text-slate-600">{child.label}</span>
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
+                            <div className="flex items-center space-x-2 pt-2">
+                                <input
+                                    type="checkbox"
+                                    id="petCareAccess"
+                                    checked={currentStaff.petCareAccess}
+                                    onChange={(e) => setCurrentStaff({ ...currentStaff, petCareAccess: e.target.checked })}
+                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                />
+                                <Label htmlFor="petCareAccess" className="font-medium cursor-pointer">
+                                    Berikan Akses ke Aplikasi Pet Care
+                                </Label>
+                            </div>
                         </div>
-
-                        <div className="flex items-center space-x-2 pt-2">
-                            <input
-                                type="checkbox"
-                                id="petCareAccess"
-                                checked={currentStaff.petCareAccess}
-                                onChange={(e) => setCurrentStaff({ ...currentStaff, petCareAccess: e.target.checked })}
-                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                            />
-                            <Label htmlFor="petCareAccess" className="font-medium cursor-pointer">
-                                Berikan Akses ke Aplikasi Pet Care
-                            </Label>
-                        </div>
-                        <DialogFooter>
+                        <DialogFooter className="pt-4 border-t mt-4">
                             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
                                 Batal
                             </Button>

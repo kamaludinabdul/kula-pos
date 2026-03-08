@@ -407,7 +407,7 @@ const App = () => {
                         </PrivateRoute>
                       } />
                       <Route path="analysis" element={
-                        <PrivateRoute feature="smart_insights" plan="pro">
+                        <PrivateRoute feature="smart_insights.analysis" plan="pro">
                           <SalesAnalysis />
                         </PrivateRoute>
                       } />
@@ -509,7 +509,7 @@ const App = () => {
                         </PrivateRoute>
                       } />
                       <Route path="top-selling" element={
-                        <PrivateRoute feature="reports.sales_items" plan="pro">
+                        <PrivateRoute feature="reports.top_selling" plan="pro">
                           <TopSellingProducts />
                         </PrivateRoute>
                       } />
@@ -534,27 +534,27 @@ const App = () => {
                         </PrivateRoute>
                       } />
                       <Route path="loyalty-points" element={
-                        <PrivateRoute feature="reports">
+                        <PrivateRoute feature="reports.loyalty">
                           <LoyaltyPointsReport />
                         </PrivateRoute>
                       } />
                       <Route path="sales-performance" element={
-                        <PrivateRoute feature="reports">
+                        <PrivateRoute feature="reports.performance">
                           <SalesPerformanceReport />
                         </PrivateRoute>
                       } />
                       <Route path="pet-hotel-fee" element={
-                        <PrivateRoute feature="reports">
+                        <PrivateRoute feature="reports.pet_hotel_fee">
                           <PetHotelFeeReport />
                         </PrivateRoute>
                       } />
                       <Route path="customer-profiling" element={
-                        <PrivateRoute feature="reports">
+                        <PrivateRoute feature="reports.customer_profiling">
                           <CustomerProfilingReport />
                         </PrivateRoute>
                       } />
                       <Route path="expiry" element={
-                        <PrivateRoute feature="reports">
+                        <PrivateRoute feature="reports.expiry">
                           <ExpiryReport />
                         </PrivateRoute>
                       } />

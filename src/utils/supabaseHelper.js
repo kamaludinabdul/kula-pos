@@ -89,9 +89,16 @@ export const safeSupabaseQuery = async (options) => {
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-        let query = supabase.from(tableName).select('*');
+        let query = supabase.from(tableName);
+
         if (queryBuilder && typeof queryBuilder === 'function') {
             query = queryBuilder(query);
+        }
+
+        // Only apply default select('*') if NO select has been applied yet by the queryBuilder
+        // We check if the query object has a 'url' that already includes 'select'
+        if (!query.url.searchParams.has('select')) {
+            query = query.select('*');
         }
 
         const { data, error } = await query.abortSignal(controller.signal);

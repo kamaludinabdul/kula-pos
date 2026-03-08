@@ -62,7 +62,7 @@ const REPORTS_ITEMS = [
   { path: '/reports/expenses', icon: TrendingDown, label: 'Pengeluaran', feature: 'reports.expenses' },
   { path: '/reports/loyalty-points', icon: Gift, label: 'Laporan Poin', feature: 'reports.loyalty', requiredPlan: 'pro' },
   { path: '/reports/sales-performance', icon: TrendingUp, label: 'Laporan Target & Performa', feature: 'reports.performance', checkSetting: 'enableSalesPerformance', requiredPlan: 'pro' },
-  { path: '/reports/pet-hotel-fee', icon: Wallet, label: 'Fee Pet Hotel', feature: 'reports.shifts', requiredPlan: 'enterprise', checkSetting: 'petCareEnabled' },
+  { path: '/reports/pet-hotel-fee', icon: Wallet, label: 'Fee Pet Hotel', feature: 'reports.pet_hotel_fee', requiredPlan: 'enterprise', checkSetting: 'petCareEnabled' },
   { path: '/reports/customer-profiling', icon: UserCircle, label: 'Profil Pelanggan', feature: 'reports.customer_profiling', requiredPlan: 'pro' },
   { path: '/reports/expiry', icon: AlertTriangle, label: 'Laporan Kedaluwarsa', feature: 'reports.expiry' },
 ];

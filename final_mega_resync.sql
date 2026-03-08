@@ -406,43 +406,69 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 -- Purpose: Monthly summary chart for Store Dashboard
 -- Source: scripts/deploy_prod.sql
 
+DROP FUNCTION IF EXISTS public.get_dashboard_monthly_summary(UUID, INTEGER);
+DROP FUNCTION IF EXISTS public.get_dashboard_monthly_summary(TEXT, INTEGER);
+
 CREATE OR REPLACE FUNCTION public.get_dashboard_monthly_summary(
-    p_store_id UUID, p_year INTEGER
+    p_store_id UUID, 
+    p_year INTEGER
 ) RETURNS JSONB
 AS $$
 DECLARE v_result JSONB;
 BEGIN
-    WITH monthly_data AS (
-        SELECT EXTRACT(MONTH FROM t.date)::INTEGER as month_num, TO_CHAR(t.date, 'Mon') as month_name,
-            COALESCE(SUM(t.total), 0) as total_revenue, COUNT(*) as transaction_count,
-            COALESCE(SUM(t.total) - SUM(
-                (SELECT COALESCE(SUM((item->>'qty')::NUMERIC * COALESCE((item->>'buyPrice')::NUMERIC, (item->>'buy_price')::NUMERIC, 0)), 0)
-                 FROM jsonb_array_elements(t.items) as item)
-            ), 0) as total_profit,
-            COUNT(DISTINCT DATE(t.date)) as days_with_sales
+    WITH transaction_items AS (
+        SELECT 
+            EXTRACT(MONTH FROM (t.date AT TIME ZONE 'Asia/Jakarta'))::INTEGER as month_num,
+            t.id as trans_id,
+            t.total,
+            t.date,
+            (SELECT COALESCE(SUM((item->>'qty')::NUMERIC * COALESCE((item->>'buyPrice')::NUMERIC, (item->>'buy_price')::NUMERIC, 0)), 0)
+             FROM jsonb_array_elements(t.items) as item) as item_cogs
         FROM transactions t
-        WHERE t.store_id = p_store_id AND EXTRACT(YEAR FROM t.date) = p_year AND (t.status IS NULL OR t.status = 'completed')
-        GROUP BY EXTRACT(MONTH FROM t.date), TO_CHAR(t.date, 'Mon')
+        WHERE t.store_id = p_store_id 
+          AND EXTRACT(YEAR FROM (t.date AT TIME ZONE 'Asia/Jakarta')) = p_year 
+          AND (LOWER(t.status) IN ('completed', 'success', 'paid', 'berhasil') OR t.status IS NULL)
+    ),
+    monthly_data AS (
+        SELECT 
+            month_num,
+            COUNT(trans_id) as transaction_count,
+            SUM(total) as total_revenue,
+            SUM(total - item_cogs) as total_gross_profit,
+            COUNT(DISTINCT DATE(date AT TIME ZONE 'Asia/Jakarta')) as days_with_sales
+        FROM transaction_items
+        GROUP BY month_num
     ),
     monthly_expenses AS (
-        SELECT EXTRACT(MONTH FROM cf.date)::INTEGER as month_num, COALESCE(SUM(cf.amount), 0) as total_opex
+        SELECT 
+            EXTRACT(MONTH FROM (cf.date AT TIME ZONE 'Asia/Jakarta'))::INTEGER as month_num, 
+            COALESCE(SUM(cf.amount), 0) as total_opex
         FROM cash_flow cf
-        WHERE cf.store_id = p_store_id AND EXTRACT(YEAR FROM cf.date) = p_year AND cf.type = 'out' AND (cf.expense_group IS NULL OR cf.expense_group != 'asset')
-        GROUP BY EXTRACT(MONTH FROM cf.date)
+        WHERE cf.store_id = p_store_id 
+          AND EXTRACT(YEAR FROM (cf.date AT TIME ZONE 'Asia/Jakarta')) = p_year 
+          AND cf.type = 'out' 
+          AND COALESCE(cf.expense_group, 'operational') != 'asset'
+        GROUP BY EXTRACT(MONTH FROM (cf.date AT TIME ZONE 'Asia/Jakarta'))
     ),
     all_months AS (SELECT generate_series(1, 12) as month_num)
     SELECT jsonb_agg(
         jsonb_build_object(
             'monthIndex', am.month_num - 1,
             'name', TO_CHAR(DATE '2020-01-01' + ((am.month_num - 1) || ' month')::interval, 'Mon'),
-            'totalRevenue', COALESCE(md.total_revenue, 0), 'totalProfit', COALESCE(md.total_profit, 0),
-            'totalOpEx', COALESCE(me.total_opex, 0), 'transactionsCount', COALESCE(md.transaction_count, 0),
+            'totalRevenue', COALESCE(md.total_revenue, 0),
+            'totalProfit', COALESCE(md.total_gross_profit, 0) - COALESCE(me.total_opex, 0),
+            'totalOpEx', COALESCE(me.total_opex, 0),
+            'transactionsCount', COALESCE(md.transaction_count, 0),
             'daysWithSales', COALESCE(md.days_with_sales, 0),
             'avgDailyRevenue', CASE WHEN COALESCE(md.days_with_sales, 0) > 0 THEN COALESCE(md.total_revenue, 0) / md.days_with_sales ELSE 0 END,
-            'avgDailyProfit', CASE WHEN COALESCE(md.days_with_sales, 0) > 0 THEN COALESCE(md.total_profit, 0) / md.days_with_sales ELSE 0 END
+            'avgDailyGrossProfit', CASE WHEN COALESCE(md.days_with_sales, 0) > 0 THEN COALESCE(md.total_gross_profit, 0) / md.days_with_sales ELSE 0 END,
+            'avgDailyProfit', CASE WHEN COALESCE(md.days_with_sales, 0) > 0 THEN (COALESCE(md.total_gross_profit, 0) - COALESCE(me.total_opex, 0)) / md.days_with_sales ELSE 0 END
         ) ORDER BY am.month_num
     ) INTO v_result
-    FROM all_months am LEFT JOIN monthly_data md ON md.month_num = am.month_num LEFT JOIN monthly_expenses me ON me.month_num = am.month_num;
+    FROM all_months am 
+    LEFT JOIN monthly_data md ON md.month_num = am.month_num 
+    LEFT JOIN monthly_expenses me ON me.month_num = am.month_num;
+
     RETURN COALESCE(v_result, '[]'::jsonb);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
@@ -453,23 +479,31 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 -- Supports TEXT store_id for NanoID/UUID compatibility.
 -- Source: scripts/fix-dashboard-stats-final.sql
 
+DROP FUNCTION IF EXISTS public.get_dashboard_stats(UUID, TIMESTAMPTZ, TIMESTAMPTZ, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.get_dashboard_stats(TEXT, TIMESTAMPTZ, TIMESTAMPTZ, TEXT, TEXT);
+
 CREATE OR REPLACE FUNCTION public.get_dashboard_stats(
-    p_store_id TEXT,
+    p_store_id UUID,
     p_start_date TIMESTAMPTZ,
     p_end_date TIMESTAMPTZ,
-    p_period TEXT DEFAULT 'day'
+    p_period TEXT DEFAULT 'day',
+    p_timezone TEXT DEFAULT 'Asia/Jakarta'
 ) RETURNS JSONB 
 AS $$
 DECLARE
     v_total_sales NUMERIC := 0;
     v_total_transactions INT := 0;
     v_avg_order NUMERIC := 0;
+    v_total_cogs NUMERIC := 0;
+    v_total_gross_profit NUMERIC := 0;
+    v_total_opex NUMERIC := 0;
+    v_total_net_profit NUMERIC := 0;
     v_chart_data JSONB;
     v_category_stats JSONB;
     v_top_products JSONB;
     v_recent_transactions JSONB;
 BEGIN
-    -- 1. General Stats (Totals) - Includes 'paid' status
+    -- 1. General Stats (Totals)
     SELECT 
         COALESCE(SUM(total), 0),
         COUNT(*),
@@ -479,24 +513,49 @@ BEGIN
         v_total_transactions,
         v_avg_order
     FROM transactions
-    WHERE store_id::text = p_store_id 
+    WHERE store_id = p_store_id 
       AND date >= p_start_date 
       AND date <= p_end_date
-      AND status IN ('completed', 'success', 'paid');
+      AND (LOWER(status) IN ('completed', 'success', 'paid', 'berhasil') OR status IS NULL);
+
+    -- Calculate COGS
+    WITH items_expanded AS (
+        SELECT (item->>'qty')::numeric as q, 
+               COALESCE((item->>'buyPrice')::numeric, (item->>'buy_price')::numeric, 0) as b
+        FROM transactions t, jsonb_array_elements(items) as item
+        WHERE t.store_id = p_store_id 
+          AND t.date >= p_start_date 
+          AND t.date <= p_end_date
+          AND (LOWER(t.status) IN ('completed', 'success', 'paid', 'berhasil') OR t.status IS NULL)
+    )
+    SELECT COALESCE(SUM(q * b), 0) INTO v_total_cogs FROM items_expanded;
+
+    v_total_gross_profit := v_total_sales - v_total_cogs;
+
+    -- Calculate OpEx
+    SELECT COALESCE(SUM(amount), 0) INTO v_total_opex
+    FROM cash_flow
+    WHERE store_id = p_store_id 
+      AND date >= p_start_date 
+      AND date <= p_end_date
+      AND type = 'out'
+      AND COALESCE(expense_group, 'operational') != 'asset';
+
+    v_total_net_profit := v_total_gross_profit - v_total_opex;
 
     -- 2. Chart Data
     IF p_period = 'hour' THEN
         SELECT jsonb_agg(stats) INTO v_chart_data
         FROM (
             SELECT 
-                to_char(date_trunc('hour', date), 'HH24:00') as name,
-                EXTRACT(HOUR FROM date) as hour,
+                to_char(date_trunc('hour', date AT TIME ZONE p_timezone), 'HH24:00') as name,
+                EXTRACT(HOUR FROM date AT TIME ZONE p_timezone) as hour,
                 SUM(total) as total
             FROM transactions
-            WHERE store_id::text = p_store_id 
+            WHERE store_id = p_store_id 
               AND date >= p_start_date 
               AND date <= p_end_date
-              AND status IN ('completed', 'success', 'paid')
+              AND (LOWER(status) IN ('completed', 'success', 'paid', 'berhasil') OR status IS NULL)
             GROUP BY 1, 2
             ORDER BY 2
         ) stats;
@@ -504,14 +563,14 @@ BEGIN
         SELECT jsonb_agg(stats) INTO v_chart_data
         FROM (
             SELECT 
-                to_char(date, 'DD Mon') as name,
-                date_trunc('day', date) as date_val,
+                to_char(date AT TIME ZONE p_timezone, 'DD Mon') as name,
+                date_trunc('day', date AT TIME ZONE p_timezone) as date_val,
                 SUM(total) as total
             FROM transactions
-            WHERE store_id::text = p_store_id 
+            WHERE store_id = p_store_id 
               AND date >= p_start_date 
               AND date <= p_end_date
-              AND status IN ('completed', 'success', 'paid')
+              AND (LOWER(status) IN ('completed', 'success', 'paid', 'berhasil') OR status IS NULL)
             GROUP BY 1, 2
             ORDER BY 2
         ) stats;
@@ -522,15 +581,15 @@ BEGIN
     FROM (
         SELECT 
             COALESCE(c.name, 'Uncategorized') as name,
-            SUM((item->>'qty')::numeric * (item->>'price')::numeric) as value
+            SUM((item->>'qty')::numeric * COALESCE((item->>'price')::numeric, (item->>'sellPrice')::numeric, (item->>'sell_price')::numeric, 0)) as value
         FROM transactions t,
              jsonb_array_elements(t.items) as item
         LEFT JOIN products p ON p.id::text = (item->>'id')
         LEFT JOIN categories c ON c.id = p.category_id
-        WHERE t.store_id::text = p_store_id 
+        WHERE t.store_id = p_store_id 
           AND t.date >= p_start_date 
           AND t.date <= p_end_date
-          AND t.status IN ('completed', 'success', 'paid')
+          AND (LOWER(t.status) IN ('completed', 'success', 'paid', 'berhasil') OR t.status IS NULL)
         GROUP BY 1
         ORDER BY 2 DESC
         LIMIT 6
@@ -542,13 +601,13 @@ BEGIN
         SELECT 
             item->>'name' as name,
             SUM((item->>'qty')::numeric) as sold,
-            SUM((item->>'qty')::numeric * (item->>'price')::numeric) as revenue
+            SUM((item->>'qty')::numeric * COALESCE((item->>'price')::numeric, (item->>'sellPrice')::numeric, (item->>'sell_price')::numeric, 0)) as revenue
         FROM transactions t,
              jsonb_array_elements(t.items) as item
-        WHERE t.store_id::text = p_store_id 
+        WHERE t.store_id = p_store_id 
           AND t.date >= p_start_date 
           AND t.date <= p_end_date
-          AND t.status IN ('completed', 'success', 'paid')
+          AND (LOWER(t.status) IN ('completed', 'success', 'paid', 'berhasil') OR t.status IS NULL)
         GROUP BY 1
         ORDER BY 3 DESC
         LIMIT 10
@@ -557,11 +616,12 @@ BEGIN
     -- 5. Recent Transactions
     SELECT jsonb_agg(recent) INTO v_recent_transactions
     FROM (
-        SELECT id, cashier, date, total, status
-        FROM transactions
-        WHERE store_id::text = p_store_id 
-          AND status IN ('completed', 'success', 'paid')
-        ORDER BY date DESC
+        SELECT t.id, COALESCE(prof.name, t.cashier) as cashier, t.date, t.total, t.status
+        FROM transactions t
+        LEFT JOIN profiles prof ON prof.id = t.cashier_id
+        WHERE t.store_id = p_store_id 
+          AND (LOWER(t.status) IN ('completed', 'success', 'paid', 'berhasil') OR t.status IS NULL)
+        ORDER BY t.date DESC
         LIMIT 5
     ) recent;
 
@@ -569,6 +629,9 @@ BEGIN
         'totalSales', v_total_sales,
         'totalTransactions', v_total_transactions,
         'avgOrder', v_avg_order,
+        'totalGrossProfit', v_total_gross_profit,
+        'totalNetProfit', v_total_net_profit,
+        'totalProfit', v_total_net_profit,
         'chartData', COALESCE(v_chart_data, '[]'::jsonb),
         'categoryData', COALESCE(v_category_stats, '[]'::jsonb),
         'topProducts', COALESCE(v_top_products, '[]'::jsonb),
@@ -1066,6 +1129,9 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 -- MASTER: get_profit_loss_report
 -- Purpose: Advanced Profit & Loss calculation including OPEX and Other Income
 
+DROP FUNCTION IF EXISTS public.get_profit_loss_report(UUID, TIMESTAMPTZ, TIMESTAMPTZ);
+DROP FUNCTION IF EXISTS public.get_profit_loss_report(TEXT, TIMESTAMPTZ, TIMESTAMPTZ);
+
 CREATE OR REPLACE FUNCTION public.get_profit_loss_report(
     p_store_id UUID,
     p_start_date TIMESTAMPTZ,
@@ -1076,28 +1142,63 @@ DECLARE
     v_total_sales NUMERIC := 0; v_total_cogs NUMERIC := 0; v_total_discount NUMERIC := 0; v_total_tax NUMERIC := 0;
     v_total_transactions INTEGER := 0; v_total_items NUMERIC := 0; v_total_expenses NUMERIC := 0;
     v_other_income NUMERIC := 0; v_total_assets NUMERIC := 0; v_net_profit NUMERIC := 0;
+    v_total_cash NUMERIC := 0; v_total_qris NUMERIC := 0; v_total_transfer NUMERIC := 0;
 BEGIN
-    SELECT COALESCE(SUM(total), 0), COALESCE(SUM(discount), 0), COALESCE(SUM(tax), 0), COUNT(*)
-    INTO v_total_sales, v_total_discount, v_total_tax, v_total_transactions
-    FROM transactions WHERE store_id = p_store_id AND date >= p_start_date AND date <= p_end_date AND status = 'completed';
+    SELECT 
+        COALESCE(SUM(total), 0), 
+        COALESCE(SUM(discount), 0), 
+        COALESCE(SUM(tax), 0), 
+        COUNT(*),
+        COALESCE(SUM(CASE WHEN LOWER(payment_method) = 'cash' THEN total ELSE 0 END), 0),
+        COALESCE(SUM(CASE WHEN LOWER(payment_method) = 'qris' THEN total ELSE 0 END), 0),
+        COALESCE(SUM(CASE WHEN LOWER(payment_method) = 'transfer' THEN total ELSE 0 END), 0)
+    INTO 
+        v_total_sales, v_total_discount, v_total_tax, v_total_transactions,
+        v_total_cash, v_total_qris, v_total_transfer
+    FROM transactions 
+    WHERE store_id = p_store_id 
+      AND date >= p_start_date 
+      AND date <= p_end_date 
+      AND (LOWER(status) IN ('completed', 'success', 'paid', 'berhasil') OR status IS NULL);
 
     WITH expanded_items AS (
         SELECT COALESCE((item->>'qty')::NUMERIC, 0) as q, COALESCE((item->>'buyPrice')::NUMERIC, (item->>'buy_price')::NUMERIC, 0) as c
         FROM transactions t, jsonb_array_elements(t.items) as item
-        WHERE t.store_id = p_store_id AND t.date >= p_start_date AND t.date <= p_end_date AND t.status = 'completed'
+        WHERE t.store_id = p_store_id 
+          AND t.date >= p_start_date 
+          AND t.date <= p_end_date 
+          AND (LOWER(t.status) IN ('completed', 'success', 'paid', 'berhasil') OR t.status IS NULL)
     )
     SELECT COALESCE(SUM(q), 0), COALESCE(SUM(q * c), 0) INTO v_total_items, v_total_cogs FROM expanded_items;
 
     SELECT COALESCE(SUM(amount::numeric), 0) INTO v_total_expenses FROM (
         SELECT date, amount, store_id, type, expense_group FROM cash_flow UNION ALL SELECT date, amount, store_id, type, expense_group FROM shift_movements
-    ) cf WHERE cf.store_id = p_store_id AND cf.date >= p_start_date::DATE AND cf.date <= p_end_date::DATE AND cf.type IN ('out', 'expense') AND COALESCE(cf.expense_group, 'operational') IN ('OPEX', 'operational', 'write_off');
+    ) cf WHERE cf.store_id = p_store_id 
+          AND cf.date >= p_start_date 
+          AND cf.date <= p_end_date 
+          AND cf.type IN ('out', 'expense') 
+          AND COALESCE(cf.expense_group, 'operational') IN ('OPEX', 'operational', 'write_off');
 
-    SELECT COALESCE(SUM(amount), 0) INTO v_other_income FROM cash_flow WHERE store_id = p_store_id AND date >= p_start_date::DATE AND date <= p_end_date::DATE AND type = 'income';
-    SELECT COALESCE(SUM(amount), 0) INTO v_total_assets FROM cash_flow WHERE store_id = p_store_id AND date >= p_start_date::DATE AND date <= p_end_date::DATE AND expense_group = 'asset';
+    SELECT COALESCE(SUM(amount), 0) INTO v_other_income FROM cash_flow WHERE store_id = p_store_id AND date >= p_start_date AND date <= p_end_date AND type = 'income';
+    SELECT COALESCE(SUM(amount), 0) INTO v_total_assets FROM cash_flow WHERE store_id = p_store_id AND date >= p_start_date AND date <= p_end_date AND expense_group = 'asset';
 
     v_net_profit := v_total_sales - v_total_cogs - v_total_expenses + v_other_income;
 
-    RETURN jsonb_build_object('total_sales', v_total_sales, 'total_cogs', v_total_cogs, 'total_expenses', v_total_expenses, 'other_income', v_other_income, 'net_profit', v_net_profit, 'total_transactions', v_total_transactions, 'total_items', v_total_items, 'total_tax', v_total_tax, 'total_discount', v_total_discount, 'total_assets', v_total_assets);
+    RETURN jsonb_build_object(
+        'total_sales', v_total_sales, 
+        'total_cogs', v_total_cogs, 
+        'total_expenses', v_total_expenses, 
+        'other_income', v_other_income, 
+        'net_profit', v_net_profit, 
+        'total_transactions', v_total_transactions, 
+        'total_items', v_total_items, 
+        'total_tax', v_total_tax, 
+        'total_discount', v_total_discount, 
+        'total_assets', v_total_assets,
+        'total_cash', v_total_cash,
+        'total_qris', v_total_qris,
+        'total_transfer', v_total_transfer
+    );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
@@ -1538,7 +1639,7 @@ BEGIN
         id, store_id, customer_id, customer_name, total, discount, subtotal, payment_method, 
         amount_paid, "change", "type", rental_session_id, payment_details, 
         items, date, status, shift_id, points_earned,
-        cashier_id, cashier_name
+        cashier_id, cashier
     )
     VALUES (
         v_new_transaction_id, p_store_id, p_customer_id, v_customer_name, p_total, p_discount, v_subtotal, p_payment_method, 
