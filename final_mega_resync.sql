@@ -447,7 +447,7 @@ BEGIN
         WHERE cf.store_id = p_store_id 
           AND EXTRACT(YEAR FROM (cf.date AT TIME ZONE 'Asia/Jakarta')) = p_year 
           AND cf.type = 'out' 
-          AND COALESCE(cf.expense_group, 'operational') != 'asset'
+          AND cf.expense_group IN ('operational', 'OPEX', 'write_off')
         GROUP BY EXTRACT(MONTH FROM (cf.date AT TIME ZONE 'Asia/Jakarta'))
     ),
     all_months AS (SELECT generate_series(1, 12) as month_num)
@@ -539,7 +539,7 @@ BEGIN
       AND date >= p_start_date 
       AND date <= p_end_date
       AND type = 'out'
-      AND COALESCE(expense_group, 'operational') != 'asset';
+      AND expense_group IN ('operational', 'OPEX', 'write_off');
 
     v_total_net_profit := v_total_gross_profit - v_total_opex;
 
@@ -813,7 +813,7 @@ BEGIN
     WHERE s.owner_id = v_user_id 
       AND cf.date >= p_start_date AND cf.date <= p_end_date 
       AND cf.type IN ('out', 'expense') 
-      AND COALESCE(cf.expense_group, 'operational') = 'operational';
+      AND cf.expense_group IN ('operational', 'OPEX', 'write_off');
     
     SELECT json_build_object(
         'totalSales', v_total_sales,
@@ -1177,7 +1177,7 @@ BEGIN
           AND cf.date >= p_start_date 
           AND cf.date <= p_end_date 
           AND cf.type IN ('out', 'expense') 
-          AND COALESCE(cf.expense_group, 'operational') IN ('OPEX', 'operational', 'write_off');
+          AND cf.expense_group IN ('OPEX', 'operational', 'write_off');
 
     SELECT COALESCE(SUM(amount), 0) INTO v_other_income FROM cash_flow WHERE store_id = p_store_id AND date >= p_start_date AND date <= p_end_date AND type = 'income';
     SELECT COALESCE(SUM(amount), 0) INTO v_total_assets FROM cash_flow WHERE store_id = p_store_id AND date >= p_start_date AND date <= p_end_date AND expense_group = 'asset';

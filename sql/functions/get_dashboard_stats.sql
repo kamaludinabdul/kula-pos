@@ -58,7 +58,7 @@ BEGIN
       AND date >= p_start_date 
       AND date <= p_end_date
       AND type = 'out'
-      AND COALESCE(expense_group, 'operational') != 'asset';
+      AND expense_group IN ('operational', 'OPEX', 'write_off');
 
     v_total_net_profit := v_total_gross_profit - v_total_opex;
 

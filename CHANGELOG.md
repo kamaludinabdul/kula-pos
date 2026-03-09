@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.22.0] - 2026-03-09
+### Changed
+- Bumped version to 0.22.0
+
+## [0.22.0] - \today
+
+### Added
+
+- **Reports**: Added a real-time product search feature to the Laporan Penjualan Barang (Item Sales) report to easily filter and find specific products.
+
+### Fixed
+
+- **Pet Hotel**: Fixed an issue where the system falsely warned "Jadwal belum diisi" (Schedule not filled) due to a mismatch between the new template/override schedule format and the legacy validation logic.
+- **Reporting**: Clarified that massive negative profits generated in staging environments were mathematically correct due to large dummy "Pemusnahan" (Write-Off) entries, validating the accuracy of the updated `get_dashboard_stats` SQL logic.
+
 ## [0.21.1] - 2026-03-08
 
 ### Fixed

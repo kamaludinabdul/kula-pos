@@ -1,9 +1,10 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
-import { Download, ArrowUpDown, DollarSign, TrendingUp, RefreshCw } from 'lucide-react';
+import { Download, ArrowUpDown, DollarSign, TrendingUp, RefreshCw, Search } from 'lucide-react';
 import { exportToCSV, getDateRange } from '../../lib/utils';
 import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { InfoCard } from '../../components/ui/info-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
@@ -75,9 +76,16 @@ const ItemSales = () => {
     }, [fetchData]);
 
     const [sortConfig, setSortConfig] = useState({ key: 'revenue', direction: 'desc' });
+    const [searchTerm, setSearchTerm] = useState('');
 
     const itemStats = useMemo(() => {
         let data = [...fetchedTransactions];
+
+        // Search Filter
+        if (searchTerm) {
+            const lowerQuery = searchTerm.toLowerCase();
+            data = data.filter(item => item.name.toLowerCase().includes(lowerQuery));
+        }
 
         // Sorting
         if (sortConfig.key) {
@@ -93,7 +101,7 @@ const ItemSales = () => {
         }
 
         return data;
-    }, [fetchedTransactions, sortConfig]);
+    }, [fetchedTransactions, sortConfig, searchTerm]);
 
     const handleSort = (key) => {
         let direction = 'asc';
@@ -117,24 +125,26 @@ const ItemSales = () => {
     return (
         <div className="p-4 space-y-6">
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                <div>
+                <div className="flex-1 w-full lg:w-auto">
                     <h1 className="text-2xl font-bold tracking-tight">Laporan Penjualan Barang</h1>
                     <p className="text-muted-foreground">Analisis performa penjualan per item.</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={fetchData} className="flex-1 lg:flex-none">
-                        <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                        Refresh
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handleExport} className="flex-1 lg:flex-none">
-                        <Download className="mr-2 h-4 w-4" />
-                        Export
-                    </Button>
-                    <div className="w-full sm:w-auto">
+
+                <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+                    <div className="w-full sm:w-auto shrink-0">
                         <SmartDatePicker
                             date={datePickerDate}
                             onDateChange={setDatePickerDate}
                         />
+                    </div>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        <Button variant="outline" size="icon" onClick={fetchData} className="shrink-0" title="Refresh Data">
+                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin text-indigo-600' : 'text-slate-600'}`} />
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={handleExport} className="flex-1 sm:flex-none">
+                            <Download className="mr-2 h-4 w-4" />
+                            Export
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -157,11 +167,21 @@ const ItemSales = () => {
             {/* Desktop Table View */}
             <div className="hidden lg:block">
                 <Card className="rounded-xl overflow-hidden border-none shadow-sm">
-                    <CardHeader className="pb-3 border-b">
+                    <CardHeader className="pb-3 border-b flex flex-row justify-between items-center">
                         <CardTitle className="text-lg font-bold flex items-center gap-2">
                             Laporan Penjualan per Barang
                             {isLoading && <span className="text-xs text-muted-foreground font-normal ml-2">(Memuat data...)</span>}
                         </CardTitle>
+                        <div className="relative w-64">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                type="text"
+                                placeholder="Cari barang..."
+                                className="pl-9 h-9"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
                     </CardHeader>
                     <CardContent className="p-0">
                         <Table>
@@ -212,6 +232,17 @@ const ItemSales = () => {
 
             {/* Mobile Card View */}
             <div className="lg:hidden space-y-4">
+                <div className="relative w-full">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="text"
+                        placeholder="Cari nama barang..."
+                        className="pl-9 bg-white"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+
                 {isLoading ? (
                     <div className="text-center py-12 text-muted-foreground bg-white rounded-xl border">Memuat data...</div>
                 ) : itemStats.length === 0 ? (

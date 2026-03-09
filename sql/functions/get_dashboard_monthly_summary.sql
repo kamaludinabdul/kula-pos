@@ -39,7 +39,7 @@ BEGIN
         WHERE cf.store_id = p_store_id 
           AND EXTRACT(YEAR FROM (cf.date AT TIME ZONE 'Asia/Jakarta')) = p_year 
           AND cf.type = 'out' 
-          AND COALESCE(cf.expense_group, 'operational') != 'asset'
+          AND cf.expense_group IN ('operational', 'OPEX', 'write_off')
         GROUP BY EXTRACT(MONTH FROM (cf.date AT TIME ZONE 'Asia/Jakarta'))
     ),
     all_months AS (SELECT generate_series(1, 12) as month_num)

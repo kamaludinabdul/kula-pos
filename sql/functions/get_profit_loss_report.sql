@@ -46,7 +46,7 @@ BEGIN
           AND cf.date >= p_start_date 
           AND cf.date <= p_end_date 
           AND cf.type IN ('out', 'expense') 
-          AND COALESCE(cf.expense_group, 'operational') IN ('OPEX', 'operational', 'write_off');
+          AND cf.expense_group IN ('OPEX', 'operational', 'write_off');
 
     SELECT COALESCE(SUM(amount), 0) INTO v_other_income FROM cash_flow WHERE store_id::text = p_store_id AND date >= p_start_date AND date <= p_end_date AND type = 'income';
     SELECT COALESCE(SUM(amount), 0) INTO v_total_assets FROM cash_flow WHERE store_id::text = p_store_id AND date >= p_start_date AND date <= p_end_date AND expense_group = 'asset';

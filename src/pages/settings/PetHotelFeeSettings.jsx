@@ -6,7 +6,7 @@ import { Label } from '../../components/ui/label';
 import { Switch } from '../../components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Wallet, Users, CalendarDays, Plus, Trash2, Save, Copy, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { Wallet, Users, CalendarDays, Plus, Trash2, Save, Copy, ChevronLeft, ChevronRight, RefreshCw, X } from 'lucide-react';
 import { useToast } from '../../components/ui/use-toast';
 import { format, subMonths, addMonths, eachDayOfInterval, startOfMonth, endOfMonth, getDay, parseISO } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
@@ -273,7 +273,7 @@ const PetHotelFeeSettings = () => {
                                     <div key={name} className="flex items-center gap-2 bg-indigo-50 border border-indigo-100 text-indigo-800 px-3 py-1.5 rounded-full text-sm font-medium">
                                         {name}
                                         <button onClick={() => handleRemoveStaff(name)} className="text-indigo-400 hover:text-red-500 transition-colors ml-1" title="Hapus">
-                                            <XIcon className="h-4 w-4" />
+                                            <X className="h-4 w-4" />
                                         </button>
                                     </div>
                                 ))}
@@ -515,8 +515,5 @@ const PetHotelFeeSettings = () => {
     );
 };
 
-const XIcon = (props) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
-);
 
 export default PetHotelFeeSettings;

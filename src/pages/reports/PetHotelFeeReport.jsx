@@ -57,7 +57,13 @@ const PetHotelFeeReport = () => {
 
     // Get this month's weekly schedule template
     const monthSchedule = schedules[currentMonth] || {};
-    const hasSchedule = Object.values(monthSchedule).some(arr => arr && arr.length > 0);
+
+    // Support both old flat format (key '0'-'6') and new format ({template, overrides})
+    const isOldFormat = Object.keys(monthSchedule).some(k => !isNaN(k) && k.length === 1);
+    const hasSchedule = isOldFormat
+        ? Object.values(monthSchedule).some(arr => arr && arr.length > 0)
+        : (Object.values(monthSchedule.template || {}).some(arr => arr && arr.length > 0) ||
+            Object.keys(monthSchedule.overrides || {}).length > 0);
 
     // --- Fetch existing fees ---
     const fetchFees = useCallback(async () => {
