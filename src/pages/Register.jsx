@@ -5,7 +5,16 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
-import { Store, User, Mail, Lock, Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Store, User, Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, UtensilsCrossed, Pill, PawPrint, Timer, Shirt } from 'lucide-react';
+
+const BUSINESS_TYPES = [
+    { id: 'general', label: 'Toko', description: 'Retail, Minimarket, dll.', icon: Store, color: 'indigo' },
+    { id: 'fnb', label: 'Food & Beverage', description: 'Resto, Cafe, Kedai', icon: UtensilsCrossed, color: 'orange' },
+    { id: 'pharmacy', label: 'Apotek', description: 'Apotek, Obat', icon: Pill, color: 'emerald' },
+    { id: 'laundry', label: 'Laundry', description: 'Kiloan, Satuan', icon: Shirt, color: 'cyan' },
+    { id: 'rental', label: 'Rental', description: 'PS, Billiard', icon: Timer, color: 'violet' },
+    { id: 'pet_clinic', label: 'Klinik Hewan', description: 'Coming Soon', icon: PawPrint, color: 'amber', disabled: true },
+];
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -13,7 +22,8 @@ const Register = () => {
         ownerName: '',
         email: '',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        businessType: 'general'
     });
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -56,7 +66,8 @@ const Register = () => {
                 formData.email,
                 formData.password,
                 formData.ownerName,
-                formData.storeName
+                formData.storeName,
+                formData.businessType
             );
 
             if (result.success) {
@@ -92,6 +103,38 @@ const Register = () => {
                                 {error}
                             </div>
                         )}
+
+                        <div className="space-y-2">
+                            <Label>Tipe Bisnis</Label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {BUSINESS_TYPES.map((bt) => {
+                                    const Icon = bt.icon;
+                                    const isSelected = formData.businessType === bt.id;
+                                    const isDisabled = bt.disabled;
+                                    return (
+                                        <button
+                                            key={bt.id}
+                                            type="button"
+                                            disabled={isDisabled}
+                                            onClick={() => setFormData({ ...formData, businessType: bt.id })}
+                                            className={`relative flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-center transition-all duration-150 ${isDisabled
+                                                ? 'opacity-40 cursor-not-allowed border-dashed border-slate-300 bg-slate-50'
+                                                : isSelected
+                                                    ? 'border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500 shadow-sm'
+                                                    : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 cursor-pointer'
+                                                }`}
+                                        >
+                                            <Icon className={`h-5 w-5 ${isDisabled ? 'text-slate-400' : isSelected ? 'text-indigo-600' : 'text-slate-500'
+                                                }`} />
+                                            <span className={`text-xs font-semibold leading-tight ${isDisabled ? 'text-slate-400' : isSelected ? 'text-indigo-700' : 'text-slate-700'
+                                                }`}>{bt.label}</span>
+                                            <span className={`text-[9px] leading-tight ${isDisabled ? 'text-slate-400 italic' : 'text-slate-400'
+                                                }`}>{bt.description}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
 
                         <div className="space-y-2">
                             <Label htmlFor="storeName">Nama Toko</Label>

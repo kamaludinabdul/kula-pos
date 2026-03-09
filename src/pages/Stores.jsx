@@ -141,7 +141,8 @@ const Stores = () => {
                 plan: store.plan || 'free',
                 duration: 1, // Reset selection or maybe calculate remaining? For now reset to simple choice
                 enableSalesPerformance: store.enableSalesPerformance || false,
-                petCareEnabled: store.petCareEnabled || false
+                petCareEnabled: store.petCareEnabled || false,
+                businessType: store.business_type || 'general'
             });
         } else {
             setEditingStore(null);
@@ -155,7 +156,8 @@ const Stores = () => {
                 plan: 'free',
                 duration: 1,
                 enableSalesPerformance: false,
-                petCareEnabled: false
+                petCareEnabled: false,
+                businessType: 'general'
             });
         }
         setIsStoreModalOpen(true);
@@ -174,7 +176,8 @@ const Stores = () => {
             telegramBotToken: storeFormData.telegramBotToken,
             telegramChatId: storeFormData.telegramChatId,
             enableSalesPerformance: storeFormData.enableSalesPerformance || false,
-            petCareEnabled: storeFormData.petCareEnabled || false
+            petCareEnabled: storeFormData.petCareEnabled || false,
+            business_type: storeFormData.businessType || 'general'
         };
 
         // Calculate Expiry 
@@ -375,6 +378,11 @@ const Stores = () => {
                                                         <Badge className={getPlanBadgeColor(store.plan)}>
                                                             {store.plan ? store.plan.toUpperCase() : 'FREE'}
                                                         </Badge>
+                                                        {store.business_type && store.business_type !== 'general' && (
+                                                            <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200">
+                                                                {store.business_type.toUpperCase().replace('_', ' ')}
+                                                            </Badge>
+                                                        )}
                                                     </div>
                                                     {store.plan_expiry_date && store.plan !== 'free' && (
                                                         <p className="text-[10px] text-muted-foreground mt-1">
@@ -473,6 +481,25 @@ const Stores = () => {
                                         onChange={e => setStoreFormData({ ...storeFormData, ownerEmail: e.target.value })}
                                         placeholder="owner@example.com"
                                     />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="businessType">Tipe Bisnis</Label>
+                                    <Select
+                                        value={storeFormData.businessType}
+                                        onValueChange={(value) => setStoreFormData({ ...storeFormData, businessType: value })}
+                                    >
+                                        <SelectTrigger id="businessType">
+                                            <SelectValue placeholder="Pilih Tipe Bisnis" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="general">Toko / Retail Umum</SelectItem>
+                                            <SelectItem value="fnb">Food & Beverage (F&B)</SelectItem>
+                                            <SelectItem value="pharmacy">Apotek / Klinik</SelectItem>
+                                            <SelectItem value="laundry">Laundry</SelectItem>
+                                            <SelectItem value="rental">Rental / Penyewaan</SelectItem>
+                                            <SelectItem value="pet_clinic">Klinik Hewan (Coming Soon)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="plan">Subscription Plan</Label>

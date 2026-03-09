@@ -636,7 +636,7 @@ export const AuthProvider = ({ children }) => {
         return { success: true };
     };
 
-    const signup = async (email, password, name, storeName) => {
+    const signup = async (email, password, name, storeName, businessType = 'general') => {
         // We now handle Store & Profile creation via Database Trigger (handle_new_user)
         // Check supabase_schema.sql for the logic.
         const { error } = await supabase.auth.signUp({
@@ -646,7 +646,8 @@ export const AuthProvider = ({ children }) => {
                 data: {
                     name,
                     store_name: storeName, // Trigger looks for this to create store
-                    role: 'owner'
+                    role: 'owner',
+                    business_type: businessType // Trigger stores this in stores table
                 }
             }
         });

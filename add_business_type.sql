@@ -1,7 +1,21 @@
--- MASTER: handle_new_user
--- Purpose: Trigger function for Auth.users entry to create profile and store
--- Source: scripts/deploy_prod.sql
+-- Migration: Add business_type column to stores table
+-- This column identifies the type of business and is set permanently at registration.
+-- Values: 'general', 'fnb', 'pharmacy', 'pet_clinic', 'laundry', 'rental'
 
+-- Step 1: Add the column (safe to re-run)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'stores' 
+        AND column_name = 'business_type'
+    ) THEN
+        ALTER TABLE public.stores ADD COLUMN business_type TEXT DEFAULT 'general';
+    END IF;
+END $$;
+
+-- Step 2: Deploy updated handle_new_user trigger
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
