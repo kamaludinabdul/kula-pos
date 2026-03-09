@@ -2545,6 +2545,9 @@ export const DataProvider = ({ children }) => {
 
             // Fetch updated data to reflect stock changes widely
             await fetchData();
+            // Also refresh products specifically since fetchData() skips them for performance
+            // This ensures stock quantities update immediately in the UI
+            await fetchAllProducts(activeStoreId);
 
             return { success: true };
         } catch (error) {
