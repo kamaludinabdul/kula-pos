@@ -606,16 +606,16 @@ export const AuthProvider = ({ children }) => {
                     .eq('id', data.user.id)
                     .single();
 
-                const { error: insertError } = await supabase.from('audit_logs').insert({
-                    user_id: data.user.id,
-                    action: 'login_success',
-                    status: 'success',
-                    user_name: profile?.name || data.user.email,
-                    user_role: profile?.role || 'unknown',
-                    store_id: profile?.store_id,
-                    store_name: profile?.stores?.name || null,
-                    user_agent: navigator.userAgent,
-                    metadata: { email: data.user.email }
+                const { error: insertError } = await supabase.rpc('insert_audit_log', {
+                    p_user_id: data.user.id,
+                    p_action: 'login_success',
+                    p_status: 'success',
+                    p_user_name: profile?.name || data.user.email,
+                    p_user_role: profile?.role || 'unknown',
+                    p_store_id: profile?.store_id || null,
+                    p_store_name: profile?.stores?.name || null,
+                    p_user_agent: navigator.userAgent,
+                    p_metadata: { email: data.user.email }
                 });
 
                 if (insertError) {

@@ -3,6 +3,7 @@ import { Search, ScanBarcode, X } from 'lucide-react';
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import CategoryTabs from './CategoryTabs';
+import { useBusinessType } from '../../hooks/useBusinessType';
 
 const ProductFilter = ({
     searchQuery,
@@ -14,6 +15,8 @@ const ProductFilter = ({
     onOpenScanner,
     onEnter
 }) => {
+    const { term } = useBusinessType();
+
     return (
         <div className="space-y-3 p-4 bg-slate-50/50">
             <div className="flex gap-2">
@@ -21,7 +24,7 @@ const ProductFilter = ({
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                         ref={searchInputRef}
-                        placeholder="Cari produk... (F2)"
+                        placeholder={`Cari ${term('product').toLowerCase()}... (F2)`}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-9 pr-8 bg-white shadow-sm"

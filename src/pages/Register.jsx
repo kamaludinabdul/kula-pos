@@ -9,10 +9,10 @@ import { Store, User, Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, UtensilsCros
 
 const BUSINESS_TYPES = [
     { id: 'general', label: 'Toko', description: 'Retail, Minimarket, dll.', icon: Store, color: 'indigo' },
-    { id: 'fnb', label: 'Food & Beverage', description: 'Resto, Cafe, Kedai', icon: UtensilsCrossed, color: 'orange' },
-    { id: 'pharmacy', label: 'Apotek', description: 'Apotek, Obat', icon: Pill, color: 'emerald' },
-    { id: 'laundry', label: 'Laundry', description: 'Kiloan, Satuan', icon: Shirt, color: 'cyan' },
-    { id: 'rental', label: 'Rental', description: 'PS, Billiard', icon: Timer, color: 'violet' },
+    { id: 'fnb', label: 'Food & Beverage', description: 'Coming Soon', icon: UtensilsCrossed, color: 'orange', disabled: true },
+    { id: 'pharmacy', label: 'Apotek', description: 'Coming Soon', icon: Pill, color: 'emerald', disabled: true },
+    { id: 'laundry', label: 'Laundry', description: 'Coming Soon', icon: Shirt, color: 'cyan', disabled: true },
+    { id: 'rental', label: 'Rental', description: 'Coming Soon', icon: Timer, color: 'violet', disabled: true },
     { id: 'pet_clinic', label: 'Klinik Hewan', description: 'Coming Soon', icon: PawPrint, color: 'amber', disabled: true },
 ];
 

@@ -2165,6 +2165,13 @@ export const DataProvider = ({ children }) => {
             console.error("Process Sale Failed: No active store selected.");
             return { success: false, error: "No active store selected" };
         }
+
+        // VALIDATION: Prevent Checkout without Items (except for deposit/debt_payment types if they ever exist)
+        if (!transactionData.items || transactionData.items.length === 0) {
+            console.error("Process Sale Failed: Cart items are empty.");
+            return { success: false, error: "Keranjang masih kosong. Tidak ada detail barang yang bisa disimpan." };
+        }
+
         try {
             // Prepare items for RPC (mapping fields if necessary)
             const rpcItems = transactionData.items.map(item => ({
@@ -2172,6 +2179,8 @@ export const DataProvider = ({ children }) => {
                 qty: item.qty,
                 name: item.name,
                 price: item.price,
+                multiplier: item.multiplier || 1,
+                unit: item.unit,
                 buy_price: item.buyPrice || item.buy_price || 0, // Map to snake_case for RPC
                 discount: item.discount || 0 // Pass item-level discount
             }));
@@ -2216,7 +2225,8 @@ export const DataProvider = ({ children }) => {
             setProducts(prev => prev.map(p => {
                 const soldItem = transactionData.items.find(item => item.id === p.id);
                 if (soldItem) {
-                    return { ...p, stock: (p.stock || 0) - soldItem.qty };
+                    const baseQty = soldItem.qty * (soldItem.multiplier || 1);
+                    return { ...p, stock: (p.stock || 0) - baseQty };
                 }
                 return p;
             }));
@@ -2235,7 +2245,7 @@ export const DataProvider = ({ children }) => {
                 store_id: activeStoreId,
                 product_id: item.id,
                 type: 'sale',
-                qty: -item.qty,
+                qty: -(item.qty * (item.multiplier || 1)),
                 date: new Date().toISOString(),
                 note: 'Penjualan #' + numericId.slice(-6),
                 ref_id: numericId

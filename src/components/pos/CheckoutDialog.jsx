@@ -28,6 +28,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
 import { Calendar as CalendarComponent } from "../ui/calendar";
 import { cn, formatDate } from "../../lib/utils";
+import { useBusinessType } from '../../hooks/useBusinessType';
 
 const CheckoutDialog = ({
     isOpen,
@@ -55,6 +56,7 @@ const CheckoutDialog = ({
 
     // Check if user can backdate (admin/super_admin AND setting enabled)
     const canBackdate = (user?.role === 'owner' || user?.role === 'super_admin') && store?.settings?.allowBackdateTransaction;
+    const { term } = useBusinessType();
 
     // Auto print receipt
     useEffect(() => {
@@ -210,8 +212,15 @@ const CheckoutDialog = ({
                                     <div>No: #{lastTransaction?.id}</div>
                                     {lastTransaction?.customerName && (
                                         <div className="mt-1">
-                                            <span className="font-bold text-gray-700">Pelanggan: {lastTransaction.customerName}</span>
+                                            <span className="font-bold text-gray-700">{term('customer')}: {lastTransaction.customerName}</span>
                                             {lastTransaction.customerPhone && <div className="text-[10px]">HP: {lastTransaction.customerPhone}</div>}
+                                        </div>
+                                    )}
+                                    {lastTransaction?.patient_name && (
+                                        <div className="mt-1">
+                                            <span className="font-bold text-gray-700">Pasien: {lastTransaction.patient_name}</span>
+                                            <div className="text-[10px]">Dokter: {lastTransaction.doctor_name || '-'}</div>
+                                            {lastTransaction.prescription_number && <div className="text-[10px]">No. Resep: {lastTransaction.prescription_number}</div>}
                                         </div>
                                     )}
                                 </div>
@@ -275,6 +284,12 @@ const CheckoutDialog = ({
                                         <div className="flex justify-between text-gray-500">
                                             <span>Service</span>
                                             <span>Rp {lastTransaction.serviceCharge.toLocaleString('id-ID')}</span>
+                                        </div>
+                                    )}
+                                    {lastTransaction?.tuslah_fee > 0 && (
+                                        <div className="flex justify-between text-gray-500">
+                                            <span>Biaya Tuslah/Embalase</span>
+                                            <span>Rp {lastTransaction.tuslah_fee.toLocaleString('id-ID')}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between font-bold text-base border-t border-gray-300 pt-1 mt-1">
@@ -357,7 +372,7 @@ const CheckoutDialog = ({
                                 {selectedCustomer && (
                                     <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center text-xs">
                                         <div className="text-left w-1/2 overflow-hidden text-ellipsis whitespace-nowrap pr-2">
-                                            <p className="text-slate-400">Poin Pelanggan</p>
+                                            <p className="text-slate-400">Poin {term('customer')}</p>
                                             <p className="font-bold text-amber-400">{selectedCustomer.loyaltyPoints || 0}</p>
                                             {pointsEarned > 0 && <p className="font-bold text-green-400 text-[10px] mt-0.5">+{pointsEarned} Poin Transaksi Ini</p>}
                                         </div>

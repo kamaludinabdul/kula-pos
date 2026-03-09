@@ -65,6 +65,12 @@ export const usePOS = () => {
     const [paymentMethod, setPaymentMethod] = useState('cash');
     const [cashAmount, setCashAmount] = useState('');
     const [salesPerson, setSalesPerson] = useState(null);
+    const [prescriptionData, setPrescriptionData] = useState({
+        patientName: '',
+        doctorName: '',
+        prescriptionNumber: '',
+        tuslahFee: 0
+    });
 
     // --- Cart Actions ---
 
@@ -77,17 +83,17 @@ export const usePOS = () => {
 
         setCart((prev) => {
             const existing = prev.find((item) => item.id === product.id);
-            const currentQtyInCart = existing ? existing.qty : 0;
-            const nextQty = currentQtyInCart + 1;
+            const currentQtyInCart = existing ? (existing.qty * (existing.multiplier || 1)) : 0;
+            const nextQtyBase = currentQtyInCart + 1;
 
-            if (!isService && nextQty > currentStock) {
+            if (!isService && nextQtyBase > currentStock) {
                 // Notify via callback if available
                 if (window.onPOSNotification) window.onPOSNotification('Stok Habis', `Stok produk "${product.name}" tidak mencukupi.`);
                 return prev;
             }
 
             // Low stock warning
-            const remaining = currentStock - nextQty;
+            const remaining = currentStock - nextQtyBase;
             if (!isService && remaining <= minStock) {
                 if (window.onPOSNotification) window.onPOSNotification('Stok Menipis', `Stok produk "${product.name}" tersisa ${remaining}.`, 'warning');
             }
@@ -111,10 +117,7 @@ export const usePOS = () => {
             const pDiscount = parseFloat(product.discount) || 0;
             const pDiscountType = product.discountType || 'percent';
 
-            // Check initial wholesale price (usually base, but for robustness)
-            // Note: quantity is 1 here
             // Check initial tiered price (usually base, but for robustness)
-            // Note: quantity is 1 here
             let finalUnitPrice = unitPrice;
             if (product.pricingTiers && product.pricingTiers.length > 0) {
                 finalUnitPrice = calculateWholesaleUnitPrice(product, 1);
@@ -133,9 +136,33 @@ export const usePOS = () => {
                 ...product,
                 qty: 1,
                 price: finalUnitPrice,
-                discount: initialDiscountAmount
+                discount: initialDiscountAmount,
+                selectedUnit: product.unit || 'Pcs',
+                multiplier: 1,
+                baseUnit: product.unit || 'Pcs'
             }];
         });
+    }, []);
+
+    // Update Item Unit (Pharmacy / Multi-unit)
+    const updateItemUnit = useCallback((id, unitData) => {
+        setCart((prev) =>
+            prev.map((item) => {
+                if (item.id === id) {
+                    // unitData is from product.units array: { name, multiplier, price, barcode }
+                    // if it's the base unit, we might pass a special object or detect it
+                    return {
+                        ...item,
+                        selectedUnit: unitData.name,
+                        multiplier: unitData.multiplier,
+                        price: unitData.price || item.sellPrice || item.price,
+                        // Optionally reset discount or keep it? Usually keep if it's %
+                        // but fixed discount might need adjustment. For now let's keep it simple.
+                    };
+                }
+                return item;
+            })
+        );
     }, []);
 
     // Update Quantity
@@ -148,8 +175,9 @@ export const usePOS = () => {
                     const isService = item.type === 'service';
 
                     const newQty = Math.max(0, item.qty + delta);
+                    const newQtyBase = newQty * (item.multiplier || 1);
 
-                    if (delta > 0 && !isService && newQty > currentStock) {
+                    if (delta > 0 && !isService && newQtyBase > currentStock) {
                         return item; // Stock limit reached
                     }
 
@@ -184,6 +212,12 @@ export const usePOS = () => {
         setAppliedPromoId(null);
         setSelectedCustomer(null);
         setCashAmount('');
+        setPrescriptionData({
+            patientName: '',
+            doctorName: '',
+            prescriptionNumber: '',
+            tuslahFee: 0
+        });
     }, []);
 
     // --- Search & Filter ---
@@ -279,10 +313,11 @@ export const usePOS = () => {
             tax: result.taxAmount,
             serviceCharge: result.serviceCharge,
             discountAmount: result.discountAmount,
-            finalTotal: result.finalTotal
+            tuslahFee: prescriptionData.tuslahFee,
+            finalTotal: result.finalTotal + (parseFloat(prescriptionData.tuslahFee) || 0)
         };
 
-    }, [cart, currentStore, discountType, discountValue, appliedPromoId, activePromotions]);
+    }, [cart, currentStore, discountType, discountValue, appliedPromoId, activePromotions, prescriptionData]);
 
     // --- Smart Recommendations ---
     const associations = useMemo(() => {
@@ -315,6 +350,7 @@ export const usePOS = () => {
         paymentMethod,
         cashAmount,
         salesPerson,
+        prescriptionData,
 
         // Calculations
         filteredProducts,
@@ -337,11 +373,13 @@ export const usePOS = () => {
         setPaymentMethod,
         setCashAmount,
         setSalesPerson,
+        setPrescriptionData,
 
         // Actions
         addToCart,
         updateQty,
         updateCartItem,
+        updateItemUnit,
         clearCart
     };
 };

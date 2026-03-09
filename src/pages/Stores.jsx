@@ -106,8 +106,7 @@ const Stores = () => {
         telegramChatId: '',
         plan: 'free',
         duration: 1, // Default 1 month
-        enableSalesPerformance: false,
-        petCareEnabled: false
+        enableSalesPerformance: false
     });
 
     const [newUser, setNewUser] = useState({
@@ -141,7 +140,6 @@ const Stores = () => {
                 plan: store.plan || 'free',
                 duration: 1, // Reset selection or maybe calculate remaining? For now reset to simple choice
                 enableSalesPerformance: store.enableSalesPerformance || false,
-                petCareEnabled: store.petCareEnabled || false,
                 businessType: store.business_type || 'general'
             });
         } else {
@@ -156,7 +154,6 @@ const Stores = () => {
                 plan: 'free',
                 duration: 1,
                 enableSalesPerformance: false,
-                petCareEnabled: false,
                 businessType: 'general'
             });
         }
@@ -176,7 +173,6 @@ const Stores = () => {
             telegramBotToken: storeFormData.telegramBotToken,
             telegramChatId: storeFormData.telegramChatId,
             enableSalesPerformance: storeFormData.enableSalesPerformance || false,
-            petCareEnabled: storeFormData.petCareEnabled || false,
             business_type: storeFormData.businessType || 'general'
         };
 
@@ -549,26 +545,7 @@ const Stores = () => {
                             />
                         </div>
 
-                        {user?.role === 'super_admin' && (
-                            <div className={`flex items-center justify-between p-3 rounded-lg border ${storeFormData.plan === 'enterprise' ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200 opacity-60'}`}>
-                                <div>
-                                    <Label className={`flex items-center gap-2 ${storeFormData.plan === 'enterprise' ? 'text-amber-900' : 'text-slate-500'}`}>
-                                        Aktifkan Fitur Pet Hotel
-                                    </Label>
-                                    <p className={`text-xs mt-1 ${storeFormData.plan === 'enterprise' ? 'text-amber-700/80' : 'text-slate-400'}`}>
-                                        {storeFormData.plan === 'enterprise'
-                                            ? 'Mengaktifkan Modul Pet Hotel & Laporan Fee'
-                                            : 'Fitur khusus paket Enterprise'}
-                                    </p>
-                                </div>
-                                <Switch
-                                    checked={storeFormData.petCareEnabled || false}
-                                    onCheckedChange={(checked) => setStoreFormData({ ...storeFormData, petCareEnabled: checked })}
-                                    disabled={storeFormData.plan !== 'enterprise'}
-                                    className="data-[state=checked]:bg-amber-600"
-                                />
-                            </div>
-                        )}
+
                         <div className="space-y-2">
                             <Label htmlFor="phone">Phone</Label>
                             <Input

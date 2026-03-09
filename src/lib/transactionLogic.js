@@ -34,7 +34,8 @@ export const constructTransactionData = ({
         name: item.name,
         price: item.price,
         qty: item.qty,
-        unit: item.unit,
+        unit: item.selectedUnit || item.unit,
+        multiplier: item.multiplier || 1,
         discount: item.discount || 0,
         total: (item.price - (item.discount || 0)) * item.qty,
         buy_price: item.buy_price, // Important for profit calc

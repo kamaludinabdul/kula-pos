@@ -15,8 +15,13 @@ import { supabase } from '../supabase';
 import { ArrowUpDown } from 'lucide-react';
 
 const PurchaseOrders = () => {
-    // Remove global purchaseOrders from useData, we fetch locally
-    const { purchaseOrders: _globalPOs, currentStore } = useData();
+    // Data Context
+    const {
+        purchaseOrders: _globalPOs,
+        currentStore,
+        fetchAllProducts,
+        products
+    } = useData();
     const navigate = useNavigate();
 
     // -- Local Data State (Pagination) --
@@ -112,6 +117,14 @@ const PurchaseOrders = () => {
         setCurrentPage(page);
         fetchPOs(page);
     };
+
+    // Ensure products are loaded for Receive Stock Dialog
+    useEffect(() => {
+        if (currentStore?.id && products.length === 0) {
+            console.log("[PurchaseOrders] Products empty, fetching...");
+            fetchAllProducts(currentStore.id);
+        }
+    }, [currentStore?.id, products.length, fetchAllProducts]);
 
     const handleItemsPerPageChange = (val) => {
         setItemsPerPage(val);

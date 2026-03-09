@@ -11,6 +11,7 @@ import AlertDialog from '../../components/AlertDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 
 import { supabase } from '../../supabase';
+import { useBusinessType } from '../../hooks/useBusinessType';
 
 const GeneralSettings = () => {
     const { recalculateProductStats, currentStore, updateStore, updateStoreSettings } = useData();
@@ -26,9 +27,7 @@ const GeneralSettings = () => {
     const [gracePeriod, setGracePeriod] = useState(0);
     const [isSavingGrace, setIsSavingGrace] = useState(false);
 
-    // Rental settings states
-    const [enableRental, setEnableRental] = useState(false);
-    const [isSavingRental, setIsSavingRental] = useState(false);
+    const { hasFeature } = useBusinessType();
 
     // Shared Customers state
     const [enableSharedCustomers, setEnableSharedCustomers] = useState(false);
@@ -42,7 +41,6 @@ const GeneralSettings = () => {
     useEffect(() => {
         if (currentStore) {
             setAllowBackdate(currentStore.settings?.allowBackdateTransaction || false);
-            setEnableRental(currentStore.enableRental || false);
             setGracePeriod(currentStore.settings?.grace_period || 0);
             setEnableSharedCustomers(currentStore.settings?.enableSharedCustomers || false);
             setGeminiApiKey(currentStore.settings?.geminiApiKey || '');
@@ -84,37 +82,7 @@ const GeneralSettings = () => {
         }
     };
 
-    // Save rental setting (To Stores Collection for Realtime Sidebar update)
-    const handleRentalToggle = async (checked) => {
-        if (!currentStore?.id) return;
-        setIsSavingRental(true);
-        try {
-            const result = await updateStore(currentStore.id, {
-                enableRental: checked
-            });
 
-            if (!result.success) throw result.error;
-
-            // Local state for immediate reflect in UI switch
-            setEnableRental(checked);
-
-            toast({
-                title: checked ? "Mode Rental Diaktifkan" : "Mode Rental Dinonaktifkan",
-                description: checked
-                    ? "Menu 'Rental Mode' akan muncul di sidebar seketika."
-                    : "Menu Rental disembunyikan.",
-            });
-        } catch (error) {
-            console.error('Error saving rental setting:', error);
-            toast({
-                variant: "destructive",
-                title: "Gagal",
-                description: "Gagal menyimpan pengaturan: " + (error.message || "Unknown error"),
-            });
-        } finally {
-            setIsSavingRental(false);
-        }
-    };
 
     const handleSharedCustomersToggle = async (checked) => {
         if (!currentStore?.id) return;
@@ -364,23 +332,6 @@ const GeneralSettings = () => {
 
                             <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 transition-colors">
                                 <div className="space-y-1">
-                                    <Label htmlFor="rental-switch" className="font-medium">
-                                        Aktifkan Mode Rental / Sewa
-                                    </Label>
-                                    <p className="text-xs text-muted-foreground">
-                                        Fitur manajemen durasi (timer) untuk rental PS, Billiard, Studio, dll.
-                                    </p>
-                                </div>
-                                <Switch
-                                    id="rental-switch"
-                                    checked={enableRental}
-                                    onCheckedChange={handleRentalToggle}
-                                    disabled={isSavingRental}
-                                />
-                            </div>
-
-                            <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 transition-colors">
-                                <div className="space-y-1">
                                     <Label htmlFor="shared-customers-switch" className="font-medium">
                                         Berbagi Database Pelanggan
                                     </Label>
@@ -396,7 +347,7 @@ const GeneralSettings = () => {
                                 />
                             </div>
 
-                            {enableRental && (
+                            {hasFeature('rental_timer') && (
                                 <div className="flex items-center justify-between p-4 border rounded-lg bg-indigo-50/50 border-indigo-100 animate-in fade-in slide-in-from-top-2 duration-300">
                                     <div className="space-y-1">
                                         <Label htmlFor="grace-period" className="font-medium text-indigo-900">

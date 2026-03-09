@@ -2,12 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { getOptimizedImage } from '../../utils/supabaseImage';
+import { useBusinessType } from '../../hooks/useBusinessType';
 
 const ProductGrid = ({ products, onAddToCart, isCartCollapsed }) => {
     // --- Progressive Loading State ---
     const [visibleCount, setVisibleCount] = useState(24); // Start with 24 items (~3-4 rows)
     const scrollContainerRef = useRef(null);
     const observerTarget = useRef(null);
+    const { term } = useBusinessType();
 
     // Reset visible count when filter/search changes (products array reference changes)
     useEffect(() => {
@@ -126,7 +128,7 @@ const ProductGrid = ({ products, onAddToCart, isCartCollapsed }) => {
                     ref={observerTarget}
                     className="col-span-full py-4 text-center text-xs text-slate-400"
                 >
-                    Memuat produk lainnya... ({visibleCount} / {products.length})
+                    Memuat {term('product').toLowerCase()} lainnya... ({visibleCount} / {products.length})
                 </div>
             )}
 
@@ -135,7 +137,7 @@ const ProductGrid = ({ products, onAddToCart, isCartCollapsed }) => {
                     <div className="bg-slate-200 p-6 rounded-full mb-4">
                         <span className="text-4xl">🔍</span>
                     </div>
-                    <p className="text-lg font-medium text-center">Tidak ada produk ditemukan.</p>
+                    <p className="text-lg font-medium text-center">Tidak ada {term('product').toLowerCase()} ditemukan.</p>
                     <p className="text-sm text-center">Coba kata kunci lain atau ubah kategori.</p>
                 </div>
             )}

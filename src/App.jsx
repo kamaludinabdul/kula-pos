@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider, useData } from './context/DataContext';
 import { ShiftProvider } from './context/ShiftContext';
+import { useBusinessType } from './hooks/useBusinessType';
 
 // Components
 import Layout from './components/Layout';
@@ -95,11 +96,12 @@ import { checkPlanAccess, hasFeatureAccess } from './utils/plans';
 import { APP_VERSION } from './version';
 // const APP_VERSION = '0.13.5'; // Moved to version.js
 
-const PrivateRoute = ({ children, feature, plan, permission }) => {
+const PrivateRoute = ({ children, feature, plan, permission, checkFeature }) => {
   const authContext = useAuth();
   const dataContext = useData();
   const location = useLocation();
   const [showRefresh, setShowRefresh] = useState(false);
+  const { hasFeature } = useBusinessType();
 
   useEffect(() => {
     let timeout;
@@ -164,8 +166,8 @@ const PrivateRoute = ({ children, feature, plan, permission }) => {
   const role = user.role?.toLowerCase();
   if (role === 'super_admin' || role === 'owner') return children;
 
-  // 4. Feature and Plan Access
-  if (feature) {
+  // 4. Feature, Plan, and Business Type Access
+  if (feature || checkFeature) {
     // If no active store selected, force to stores page (Only for Super Admin/Owner with no store)
     if (!currentStore) {
       if (role === 'super_admin' || !user.store_id) {
@@ -178,9 +180,15 @@ const PrivateRoute = ({ children, feature, plan, permission }) => {
     const currentPlan = (currentStore?.plan || 'free').toLowerCase();
     const dynamicPlans = dataContext.plans || {};
 
-    // Check Plan & Feature Access
+    // Check Plan & Subscription Feature Access
     const hasPlanAccess = plan ? checkPlanAccess(currentPlan, plan) : true;
     const hasFeatAccess = feature ? hasFeatureAccess(currentPlan, feature, dynamicPlans) : true;
+
+    // Check Business Type Feature Access
+    if (checkFeature && !hasFeature(checkFeature)) {
+      console.warn(`Access denied for ${location.pathname} (Business Type does not support: ${checkFeature})`);
+      return <Navigate to="/dashboard" replace />;
+    }
 
     if (!hasPlanAccess || !hasFeatAccess) {
       console.warn(`Access denied for ${feature || 'page'} (Plan: ${currentPlan})`);
@@ -324,7 +332,7 @@ const App = () => {
 
 
                     <Route path="/rental" element={
-                      <PrivateRoute feature="rental" permission="pos" plan="pro">
+                      <PrivateRoute feature="rental" permission="pos" plan="pro" checkFeature="rental_timer">
                         <RentalDashboard />
                       </PrivateRoute>
                     } />
@@ -481,7 +489,11 @@ const App = () => {
                       <Route path="telegram" element={<TelegramSettings />} />
                       <Route path="sales-performance" element={<SalesPerformanceSettings />} />
                       <Route path="security" element={<SecuritySettings />} />
-                      <Route path="pet-hotel-fee" element={<PetHotelFeeSettings />} />
+                      <Route path="pet-hotel-fee" element={
+                        <PrivateRoute feature="settings.fees" checkFeature="pet_hotel">
+                          <PetHotelFeeSettings />
+                        </PrivateRoute>
+                      } />
                     </Route>
 
                     {/* Finance Routes */}
@@ -544,7 +556,7 @@ const App = () => {
                         </PrivateRoute>
                       } />
                       <Route path="pet-hotel-fee" element={
-                        <PrivateRoute feature="reports.pet_hotel_fee">
+                        <PrivateRoute feature="reports.pet_hotel_fee" checkFeature="pet_hotel">
                           <PetHotelFeeReport />
                         </PrivateRoute>
                       } />

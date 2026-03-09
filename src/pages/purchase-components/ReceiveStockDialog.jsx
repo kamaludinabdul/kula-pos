@@ -23,7 +23,9 @@ const ReceiveStockDialog = ({ open, onClose, po }) => {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
+        console.log("[ReceiveStockDialog] Initializing...", { hasPO: !!po, itemsCount: po?.items?.length, productsCount: products?.length });
         if (po && po.items && products.length > 0) {
+            console.log("[ReceiveStockDialog] Populating items...");
             setItems(po.items.map(i => {
                 const product = products.find(p => p.id === i.productId);
                 const conversion = (product?.conversionToUnit && product?.purchaseUnit) ? parseInt(product.conversionToUnit) : 1;
@@ -36,7 +38,7 @@ const ReceiveStockDialog = ({ open, onClose, po }) => {
             }));
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [po]); // Keep dependency stable to prevent HMR errors
+    }, [po, products.length]); // Added products.length to detect when products finally load
 
 
     const handleItemChange = (index, field, val) => {

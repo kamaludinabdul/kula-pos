@@ -25,6 +25,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { cn } from "../../lib/utils";
+import { useBusinessType } from '../../hooks/useBusinessType';
 
 const CartPanel = ({
     cart,
@@ -49,8 +50,12 @@ const CartPanel = ({
     onApplyPromo,
     onCollapse,
     loyaltySettings,
-    onAddCustomer
+    onAddCustomer,
+    prescriptionData,
+    setPrescriptionData,
+    onUpdateItemUnit
 }) => {
+    const { term, showField } = useBusinessType();
     const [isCustomerOpen, setIsCustomerOpen] = useState(false);
     const [customerSearch, setCustomerSearch] = useState('');
     const [editingItem, setEditingItem] = useState(null);
@@ -149,9 +154,9 @@ const CartPanel = ({
                             <div className="flex items-center gap-2 overflow-hidden">
                                 <User size={16} className="text-muted-foreground shrink-0" />
                                 <div className="flex flex-col truncate">
-                                    <span className="text-[10px] uppercase text-muted-foreground font-bold leading-none">Pelanggan</span>
+                                    <span className="text-[10px] uppercase text-muted-foreground font-bold leading-none">{term('customer')}</span>
                                     <span className="text-xs font-semibold truncate">
-                                        {selectedCustomer ? selectedCustomer.name : "Umum (Non-Member)"}
+                                        {selectedCustomer ? selectedCustomer.name : `${term('generalCustomer')} (Non-Member)`}
                                     </span>
                                     {selectedCustomer && (
                                         <span className="text-[9px] font-bold text-amber-600 leading-none mt-0.5">
@@ -172,7 +177,7 @@ const CartPanel = ({
                                     e.stopPropagation();
                                     onAddCustomer();
                                 }}
-                                title="Tambah Pelanggan Baru"
+                                title={`Tambah ${term('customer')} Baru`}
                             >
                                 <Plus size={16} />
                             </Button>
@@ -195,7 +200,7 @@ const CartPanel = ({
                                         className="px-2 py-1.5 hover:bg-slate-100 rounded text-xs cursor-pointer text-slate-600"
                                         onClick={() => { onSelectCustomer(null); setIsCustomerOpen(false); }}
                                     >
-                                        Umum (Non-Member)
+                                        {term('generalCustomer')} (Non-Member)
                                     </div>
                                     {filteredCustomers.map(c => (
                                         <div
@@ -243,6 +248,42 @@ const CartPanel = ({
                                                 </span>
                                             )}
                                         </div>
+
+                                        {/* Unit Selector (Pharmacy / Multi-unit) */}
+                                        {(item.units?.length > 0) && (
+                                            <div className="mt-2 flex items-center gap-2">
+                                                <Select
+                                                    value={item.selectedUnit || item.unit}
+                                                    onValueChange={(val) => {
+                                                        const baseUnitName = item.baseUnit || item.unit;
+                                                        if (val === baseUnitName) {
+                                                            onUpdateItemUnit(item.id, {
+                                                                name: baseUnitName,
+                                                                multiplier: 1,
+                                                                price: item.sellPrice || item.price
+                                                            });
+                                                        } else {
+                                                            const unitObj = item.units.find(u => u.name === val);
+                                                            if (unitObj) onUpdateItemUnit(item.id, unitObj);
+                                                        }
+                                                    }}
+                                                >
+                                                    <SelectTrigger className="h-7 text-[10px] w-24 bg-slate-50 border-slate-200">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value={item.baseUnit || item.unit}>
+                                                            {item.baseUnit || item.unit} (1 {item.unit})
+                                                        </SelectItem>
+                                                        {item.units.map((u, i) => (
+                                                            <SelectItem key={i} value={u.name}>
+                                                                {u.name} ({u.multiplier} {item.unit})
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        )}
                                     </div>
                                     <Button
                                         variant="ghost"
@@ -400,6 +441,57 @@ const CartPanel = ({
                         <span>Subtotal</span>
                         <span>Rp {totals.subtotal.toLocaleString()}</span>
                     </div>
+
+                    {/* Prescription Form (Apotek) */}
+                    {showField('prescriptions') && cart.length > 0 && (
+                        <div className="mt-4 mb-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100 flex flex-col gap-3">
+                            <div className="flex items-center gap-1.5 text-blue-700 mb-1">
+                                <Sparkles size={14} className="text-blue-500" />
+                                <span className="text-xs font-bold uppercase tracking-wider">Data Resep</span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] text-slate-500">Pasien</Label>
+                                    <Input
+                                        className="h-8 text-xs bg-white"
+                                        placeholder="Nama Pasien"
+                                        value={prescriptionData?.patientName || ''}
+                                        onChange={(e) => setPrescriptionData({ ...prescriptionData, patientName: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] text-slate-500">Dokter</Label>
+                                    <Input
+                                        className="h-8 text-xs bg-white"
+                                        placeholder="Nama Dokter"
+                                        value={prescriptionData?.doctorName || ''}
+                                        onChange={(e) => setPrescriptionData({ ...prescriptionData, doctorName: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] text-slate-500">No. Resep</Label>
+                                    <Input
+                                        className="h-8 text-xs bg-white"
+                                        placeholder="Cth: R/123"
+                                        value={prescriptionData?.prescriptionNumber || ''}
+                                        onChange={(e) => setPrescriptionData({ ...prescriptionData, prescriptionNumber: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label className="text-[10px] text-slate-500">Tuslah/Embalase (Rp)</Label>
+                                    <Input
+                                        type="number"
+                                        className="h-8 text-xs bg-white"
+                                        placeholder="0"
+                                        value={prescriptionData?.tuslahFee || ''}
+                                        onChange={(e) => setPrescriptionData({ ...prescriptionData, tuslahFee: parseFloat(e.target.value) || 0 })}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Optional Taxes */}
                     {totals.tax > 0 && (
                         <div className="flex justify-between text-xs text-muted-foreground">

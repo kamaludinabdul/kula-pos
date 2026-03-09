@@ -87,10 +87,11 @@ const POS = () => {
         discountType, setDiscountType,
         discountValue, setDiscountValue,
         appliedPromoId, setAppliedPromoId, // Destructured for use
+        prescriptionData, setPrescriptionData,
         salesPerson, setSalesPerson,
         filteredProducts, totals, recommendedItems,
         promotions, availablePromos, // Destructure new return values
-        addToCart, updateQty, updateCartItem, clearCart
+        addToCart, updateQty, updateCartItem, updateItemUnit, clearCart
     } = usePOS();
 
     // Fetch Stamps when customer selected
@@ -479,6 +480,15 @@ const POS = () => {
         transactionData.salesPersonId = salesPerson?.id || null;
         transactionData.salesPersonName = salesPerson?.name || null;
         transactionData.storeName = currentStore?.name;
+
+        // Pharmacy Prescription Data
+        if (prescriptionData) {
+            transactionData.patient_name = prescriptionData.patientName || null;
+            transactionData.doctor_name = prescriptionData.doctorName || null;
+            transactionData.prescription_number = prescriptionData.prescriptionNumber || null;
+            transactionData.tuslah_fee = prescriptionData.tuslahFee || 0;
+        }
+
         // Use custom transaction date if provided
         if (txDate) {
             transactionData.date = txDate.toISOString();
@@ -540,7 +550,7 @@ const POS = () => {
         } else {
             showAlert('Gagal', `Transaksi gagal: ${result?.error || 'Unknown error'}`);
         }
-    }, [cart, totals, user, selectedCustomer, currentStore, currentShift, discountType, discountValue, appliedPromoId, salesPerson, loyaltyRules, currentStamps, processSale, updateShiftStats, updateCustomer, updateCustomerStamps, showAlert]);
+    }, [cart, totals, user, selectedCustomer, currentStore, currentShift, discountType, discountValue, appliedPromoId, salesPerson, loyaltyRules, currentStamps, processSale, updateShiftStats, updateCustomer, updateCustomerStamps, showAlert, prescriptionData]);
 
     // --- Shortcuts ---
     useEffect(() => {
@@ -676,6 +686,7 @@ const POS = () => {
 
                         onUpdateQty={updateQty}
                         onUpdateItem={updateCartItem}
+                        onUpdateItemUnit={updateItemUnit}
                         onClearCart={clearCart}
 
                         customers={customers}
@@ -718,6 +729,9 @@ const POS = () => {
 
                         onAddCustomer={() => setIsCustomerFormOpen(true)}
                         onCollapse={() => setIsCartCollapsed(true)}
+
+                        prescriptionData={prescriptionData}
+                        setPrescriptionData={setPrescriptionData}
                     />
                 </div>
 
@@ -751,6 +765,7 @@ const POS = () => {
                 selectedCustomer={selectedCustomer}
                 pointsEarned={memoizedPointsEarned}
                 stampUpdates={memoizedStampUpdates}
+                prescriptionData={prescriptionData}
             />
 
             <BarcodeScannerDialog

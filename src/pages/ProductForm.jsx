@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import FormattedNumberInput from '../components/ui/FormattedNumberInput';
 import { ArrowLeft, Upload, Save, X, Plus, Image as ImageIcon, ScanBarcode, Trash2 } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import { useBusinessType } from '../hooks/useBusinessType';
 import { supabase } from '../supabase';
 import { compressImage } from '../utils/imageCompressor';
 import { Button } from '../components/ui/button';
@@ -26,6 +27,7 @@ const ProductForm = () => {
     const location = useLocation();
     const { id } = useParams();
     const { categories, products, addProduct, updateProduct, addCategory, activeStoreId } = useData();
+    const { term, showField } = useBusinessType();
     const isEditMode = !!id;
 
     const [formData, setFormData] = useState({
@@ -43,6 +45,8 @@ const ProductForm = () => {
         discountType: 'percent',
         shelf: '',
         image: null,
+        is_prescription_required: false,
+        units: [],
         // Unit Conversion
         unit: 'Pcs', // Base Stock Unit
         purchaseUnit: '', // e.g. Sak, Karton
@@ -168,6 +172,8 @@ const ProductForm = () => {
                     discountType: product.discountType || product.discount_type || 'percent',
                     shelf: product.shelf || product.rack_location || '', // Handle shelf/rack_location
                     image: product.image || null,
+                    is_prescription_required: product.is_prescription_required || false,
+                    units: product.units || [],
                     unit: product.unit || 'Pcs',
                     purchaseUnit: product.purchaseUnit || product.purchase_unit || '',
                     conversionToUnit: product.conversionToUnit || product.conversion_to_unit || '',
@@ -336,6 +342,8 @@ const ProductForm = () => {
             minStock: Number(formData.minStock),
             weight: Number(formData.weight),
             discount: Number(formData.discount),
+            is_prescription_required: Boolean(formData.is_prescription_required),
+            units: formData.units,
 
             price: Number(formData.sellPrice), // Legacy support
             unit: formData.pricingType === 'hourly' ? 'Jam' : (formData.pricingType === 'daily' ? 'Hari' : (formData.pricingType === 'minutely' ? 'Menit' : formData.unit)),
@@ -380,7 +388,9 @@ const ProductForm = () => {
                             discount: 0,
                             discountType: 'percent',
                             shelf: '',
-                            image: null
+                            image: null,
+                            is_prescription_required: false,
+                            units: []
                         });
                         showAlert('Sukses', 'Produk berhasil disimpan. Silakan tambah produk baru.');
                     }
@@ -403,7 +413,7 @@ const ProductForm = () => {
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div>
-                    <h1 className="text-2xl font-bold">{isEditMode ? 'Edit Produk' : 'Tambah Produk Baru'}</h1>
+                    <h1 className="text-2xl font-bold">{isEditMode ? `Edit ${term('product')}` : `Tambah ${term('product')} Baru`}</h1>
                     <p className="text-muted-foreground mt-1">
                         {isEditMode ? 'Perbarui informasi produk.' : 'Lengkapi informasi produk di bawah ini.'}
                     </p>
@@ -438,7 +448,7 @@ const ProductForm = () => {
                     <div className="md:col-span-1">
                         <Card>
                             <CardHeader>
-                                <CardTitle className="text-lg">Foto Produk</CardTitle>
+                                <CardTitle className="text-lg">Foto {term('product')}</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div
@@ -498,7 +508,7 @@ const ProductForm = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <div className="flex items-center h-6">
-                                            <Label htmlFor="name">Nama Produk <span className="text-destructive">*</span></Label>
+                                            <Label htmlFor="name">Nama {term('product')} <span className="text-destructive">*</span></Label>
                                         </div>
                                         <Input
                                             id="name"
@@ -600,23 +610,25 @@ const ProductForm = () => {
                                             ))}
                                         </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <div className="flex items-center h-6">
-                                            <Label htmlFor="stockType">Jenis Stok</Label>
+                                    {showField('stock') && (
+                                        <div className="space-y-2">
+                                            <div className="flex items-center h-6">
+                                                <Label htmlFor="stockType">Jenis Stok</Label>
+                                            </div>
+                                            <Select
+                                                value={formData.stockType}
+                                                onValueChange={(val) => handleSelectChange('stockType', val)}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Pilih Jenis" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Barang">Barang (Fisik)</SelectItem>
+                                                    <SelectItem value="Jasa">Jasa (Non-Fisik)</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </div>
-                                        <Select
-                                            value={formData.stockType}
-                                            onValueChange={(val) => handleSelectChange('stockType', val)}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Pilih Jenis" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Barang">Barang (Fisik)</SelectItem>
-                                                <SelectItem value="Jasa">Jasa (Non-Fisik)</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
@@ -655,23 +667,25 @@ const ProductForm = () => {
                                         </Select>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <div className="flex items-center h-6">
-                                            <Label htmlFor="buyPrice">Harga Beli {formData.pricingType !== 'fixed' && '(Modal Produk)'}</Label>
+                                    {showField('buy_price') && (
+                                        <div className="space-y-2">
+                                            <div className="flex items-center h-6">
+                                                <Label htmlFor="buyPrice">Harga Beli {formData.pricingType !== 'fixed' && '(Modal Produk)'}</Label>
+                                            </div>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">Rp</span>
+                                                <Input
+                                                    id="buyPrice"
+                                                    name="buyPrice"
+                                                    type="number"
+                                                    className="pl-9"
+                                                    value={formData.buyPrice}
+                                                    onChange={handleChange}
+                                                    placeholder="0"
+                                                />
+                                            </div>
                                         </div>
-                                        <div className="relative">
-                                            <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">Rp</span>
-                                            <Input
-                                                id="buyPrice"
-                                                name="buyPrice"
-                                                type="number"
-                                                className="pl-9"
-                                                value={formData.buyPrice}
-                                                onChange={handleChange}
-                                                placeholder="0"
-                                            />
-                                        </div>
-                                    </div>
+                                    )}
                                     <div className="space-y-2">
                                         <div className="flex items-center h-6">
                                             <Label htmlFor="sellPrice">Harga Jual {formData.pricingType === 'hourly' ? '(Per Jam)' : (formData.pricingType === 'daily' ? '(Per Hari)' : (formData.pricingType === 'minutely' ? '(Per Menit)' : ''))} <span className="text-destructive">*</span></Label>
@@ -925,135 +939,247 @@ const ProductForm = () => {
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between h-6">
-                                            <Label htmlFor="stock" className="flex items-center">
-                                                Stok Saat Ini
-                                                {isEditMode && (
-                                                    <span className="ml-2 text-[10px] text-muted-foreground font-normal bg-muted px-1.5 py-0.5 rounded border border-border">
-                                                        Read-only
-                                                    </span>
-                                                )}
-                                            </Label>
-                                            <div className="flex items-center space-x-2">
-                                                <Checkbox
-                                                    id="isUnlimited"
-                                                    checked={formData.isUnlimited}
-                                                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isUnlimited: checked }))}
-                                                />
-                                                <Label
-                                                    htmlFor="isUnlimited"
-                                                    className="text-xs font-medium cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
-                                                >
-                                                    Unlimited
-                                                </Label>
-                                            </div>
-                                        </div>
-                                        <Input
-                                            id="stock"
-                                            name="stock"
-                                            type="number"
-                                            value={formData.isUnlimited ? '' : formData.stock}
-                                            onChange={handleChange}
-                                            placeholder={formData.isUnlimited ? "∞ (Tak Terbatas)" : "0"}
-                                            disabled={isEditMode || formData.isUnlimited}
-                                            className={isEditMode || formData.isUnlimited ? "bg-muted text-muted-foreground cursor-not-allowed" : ""}
-                                        />
-                                        {isEditMode && (
-                                            <p className="text-xs text-muted-foreground">
-                                                💡 Untuk update stok, gunakan menu{' '}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => navigate('/stock-management')}
-                                                    className="text-indigo-600 hover:underline font-medium"
-                                                >
-                                                    Stock Management
-                                                </button>
-                                            </p>
-                                        )}
-                                    </div>
-                                    <div className="space-y-2">
-                                        <div className="flex items-center h-6">
-                                            <Label htmlFor="minStock">Minimum Stok (Alert)</Label>
-                                        </div>
-                                        <Input
-                                            id="minStock"
-                                            name="minStock"
-                                            type="number"
-                                            value={formData.minStock}
-                                            onChange={handleChange}
-                                            placeholder="5"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Unit Conversion Section Integrated */}
-                                <div className="pt-6 mt-2 border-t space-y-4">
-                                    <h3 className="text-base font-semibold">Satuan & Konversi</h3>
-
+                                {showField('stock') && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <div className="flex items-center h-6">
-                                                <Label htmlFor="unit">Satuan Stok (Dasar)</Label>
+                                            <div className="flex items-center justify-between h-6">
+                                                <Label htmlFor="stock" className="flex items-center">
+                                                    Stok Saat Ini
+                                                    {isEditMode && (
+                                                        <span className="ml-2 text-[10px] text-muted-foreground font-normal bg-muted px-1.5 py-0.5 rounded border border-border">
+                                                            Read-only
+                                                        </span>
+                                                    )}
+                                                </Label>
+                                                <div className="flex items-center space-x-2">
+                                                    <Checkbox
+                                                        id="isUnlimited"
+                                                        checked={formData.isUnlimited}
+                                                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isUnlimited: checked }))}
+                                                    />
+                                                    <Label
+                                                        htmlFor="isUnlimited"
+                                                        className="text-xs font-medium cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+                                                    >
+                                                        Unlimited
+                                                    </Label>
+                                                </div>
                                             </div>
                                             <Input
-                                                id="unit"
-                                                name="unit"
-                                                value={formData.unit}
+                                                id="stock"
+                                                name="stock"
+                                                type="number"
+                                                value={formData.isUnlimited ? '' : formData.stock}
                                                 onChange={handleChange}
-                                                placeholder="Pcs, Kg, Liter..."
+                                                placeholder={formData.isUnlimited ? "∞ (Tak Terbatas)" : "0"}
+                                                disabled={isEditMode || formData.isUnlimited}
+                                                className={isEditMode || formData.isUnlimited ? "bg-muted text-muted-foreground cursor-not-allowed" : ""}
                                             />
-                                            <p className="text-xs text-muted-foreground">Satuan untuk stok & penjualan.</p>
+                                            {isEditMode && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    💡 Untuk update stok, gunakan menu{' '}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => navigate('/stock-management')}
+                                                        className="text-indigo-600 hover:underline font-medium"
+                                                    >
+                                                        Stock Management
+                                                    </button>
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <div className="flex items-center h-6">
+                                                <Label htmlFor="minStock">Minimum Stok (Alert)</Label>
+                                            </div>
+                                            <Input
+                                                id="minStock"
+                                                name="minStock"
+                                                type="number"
+                                                value={formData.minStock}
+                                                onChange={handleChange}
+                                                placeholder="5"
+                                            />
                                         </div>
                                     </div>
+                                )}
 
-                                    <div className="bg-slate-50 p-4 rounded-lg space-y-4 border">
-                                        <div>
-                                            <Label className="text-sm font-semibold">Konversi Pembelian (Opsional)</Label>
-                                            <p className="text-xs text-muted-foreground">Isi jika Anda membeli dalam satuan besar (Sack, Dus) tapi menjual eceran.</p>
-                                        </div>
+                                {/* Unit Conversion Section Integrated */}
+                                {showField('stock') && (
+                                    <div className="pt-6 mt-2 border-t space-y-4">
+                                        <h3 className="text-base font-semibold">Satuan & Konversi</h3>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <div className="flex items-center h-6">
-                                                    <Label htmlFor="purchaseUnit">Satuan Beli (PO)</Label>
+                                                    <Label htmlFor="unit">Satuan Stok (Dasar)</Label>
                                                 </div>
                                                 <Input
-                                                    id="purchaseUnit"
-                                                    name="purchaseUnit"
-                                                    value={formData.purchaseUnit}
+                                                    id="unit"
+                                                    name="unit"
+                                                    value={formData.unit}
                                                     onChange={handleChange}
-                                                    placeholder="Contoh: Sak, Dus, Karton"
+                                                    placeholder="Pcs, Kg, Liter..."
                                                 />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <div className="flex items-center h-6">
-                                                    <Label htmlFor="conversionToUnit">Isi per Satuan Beli</Label>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Input
-                                                        id="conversionToUnit"
-                                                        name="conversionToUnit"
-                                                        type="number"
-                                                        value={formData.conversionToUnit}
-                                                        onChange={handleChange}
-                                                        placeholder="Contoh: 24"
-                                                    />
-                                                    <span className="text-sm font-medium bg-white px-2 py-1 rounded border">{formData.unit || 'Unit'}</span>
-                                                </div>
+                                                <p className="text-xs text-muted-foreground">Satuan untuk stok & penjualan.</p>
                                             </div>
                                         </div>
 
-                                        {formData.purchaseUnit && formData.conversionToUnit && (
-                                            <div className="text-sm bg-blue-100 text-blue-800 p-2 rounded flex items-center justify-center font-medium border border-blue-200">
-                                                1 {formData.purchaseUnit} = {formData.conversionToUnit} {formData.unit}
+                                        <div className="bg-slate-50 p-4 rounded-lg space-y-4 border">
+                                            <div>
+                                                <Label className="text-sm font-semibold">Konversi Pembelian (Opsional)</Label>
+                                                <p className="text-xs text-muted-foreground">Isi jika Anda membeli dalam satuan besar (Sack, Dus) tapi menjual eceran.</p>
                                             </div>
-                                        )}
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center h-6">
+                                                        <Label htmlFor="purchaseUnit">Satuan Beli (PO)</Label>
+                                                    </div>
+                                                    <Input
+                                                        id="purchaseUnit"
+                                                        name="purchaseUnit"
+                                                        value={formData.purchaseUnit}
+                                                        onChange={handleChange}
+                                                        placeholder="Contoh: Sak, Dus, Karton"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center h-6">
+                                                        <Label htmlFor="conversionToUnit">Isi per Satuan Beli</Label>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Input
+                                                            id="conversionToUnit"
+                                                            name="conversionToUnit"
+                                                            type="number"
+                                                            value={formData.conversionToUnit}
+                                                            onChange={handleChange}
+                                                            placeholder="Contoh: 24"
+                                                        />
+                                                        <span className="text-sm font-medium bg-white px-2 py-1 rounded border">{formData.unit || 'Unit'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {formData.purchaseUnit && formData.conversionToUnit && (
+                                                <div className="text-sm bg-blue-100 text-blue-800 p-2 rounded flex items-center justify-center font-medium border border-blue-200">
+                                                    1 {formData.purchaseUnit} = {formData.conversionToUnit} {formData.unit}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </CardContent>
                         </Card>
+
+                        {/* Multi-Unit Section (Pharmacy) */}
+                        {showField('units') && (
+                            <Card>
+                                <CardHeader>
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-lg">Satuan Berjenjang (Multi-Unit)</CardTitle>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    units: [...prev.units, { name: '', multiplier: 10, barcode: '', price: '' }]
+                                                }));
+                                            }}
+                                        >
+                                            <Plus className="w-4 h-4 mr-2" /> Tambah Satuan Baru
+                                        </Button>
+                                    </div>
+                                    <CardDescription>
+                                        Tambahkan satuan yang lebih besar (misal: Strip, Box) terhadap satuan dasar <b>{formData.unit || 'Pcs'}</b>.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                    {formData.units.length === 0 ? (
+                                        <div className="text-center py-6 text-muted-foreground text-sm bg-slate-50 rounded border border-dashed">
+                                            Belum ada satuan tambahan. Obat hanya dijual secara <b>{formData.unit || 'Pcs'}</b>.
+                                        </div>
+                                    ) : (
+                                        formData.units.map((u, idx) => (
+                                            <div key={idx} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-slate-50 p-3 rounded-md border relative">
+                                                <div className="w-full sm:flex-1">
+                                                    <Label className="text-xs text-muted-foreground mb-1 block">Nama Satuan</Label>
+                                                    <Input
+                                                        value={u.name}
+                                                        onChange={(e) => {
+                                                            const newUnits = [...formData.units];
+                                                            newUnits[idx].name = e.target.value;
+                                                            setFormData({ ...formData, units: newUnits });
+                                                        }}
+                                                        placeholder="Contoh: Strip, Box"
+                                                        className="h-9"
+                                                    />
+                                                </div>
+                                                <div className="w-full sm:flex-1">
+                                                    <Label className="text-xs text-muted-foreground mb-1 block">Isi per {u.name || '(Satuan)'}</Label>
+                                                    <div className="flex items-center gap-2">
+                                                        <Input
+                                                            type="number"
+                                                            value={u.multiplier}
+                                                            onChange={(e) => {
+                                                                const newUnits = [...formData.units];
+                                                                newUnits[idx].multiplier = Number(e.target.value);
+                                                                setFormData({ ...formData, units: newUnits });
+                                                            }}
+                                                            placeholder="10"
+                                                            className="h-9"
+                                                        />
+                                                        <span className="text-xs text-muted-foreground">{formData.unit || 'Pcs'}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="w-full sm:flex-1">
+                                                    <Label className="text-xs text-muted-foreground mb-1 block">Barcode {u.name || '(Opsional)'}</Label>
+                                                    <Input
+                                                        value={u.barcode}
+                                                        onChange={(e) => {
+                                                            const newUnits = [...formData.units];
+                                                            newUnits[idx].barcode = e.target.value;
+                                                            setFormData({ ...formData, units: newUnits });
+                                                        }}
+                                                        placeholder="Scan barcode box"
+                                                        className="h-9"
+                                                    />
+                                                </div>
+                                                <div className="w-full sm:flex-1">
+                                                    <Label className="text-xs text-muted-foreground mb-1 block">Harga Jual {u.name || '(Opsional)'}</Label>
+                                                    <Input
+                                                        type="number"
+                                                        value={u.price}
+                                                        onChange={(e) => {
+                                                            const newUnits = [...formData.units];
+                                                            newUnits[idx].price = Number(e.target.value);
+                                                            setFormData({ ...formData, units: newUnits });
+                                                        }}
+                                                        placeholder={`Perkiraan: Rp ${(Number(formData.sellPrice || 0) * (u.multiplier || 1)).toLocaleString('id-ID')}`}
+                                                        className="h-9"
+                                                    />
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="text-red-500 hover:text-red-700 hover:bg-red-50 h-9 w-9 shrink-0 absolute top-2 right-2 sm:relative sm:top-0 sm:right-0 sm:mt-5"
+                                                    onClick={() => {
+                                                        const newUnits = formData.units.filter((_, i) => i !== idx);
+                                                        setFormData({ ...formData, units: newUnits });
+                                                    }}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        ))
+                                    )}
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Additional Details */}
                         <Card>
@@ -1088,6 +1214,23 @@ const ProductForm = () => {
                                             placeholder="A-01"
                                         />
                                     </div>
+                                    {showField('is_prescription_required') && (
+                                        <div className="space-y-2">
+                                            <div className="flex items-center h-6">
+                                                <Label>Resep Dokter</Label>
+                                            </div>
+                                            <div className="flex items-center space-x-2 pt-2">
+                                                <Checkbox
+                                                    id="is_prescription_required"
+                                                    checked={formData.is_prescription_required}
+                                                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_prescription_required: checked }))}
+                                                />
+                                                <Label htmlFor="is_prescription_required" className="text-sm font-medium cursor-pointer">
+                                                    Obat Wajib Resep
+                                                </Label>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>

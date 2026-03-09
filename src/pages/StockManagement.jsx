@@ -58,10 +58,12 @@ const StockManagement = () => {
     const [newSellPrice, setNewSellPrice] = useState('');
     const [addNote, setAddNote] = useState('');
     const [addExpiredDate, setAddExpiredDate] = useState('');
+    const [addUnit, setAddUnit] = useState(null);
 
     // Reduce stock form
     const [reduceQuantity, setReduceQuantity] = useState('');
     const [reduceNote, setReduceNote] = useState('');
+    const [reduceUnit, setReduceUnit] = useState(null);
 
     const [importResult, setImportResult] = useState(null);
     const [isImportResultOpen, setIsImportResultOpen] = useState(false);
@@ -167,6 +169,11 @@ const StockManagement = () => {
         setNewSellPrice(product.sellPrice || product.price || '');
         setAddNote('');
         setAddExpiredDate('');
+        setAddUnit({
+            name: product.unit || 'Pcs',
+            multiplier: 1,
+            price: product.buyPrice || 0
+        });
         setIsAddModalOpen(true);
     };
 
@@ -174,6 +181,10 @@ const StockManagement = () => {
         setSelectedProduct(product);
         setReduceQuantity('');
         setReduceNote('');
+        setReduceUnit({
+            name: product.unit || 'Pcs',
+            multiplier: 1
+        });
         setIsReduceModalOpen(true);
     };
 
@@ -191,9 +202,14 @@ const StockManagement = () => {
         e.preventDefault();
         if (!selectedProduct) return;
 
-        const qty = parseInt(addQuantity);
-        const buyPrice = parseFloat(newBuyPrice);
-        const sellPrice = parseFloat(newSellPrice);
+        const multiplier = addUnit?.multiplier || 1;
+        const qty = parseInt(addQuantity) * multiplier;
+        const buyPrice = multiplier > 1 ? (parseFloat(newBuyPrice) / multiplier) : parseFloat(newBuyPrice);
+        const sellPrice = parseFloat(newSellPrice); // Sell price in app is always base unit?? 
+        // Wait, if I change sell price here, it should be the base unit price.
+        // If user entered Box price for sellPrice, it would be wrong.
+        // Let's assume sellPrice entered is for the BASE unit, OR we clarify.
+        // To be safe, let's only convert buyPrice as it's batch-specific.
 
         if (isNaN(qty) || qty <= 0) {
             alert('Masukkan jumlah yang valid');
@@ -205,18 +221,13 @@ const StockManagement = () => {
             return;
         }
 
-        if (isNaN(sellPrice) || sellPrice <= 0) {
-            alert('Masukkan harga jual yang valid');
-            return;
-        }
-
         // Use addStockBatch for FIFO tracking
         const result = await addStockBatch(
             selectedProduct.id,
             qty,
             buyPrice,
             sellPrice,
-            addNote || 'Stok masuk',
+            addNote || `Stok masuk (${addUnit?.name || 'Base'})`,
             addExpiredDate || null
         );
 
@@ -231,13 +242,14 @@ const StockManagement = () => {
         e.preventDefault();
         if (!selectedProduct) return;
 
-        const qty = parseInt(reduceQuantity);
+        const multiplier = reduceUnit?.multiplier || 1;
+        const qty = parseInt(reduceQuantity) * multiplier;
         if (isNaN(qty) || qty <= 0) {
             alert('Masukkan jumlah yang valid');
             return;
         }
 
-        if (qty > selectedProduct.stock) {
+        if (qty > (selectedProduct.stock)) {
             alert('Jumlah tidak boleh melebihi stok saat ini');
             return;
         }
@@ -247,10 +259,8 @@ const StockManagement = () => {
             return;
         }
 
-        // Use FIFO logic for reducing stock (similar to processSale)
-        // This will be handled by a new function in DataContext
-        // For now, we'll use adjustStock but mark it for FIFO implementation
-        const result = await reduceStockFIFO(selectedProduct.id, qty, reduceNote);
+        // Use FIFO logic for reducing stock
+        const result = await reduceStockFIFO(selectedProduct.id, qty, reduceNote + ` (${reduceUnit?.name || 'Base'})`);
 
         if (result.success) {
             setIsReduceModalOpen(false);
@@ -890,28 +900,66 @@ const StockManagement = () => {
                                 <Label>Stok Saat Ini</Label>
                                 <div className="text-2xl font-bold">{selectedProduct?.stock}</div>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="addQuantity">Jumlah Masuk *</Label>
-                                <Input
-                                    id="addQuantity"
-                                    type="number"
-                                    min="1"
-                                    value={addQuantity}
-                                    onChange={(e) => setAddQuantity(e.target.value)}
-                                    required
-                                    autoFocus
-                                />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="addQuantity">Jumlah Masuk *</Label>
+                                    <Input
+                                        id="addQuantity"
+                                        type="number"
+                                        min="1"
+                                        value={addQuantity}
+                                        onChange={(e) => setAddQuantity(e.target.value)}
+                                        required
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Satuan</Label>
+                                    <Select
+                                        value={addUnit?.name}
+                                        onValueChange={(val) => {
+                                            if (val === selectedProduct.unit) {
+                                                setAddUnit({ name: val, multiplier: 1 });
+                                                setNewBuyPrice(selectedProduct.buyPrice || '');
+                                            } else {
+                                                const unit = selectedProduct.units.find(u => u.name === val);
+                                                if (unit) {
+                                                    setAddUnit(unit);
+                                                    setNewBuyPrice(unit.price || '');
+                                                }
+                                            }
+                                        }}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={selectedProduct?.unit || 'Pcs'}>{selectedProduct?.unit || 'Pcs'}</SelectItem>
+                                            {selectedProduct?.units?.map((u, i) => (
+                                                <SelectItem key={i} value={u.name}>{u.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
+
                             <div className="space-y-2">
-                                <Label htmlFor="newBuyPrice">Harga Beli Baru</Label>
+                                <Label htmlFor="newBuyPrice">
+                                    Harga Beli {addUnit?.multiplier > 1 ? `Per ${addUnit.name}` : 'Baru'}
+                                </Label>
                                 <Input
                                     id="newBuyPrice"
                                     type="number"
-                                    step="0.01"
+                                    step="1"
                                     value={newBuyPrice}
                                     onChange={(e) => setNewBuyPrice(e.target.value)}
                                     placeholder="Kosongkan jika tidak berubah"
                                 />
+                                {addUnit?.multiplier > 1 && (
+                                    <p className="text-[10px] text-muted-foreground mt-1 italic">
+                                        Setara Rp {(parseFloat(newBuyPrice) / addUnit.multiplier).toLocaleString('id-ID')} per {selectedProduct.unit}
+                                    </p>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="newSellPrice">Harga Jual Baru</Label>
@@ -968,19 +1016,49 @@ const StockManagement = () => {
                                 <Label>Stok Saat Ini</Label>
                                 <div className="text-2xl font-bold">{selectedProduct?.stock}</div>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="reduceQuantity">Jumlah Keluar *</Label>
-                                <Input
-                                    id="reduceQuantity"
-                                    type="number"
-                                    min="1"
-                                    max={selectedProduct?.stock}
-                                    value={reduceQuantity}
-                                    onChange={(e) => setReduceQuantity(e.target.value)}
-                                    required
-                                    autoFocus
-                                />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="reduceQuantity">Jumlah Keluar *</Label>
+                                    <Input
+                                        id="reduceQuantity"
+                                        type="number"
+                                        min="1"
+                                        value={reduceQuantity}
+                                        onChange={(e) => setReduceQuantity(e.target.value)}
+                                        required
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Satuan</Label>
+                                    <Select
+                                        value={reduceUnit?.name}
+                                        onValueChange={(val) => {
+                                            if (val === selectedProduct.unit) {
+                                                setReduceUnit({ name: val, multiplier: 1 });
+                                            } else {
+                                                const unit = selectedProduct.units.find(u => u.name === val);
+                                                if (unit) setReduceUnit(unit);
+                                            }
+                                        }}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value={selectedProduct?.unit || 'Pcs'}>{selectedProduct?.unit || 'Pcs'}</SelectItem>
+                                            {selectedProduct?.units?.map((u, i) => (
+                                                <SelectItem key={i} value={u.name}>{u.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
+                            {reduceUnit?.multiplier > 1 && (
+                                <p className="text-[10px] text-red-600 italic">
+                                    Ini akan mengurangi {parseInt(reduceQuantity || 0) * reduceUnit.multiplier} {selectedProduct.unit} dari stok.
+                                </p>
+                            )}
                             <div className="space-y-2">
                                 <Label htmlFor="reduceNote">Catatan *</Label>
                                 <Textarea

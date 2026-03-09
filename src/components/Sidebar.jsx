@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
+import { useBusinessType } from '../hooks/useBusinessType';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
 import { APP_VERSION } from '../version';
@@ -20,7 +21,7 @@ const NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', feature: 'dashboard' },
   { icon: Receipt, label: 'Transaksi', path: '/transactions', feature: 'transactions' },
   { icon: ShoppingCart, label: 'Kasir (POS)', path: '/pos', feature: 'pos' },
-  { icon: Gamepad2, label: 'Rental', path: '/rental', feature: 'rental', permission: 'pos', requiredPlan: 'pro', checkSetting: 'enableRental' },
+  { icon: Gamepad2, label: 'Rental', path: '/rental', feature: 'rental', permission: 'pos', requiredPlan: 'pro', checkFeature: 'rental_timer' },
   { icon: Ticket, label: 'Promosi', path: '/promotions', feature: 'products.read' },
 ];
 
@@ -49,7 +50,7 @@ const SETTINGS_ITEMS = [
   { label: 'Notifikasi Telegram', path: '/settings/telegram', icon: Send, requiredPlan: 'pro', feature: 'settings.telegram' },
   { label: 'Keamanan', path: '/settings/security', icon: Lock, feature: 'settings.access' },
   { label: 'Hak Akses', path: '/settings/access', icon: Shield, feature: 'settings.access' },
-  { label: 'Fee Pet Hotel', path: '/settings/pet-hotel-fee', icon: Wallet, feature: 'settings.fees', requiredPlan: 'enterprise', checkSetting: 'petCareEnabled' },
+  { label: 'Fee Pet Hotel', path: '/settings/pet-hotel-fee', icon: Wallet, feature: 'settings.fees', requiredPlan: 'enterprise', checkFeature: 'pet_hotel' },
 ];
 
 const REPORTS_ITEMS = [
@@ -62,7 +63,7 @@ const REPORTS_ITEMS = [
   { path: '/reports/expenses', icon: TrendingDown, label: 'Pengeluaran', feature: 'reports.expenses' },
   { path: '/reports/loyalty-points', icon: Gift, label: 'Laporan Poin', feature: 'reports.loyalty', requiredPlan: 'pro' },
   { path: '/reports/sales-performance', icon: TrendingUp, label: 'Laporan Target & Performa', feature: 'reports.performance', checkSetting: 'enableSalesPerformance', requiredPlan: 'pro' },
-  { path: '/reports/pet-hotel-fee', icon: Wallet, label: 'Fee Pet Hotel', feature: 'reports.pet_hotel_fee', requiredPlan: 'enterprise', checkSetting: 'petCareEnabled' },
+  { path: '/reports/pet-hotel-fee', icon: Wallet, label: 'Fee Pet Hotel', feature: 'reports.pet_hotel_fee', requiredPlan: 'enterprise', checkFeature: 'pet_hotel' },
   { path: '/reports/customer-profiling', icon: UserCircle, label: 'Profil Pelanggan', feature: 'reports.customer_profiling', requiredPlan: 'pro' },
   { path: '/reports/expiry', icon: AlertTriangle, label: 'Laporan Kedaluwarsa', feature: 'reports.expiry' },
 ];
@@ -125,6 +126,7 @@ const NavItem = ({ item, isActive, onClick, className, isExpanded, isLocked }) =
 const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
   const { user, logout, checkPermission } = useAuth();
   const { currentStore, plans: contextPlans, stores, setSelectedStoreId } = useData();
+  const { hasFeature } = useBusinessType();
   const navigate = useNavigate();
   const location = useLocation();
   const [isDatabaseOpen, setIsDatabaseOpen] = useState(false);
@@ -142,8 +144,6 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
     setIsExpanded(!isExpanded);
   };
 
-
-
   const handleItemClick = (e, requiredPlan, feature) => {
     // Logic: Check user's plan if owner, otherwise fallback to store plan (for staff)
     // We assume store.plan is synced via DB trigger from owner's profile
@@ -160,10 +160,6 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
     }
   };
 
-
-
-
-
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -179,19 +175,21 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
     const isSuperAdmin = user?.role === 'super_admin';
     const hasPerm = hasPermission(item.feature);
     const settingEnabled = !item.checkSetting || currentStore?.[item.checkSetting];
+    const featureEnabled = !item.checkFeature || hasFeature(item.checkFeature);
     const currentPlan = (currentStore?.plan || user?.plan || 'free').toLowerCase();
     const planRequired = item.requiredPlan ? (currentPlan === item.requiredPlan || currentPlan === 'enterprise') : true;
-    return hasPerm && (isSuperAdmin || user?.role === 'owner' || (settingEnabled && planRequired));
-  }), [hasPermission, user?.role, user?.plan, currentStore]);
+    return hasPerm && featureEnabled && (isSuperAdmin || user?.role === 'owner' || (settingEnabled && planRequired));
+  }), [hasPermission, user?.role, user?.plan, currentStore, hasFeature]);
 
   const visibleSettingsItems = useMemo(() => SETTINGS_ITEMS.filter(item => {
     const isSuperAdmin = user?.role === 'super_admin';
     const hasPerm = hasPermission(item.feature);
     const settingEnabled = !item.checkSetting || currentStore?.[item.checkSetting];
+    const featureEnabled = !item.checkFeature || hasFeature(item.checkFeature);
     const currentPlan = (currentStore?.plan || user?.plan || 'free').toLowerCase();
     const planRequired = item.requiredPlan ? (currentPlan === item.requiredPlan || currentPlan === 'enterprise') : true;
-    return hasPerm && (isSuperAdmin || user?.role === 'owner' || (settingEnabled && planRequired));
-  }), [hasPermission, user?.role, user?.plan, currentStore]);
+    return hasPerm && featureEnabled && (isSuperAdmin || user?.role === 'owner' || (settingEnabled && planRequired));
+  }), [hasPermission, user?.role, user?.plan, currentStore, hasFeature]);
 
   const isDatabaseActive = visibleDatabaseItems.some(item => location.pathname.startsWith(item.path));
   const isSalesActive = visibleSalesItems.some(item => location.pathname.startsWith(item.path));
@@ -335,6 +333,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
           {NAV_ITEMS.map((item) => {
             if (!hasPermission(item.permission || item.feature)) return null;
             if (item.checkSetting && !currentStore?.[item.checkSetting]) return null;
+            if (item.checkFeature && !hasFeature(item.checkFeature)) return null;
             return renderNavItem(item);
           })}
 
@@ -446,6 +445,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
           <div className="space-y-1">
             {FINANCE_ITEMS.map((item) => {
               if (!hasPermission(item.feature)) return null;
+              if (item.checkFeature && !hasFeature(item.checkFeature)) return null;
               return renderNavItem(item);
             })}
           </div>
@@ -472,7 +472,10 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
 
                   {isSmartStrategyOpen && (
                     <div className="pl-9 space-y-1 mt-1">
-                      {SMART_STRATEGY_ITEMS.map(renderNavItem)}
+                      {SMART_STRATEGY_ITEMS.map((item) => {
+                        if (item.checkFeature && !hasFeature(item.checkFeature)) return null;
+                        return renderNavItem(item);
+                      })}
                     </div>
                   )}
                 </>
@@ -487,6 +490,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
 
           {BOTTOM_ITEMS.map((item) => {
             if (!hasPermission(item.feature)) return null;
+            if (item.checkFeature && !hasFeature(item.checkFeature)) return null;
             return renderNavItem(item);
           })}
 
