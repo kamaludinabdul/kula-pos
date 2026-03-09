@@ -62,6 +62,7 @@ describe('AuthContext - Create New Toko (Signup)', () => {
             password,
             options: {
                 data: {
+                    business_type: 'general',
                     name,
                     store_name: storeName,
                     role: 'owner'
