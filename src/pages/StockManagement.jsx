@@ -29,7 +29,7 @@ import {
 } from "../components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
-import useBusinessType from '../hooks/useBusinessType';
+import { useBusinessType } from '../hooks/useBusinessType';
 
 const StockManagement = () => {
     const { products, categories, addStockBatch, reduceStockFIFO, bulkUpdateStock, deleteProduct, fetchAllProducts, activeStoreId } = useData();

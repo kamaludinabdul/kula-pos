@@ -41,7 +41,7 @@ import {
     DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { getRecommendationReasoning } from '../utils/ai';
-import useBusinessType from '../hooks/useBusinessType';
+import { useBusinessType } from '../hooks/useBusinessType';
 
 const PurchaseOrderForm = () => {
     const { id } = useParams();

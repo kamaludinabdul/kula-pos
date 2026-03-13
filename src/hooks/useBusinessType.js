@@ -33,3 +33,5 @@ export function useBusinessType() {
         isPetClinic: type === 'pet_clinic'
     };
 }
+
+export default useBusinessType;
