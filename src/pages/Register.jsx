@@ -1,20 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
-import { Store, User, Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, UtensilsCrossed, Pill, PawPrint, Timer, Shirt } from 'lucide-react';
+import { Store, User, Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, UtensilsCrossed, Pill, PawPrint, Timer, Shirt, CheckCircle2, MailCheck, Circle } from 'lucide-react';
+import TurnstileWidget from '../components/TurnstileWidget';
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 
 const BUSINESS_TYPES = [
-    { id: 'general', label: 'Toko', description: 'Retail, Minimarket, dll.', icon: Store, color: 'indigo' },
-    { id: 'fnb', label: 'Food & Beverage', description: 'Coming Soon', icon: UtensilsCrossed, color: 'orange', disabled: true },
-    { id: 'pharmacy', label: 'Apotek', description: 'Coming Soon', icon: Pill, color: 'emerald', disabled: true },
+    { id: 'general', label: 'Toko', description: 'Retail & Minimarket', icon: Store, color: 'indigo' },
+    { id: 'fnb', label: 'F&B', description: 'Coming Soon', icon: UtensilsCrossed, color: 'orange', disabled: true },
+    { id: 'pharmacy', label: 'Apotek', description: 'Obat & Alat Kesehatan', icon: Pill, color: 'emerald' },
     { id: 'laundry', label: 'Laundry', description: 'Coming Soon', icon: Shirt, color: 'cyan', disabled: true },
     { id: 'rental', label: 'Rental', description: 'Coming Soon', icon: Timer, color: 'violet', disabled: true },
     { id: 'pet_clinic', label: 'Klinik Hewan', description: 'Coming Soon', icon: PawPrint, color: 'amber', disabled: true },
 ];
+
+
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -29,8 +34,27 @@ const Register = () => {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [error, setError] = useState('');
     const [loadingState, setLoadingState] = useState(false);
-    const { signup, user, loading } = useAuth(); // We'll need to ensure signup is exposed or implement it here
+    const [captchaToken, setCaptchaToken] = useState(null);
+    const [showConfirmation, setShowConfirmation] = useState(false);
+    const [confirmationEmail, setConfirmationEmail] = useState('');
+    const { signup, user, loading } = useAuth();
     const navigate = useNavigate();
+    const turnstileRef = useRef(null);
+
+    // Password strength criteria
+    const passwordCriteria = useMemo(() => {
+        const pwd = formData.password;
+        return [
+            { label: 'Minimal 8 karakter', met: pwd.length >= 8 },
+            { label: 'Huruf besar (A-Z)', met: /[A-Z]/.test(pwd) },
+            { label: 'Huruf kecil (a-z)', met: /[a-z]/.test(pwd) },
+            { label: 'Angka (0-9)', met: /[0-9]/.test(pwd) },
+            { label: 'Karakter spesial (!@#$%^&*)', met: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(pwd) },
+        ];
+    }, [formData.password]);
+    const allCriteriaMet = passwordCriteria.every(c => c.met);
+
+    const isCaptchaEnabled = TURNSTILE_SITE_KEY && TURNSTILE_SITE_KEY !== 'YOUR_TURNSTILE_SITE_KEY_HERE';
 
     // Redirect if already logged in
     useEffect(() => {
@@ -54,35 +78,97 @@ const Register = () => {
             return;
         }
 
-        if (formData.password.length < 6) {
-            setError('Password minimal 6 karakter.');
+        if (!allCriteriaMet) {
+            setError('Password belum memenuhi semua kriteria keamanan.');
+            setLoadingState(false);
+            return;
+        }
+
+        // Validate CAPTCHA if enabled
+        if (isCaptchaEnabled && !captchaToken) {
+            setError('Silakan selesaikan verifikasi CAPTCHA.');
             setLoadingState(false);
             return;
         }
 
         try {
-            // Call signup from AuthContext
             const result = await signup(
                 formData.email,
                 formData.password,
                 formData.ownerName,
                 formData.storeName,
-                formData.businessType
+                formData.businessType,
+                captchaToken // Pass CAPTCHA token to signup
             );
 
             if (result.success) {
-                navigate('/dashboard');
+                if (result.requiresConfirmation) {
+                    // Show email confirmation screen
+                    setConfirmationEmail(formData.email);
+                    setShowConfirmation(true);
+                } else {
+                    navigate('/dashboard');
+                }
             } else {
                 setError(result.message);
+                // Reset CAPTCHA on error
+                setCaptchaToken(null);
+                if (turnstileRef.current?.reset) {
+                    turnstileRef.current.reset();
+                }
             }
 
         } catch (err) {
             console.error("Registration Error:", err);
             setError('Gagal mendaftar. ' + (err.message || 'Silakan coba lagi.'));
+            setCaptchaToken(null);
         } finally {
             setLoadingState(false);
         }
     };
+
+    // Email Confirmation Success Screen
+    if (showConfirmation) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+                <Card className="w-full max-w-md shadow-xl border-slate-200">
+                    <CardHeader className="space-y-1 text-center">
+                        <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                            <MailCheck className="h-8 w-8 text-emerald-600" />
+                        </div>
+                        <CardTitle className="text-2xl font-bold text-slate-900">Cek Email Anda!</CardTitle>
+                        <CardDescription className="text-base">
+                            Kami telah mengirim link konfirmasi ke
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 text-center">
+                            <p className="font-semibold text-indigo-700 text-lg">{confirmationEmail}</p>
+                        </div>
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-2">
+                            <p className="text-sm text-amber-800 font-medium">📌 Langkah selanjutnya:</p>
+                            <ol className="text-sm text-amber-700 list-decimal list-inside space-y-1">
+                                <li>Buka email dari <strong>noreply@mail.app.supabase.io</strong></li>
+                                <li>Klik tombol <strong>"Confirm your mail"</strong></li>
+                                <li>Kembali ke halaman ini dan login</li>
+                            </ol>
+                        </div>
+                        <p className="text-xs text-slate-500 text-center">
+                            Tidak menerima email? Cek folder spam atau coba daftar ulang.
+                        </p>
+                    </CardContent>
+                    <CardFooter className="flex justify-center">
+                        <Link to="/login">
+                            <Button variant="outline" className="gap-2">
+                                <ArrowRight className="h-4 w-4" />
+                                Ke Halaman Login
+                            </Button>
+                        </Link>
+                    </CardFooter>
+                </Card>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
@@ -230,7 +316,35 @@ const Register = () => {
                             </div>
                         </div>
 
-                        <Button className="w-full bg-indigo-600 hover:bg-indigo-700 mt-6" type="submit" disabled={loadingState}>
+                        {/* Password Strength Checklist */}
+                        {formData.password.length > 0 && (
+                            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-1.5">
+                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Kriteria Password</p>
+                                {passwordCriteria.map((criteria, idx) => (
+                                    <div key={idx} className={`flex items-center gap-2 text-sm transition-colors duration-200 ${criteria.met ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                        {criteria.met ? (
+                                            <CheckCircle2 className="h-4 w-4 shrink-0" />
+                                        ) : (
+                                            <Circle className="h-4 w-4 shrink-0" />
+                                        )}
+                                        <span className={criteria.met ? 'font-medium' : ''}>{criteria.label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Cloudflare Turnstile CAPTCHA */}
+                        <TurnstileWidget
+                            ref={turnstileRef}
+                            onVerify={(token) => setCaptchaToken(token)}
+                            onError={() => {
+                                setCaptchaToken(null);
+                                setError('Verifikasi CAPTCHA gagal. Silakan coba lagi.');
+                            }}
+                            onExpire={() => setCaptchaToken(null)}
+                        />
+
+                        <Button className="w-full bg-indigo-600 hover:bg-indigo-700 mt-6" type="submit" disabled={loadingState || !allCriteriaMet || (isCaptchaEnabled && !captchaToken)}>
                             {loadingState ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

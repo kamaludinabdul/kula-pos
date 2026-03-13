@@ -6,7 +6,7 @@ import {
   ChevronDown, ChevronRight, Receipt, Store, Printer, UserCog, Layers, Shield, Percent,
   Gift, Sparkles, PanelLeftClose, PanelLeftOpen, Crown, ClipboardCheck, History, TrendingUp,
   Clock, TrendingDown, Send, Cloud, FileText, Copy, DollarSign, BrainCircuit, Lightbulb,
-  Key, BadgePercent, Factory, Ticket, Lock, Gamepad2, CheckCircle, Building2, Wallet, UserCircle, AlertTriangle
+  Key, BadgePercent, Factory, Ticket, Lock, Gamepad2, CheckCircle, Building2, Wallet, UserCircle, AlertTriangle, Activity
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -30,6 +30,7 @@ const DATABASE_ITEMS = [
   { icon: Layers, label: 'Kategori', path: '/categories', feature: 'categories.read' },
   { icon: Factory, label: 'Supplier', path: '/suppliers', feature: 'suppliers.read' },
   { icon: FileText, label: 'Purchase Order', path: '/purchase-orders', feature: 'products.purchase_orders' },
+  { icon: AlertTriangle, label: 'Defecta', path: '/defecta', feature: 'reports.defecta', checkFeature: 'prescriptions' },
   { icon: Database, label: 'Stok', path: '/stock-management', feature: 'products.stock' },
   { icon: ClipboardCheck, label: 'Stock Opname', path: '/stock-opname', feature: 'products.stock_opname', requiredPlan: 'pro' },
   { icon: Users, label: 'Pelanggan', path: '/customers', feature: 'customers.read', requiredPlan: 'pro' },
@@ -65,7 +66,10 @@ const REPORTS_ITEMS = [
   { path: '/reports/sales-performance', icon: TrendingUp, label: 'Laporan Target & Performa', feature: 'reports.performance', checkSetting: 'enableSalesPerformance', requiredPlan: 'pro' },
   { path: '/reports/pet-hotel-fee', icon: Wallet, label: 'Fee Pet Hotel', feature: 'reports.pet_hotel_fee', requiredPlan: 'enterprise', checkFeature: 'pet_hotel' },
   { path: '/reports/customer-profiling', icon: UserCircle, label: 'Profil Pelanggan', feature: 'reports.customer_profiling', requiredPlan: 'pro' },
-  { path: '/reports/expiry', icon: AlertTriangle, label: 'Laporan Kedaluwarsa', feature: 'reports.expiry' },
+  { path: '/reports/expiry', icon: AlertTriangle, label: 'Laporan Kedaluwarsa', feature: 'reports.expiry', checkSetting: 'enableExpiryTracking' },
+  { path: '/reports/tuslah', icon: Activity, label: 'Laporan Tuslah', feature: 'reports.tuslah', checkFeature: 'prescriptions' },
+  { path: '/defecta', icon: AlertTriangle, label: 'Laporan Defecta', feature: 'reports.defecta', checkFeature: 'prescriptions' },
+  { path: '/reports/patient-history', icon: History, label: 'Riwayat Obat Pasien', feature: 'reports.patient_history', checkFeature: 'prescriptions' },
 ];
 
 const FINANCE_ITEMS = [
@@ -126,7 +130,7 @@ const NavItem = ({ item, isActive, onClick, className, isExpanded, isLocked }) =
 const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
   const { user, logout, checkPermission } = useAuth();
   const { currentStore, plans: contextPlans, stores, setSelectedStoreId } = useData();
-  const { hasFeature } = useBusinessType();
+  const { hasFeature, term } = useBusinessType();
   const navigate = useNavigate();
   const location = useLocation();
   const [isDatabaseOpen, setIsDatabaseOpen] = useState(false);
@@ -150,7 +154,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
     const currentPlan = (currentStore?.plan || user?.plan || 'free').toLowerCase();
 
     const hasAccess = feature
-      ? hasFeatureAccess(currentPlan, feature, contextPlans)
+      ? hasFeatureAccess(currentPlan, feature, contextPlans, hasFeature ? currentStore?.business_type : 'general')
       : checkPlanAccess(currentPlan, requiredPlan);
 
     if (!hasAccess) {
@@ -169,27 +173,22 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
     return checkPermission(feature);
   }, [checkPermission]);
 
-  const visibleDatabaseItems = useMemo(() => DATABASE_ITEMS.filter(item => hasPermission(item.feature)), [hasPermission]);
-  const visibleSalesItems = useMemo(() => SALES_ITEMS.filter(item => hasPermission(item.feature)), [hasPermission]);
-  const visibleReportsItems = useMemo(() => REPORTS_ITEMS.filter(item => {
+  const isItemVisible = useCallback((item) => {
     const isSuperAdmin = user?.role === 'super_admin';
-    const hasPerm = hasPermission(item.feature);
+    const hasPerm = hasPermission(item.permission || item.feature);
     const settingEnabled = !item.checkSetting || currentStore?.[item.checkSetting];
     const featureEnabled = !item.checkFeature || hasFeature(item.checkFeature);
     const currentPlan = (currentStore?.plan || user?.plan || 'free').toLowerCase();
     const planRequired = item.requiredPlan ? (currentPlan === item.requiredPlan || currentPlan === 'enterprise') : true;
-    return hasPerm && featureEnabled && (isSuperAdmin || user?.role === 'owner' || (settingEnabled && planRequired));
-  }), [hasPermission, user?.role, user?.plan, currentStore, hasFeature]);
 
-  const visibleSettingsItems = useMemo(() => SETTINGS_ITEMS.filter(item => {
-    const isSuperAdmin = user?.role === 'super_admin';
-    const hasPerm = hasPermission(item.feature);
-    const settingEnabled = !item.checkSetting || currentStore?.[item.checkSetting];
-    const featureEnabled = !item.checkFeature || hasFeature(item.checkFeature);
-    const currentPlan = (currentStore?.plan || user?.plan || 'free').toLowerCase();
-    const planRequired = item.requiredPlan ? (currentPlan === item.requiredPlan || currentPlan === 'enterprise') : true;
+    // Common visibility logic used across all groups
     return hasPerm && featureEnabled && (isSuperAdmin || user?.role === 'owner' || (settingEnabled && planRequired));
-  }), [hasPermission, user?.role, user?.plan, currentStore, hasFeature]);
+  }, [hasPermission, user?.role, user?.plan, currentStore, hasFeature]);
+
+  const visibleDatabaseItems = useMemo(() => DATABASE_ITEMS.filter(isItemVisible), [isItemVisible]);
+  const visibleSalesItems = useMemo(() => SALES_ITEMS.filter(isItemVisible), [isItemVisible]);
+  const visibleReportsItems = useMemo(() => REPORTS_ITEMS.filter(isItemVisible), [isItemVisible]);
+  const visibleSettingsItems = useMemo(() => SETTINGS_ITEMS.filter(isItemVisible), [isItemVisible]);
 
   const isDatabaseActive = visibleDatabaseItems.some(item => location.pathname.startsWith(item.path));
   const isSalesActive = visibleSalesItems.some(item => location.pathname.startsWith(item.path));
@@ -210,12 +209,21 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
   const renderNavItem = (item) => {
     const currentPlan = (currentStore?.plan || user?.plan || 'free').toLowerCase();
 
-    const isLocked = item.requiredPlan && !hasFeatureAccess(currentPlan, item.feature || item.path, contextPlans);
+    const isLocked = item.requiredPlan && !hasFeatureAccess(currentPlan, item.feature || item.path, contextPlans, currentStore?.business_type || 'general');
+
+    let label = item.label;
+    if (label === 'Produk') label = term('product');
+    else if (label === 'Pelanggan') label = term('customer');
+    else if (label === 'Transaksi') label = term('sale') || 'Transaksi';
+    else if (label === 'Penjualan Barang') label = `${term('sale')} ${term('product')}`;
+    else if (label === 'Penjualan Kategori') label = `${term('sale')} Kategori`;
+    else if (label === 'Produk Terlaris') label = `${term('product')} Terlaris`;
+    else if (label === 'Target Penjualan') label = `Target ${term('sale')}`;
 
     return (
       <NavItem
         key={item.path}
-        item={item}
+        item={{ ...item, label }}
         isActive={location.pathname === item.path}
         isExpanded={isExpanded}
         isLocked={isLocked}
@@ -331,9 +339,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
           )}
 
           {NAV_ITEMS.map((item) => {
-            if (!hasPermission(item.permission || item.feature)) return null;
-            if (item.checkSetting && !currentStore?.[item.checkSetting]) return null;
-            if (item.checkFeature && !hasFeature(item.checkFeature)) return null;
+            if (!isItemVisible(item)) return null;
             return renderNavItem(item);
           })}
 

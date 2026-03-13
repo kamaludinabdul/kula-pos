@@ -31,6 +31,7 @@ import { hasFeatureAccess } from '../utils/plans';
 import { getAnomalyDetectionInsights } from '../utils/ai';
 import { Sparkles, ShieldAlert, Lock, Info, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useBusinessType } from '../hooks/useBusinessType';
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -40,6 +41,7 @@ const Transactions = () => {
     // user unused
     const { user, checkPermission } = useAuth();
     const { voidTransaction, processRefund, currentStore } = useData();
+    const { term } = useBusinessType();
     const navigate = useNavigate();
 
 
@@ -409,7 +411,7 @@ const Transactions = () => {
                 type: 'in',
                 category: 'Penjualan (Rekap)',
                 amount: closeBookStats.totalSales,
-                description: `Rekap Penjualan ${format(closeBookStats.date, 'dd MMM yyyy', { locale: localeId })} (${closeBookStats.count} Transaksi)`,
+                description: `Rekap ${term('sale')} ${format(closeBookStats.date, 'dd MMM yyyy', { locale: localeId })} (${closeBookStats.count} Transaksi)`,
                 date: closeBookStats.dateStr,
                 performed_by: user?.name || 'Admin',
                 created_at: new Date().toISOString()
@@ -591,8 +593,8 @@ const Transactions = () => {
         <div className="p-4 space-y-6">
             <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Transaksi</h1>
-                    <p className="text-muted-foreground">Kelola dan pantau riwayat transaksi penjualan.</p>
+                    <h1 className="text-2xl font-bold tracking-tight">{term('sale') || 'Transaksi'}</h1>
+                    <p className="text-muted-foreground">Kelola dan pantau riwayat transaksi {term('sale')?.toLowerCase() || 'penjualan'}.</p>
                 </div>
                 <div className="flex flex-wrap gap-2 w-full xl:w-auto">
                     <Button variant="outline" onClick={handleRefresh} className="flex-1 sm:flex-none" title="Segarkan Data">
@@ -1091,9 +1093,9 @@ const Transactions = () => {
             <Dialog open={isCloseBookDialogOpen} onOpenChange={setIsCloseBookDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Tutup Buku Harian (Rekap Penjualan)</DialogTitle>
+                        <DialogTitle>Tutup Buku Harian (Rekap {term('sale')})</DialogTitle>
                         <DialogDescription>
-                            Simpan total penjualan hari ini ke Arus Kas sebagai satu entri pemasukan.
+                            Simpan total {term('sale')?.toLowerCase() || 'penjualan'} hari ini ke Arus Kas sebagai satu entri pemasukan.
                         </DialogDescription>
                     </DialogHeader>
                     {closeBookStats && (
@@ -1119,7 +1121,7 @@ const Transactions = () => {
                             </div>
 
                             <div className="bg-slate-50 p-4 rounded-lg flex justify-between items-center border">
-                                <span className="font-semibold text-slate-700">Total Penjualan</span>
+                                <span className="font-semibold text-slate-700">Total {term('sale')}</span>
                                 <span className="text-xl font-bold text-green-600">
                                     Rp {closeBookStats.totalSales.toLocaleString()}
                                 </span>

@@ -3,8 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { useBusinessType } from '../hooks/useBusinessType';
 
 const CustomerFormDialog = ({ isOpen, onClose, onSave, initialData = null, title }) => {
+    const { term } = useBusinessType();
     const [formData, setFormData] = useState({
         name: '',
         phone: '',
@@ -35,7 +37,7 @@ const CustomerFormDialog = ({ isOpen, onClose, onSave, initialData = null, title
             await onSave(formData);
             onClose();
         } catch (error) {
-            console.error("Failed to save customer", error);
+            console.error(`Failed to save ${term('customer').toLowerCase()}`, error);
         } finally {
             setIsSubmitting(false);
         }
@@ -45,7 +47,7 @@ const CustomerFormDialog = ({ isOpen, onClose, onSave, initialData = null, title
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{title || (initialData ? 'Edit Pelanggan' : 'Tambah Pelanggan')}</DialogTitle>
+                    <DialogTitle>{title || (initialData ? `Edit ${term('customer')}` : `Tambah ${term('customer')}`)}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
@@ -55,7 +57,7 @@ const CustomerFormDialog = ({ isOpen, onClose, onSave, initialData = null, title
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             required
-                            placeholder="Nama Pelanggan"
+                            placeholder={`Nama ${term('customer')}`}
                         />
                     </div>
                     <div className="space-y-2">

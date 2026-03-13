@@ -113,10 +113,40 @@ const ProductGrid = ({ products, onAddToCart, isCartCollapsed }) => {
                             <div className="font-semibold text-xs text-slate-700 line-clamp-2 h-8 leading-4 overflow-hidden break-words text-ellipsis" title={product.name}>
                                 {product.name}
                             </div>
-                            <div className="mt-auto flex items-center justify-between pt-1">
+                            <div className="mt-auto flex flex-col pt-1">
                                 <span className="font-bold text-indigo-600 text-sm truncate max-w-full">
                                     Rp {(parseInt(product.sellPrice || product.price) || 0).toLocaleString()}
+                                    <span className="text-[10px] font-normal text-muted-foreground ml-1">/{product.unit || 'Pcs'}</span>
                                 </span>
+                                {product.units && product.units.length > 0 && (
+                                    <div className="flex flex-col gap-1 mt-1.5 z-10 w-full px-1">
+                                        {product.units.slice(0, 3).map((u, idx) => {
+                                            // Prefer the explicit unit price from database, fallback to calculated
+                                            const displayPrice = u.price ? parseInt(u.price) : ((parseInt(product.sellPrice || product.price) || 0) * (u.multiplier || 1));
+
+                                            return (
+                                                <button
+                                                    key={idx}
+                                                    type="button"
+                                                    className="w-full text-[10px] px-2 py-1.5 bg-white border border-slate-200 rounded-md text-left hover:bg-indigo-50 hover:border-indigo-300 hover:shadow-sm transition-all flex justify-between items-center group/btn active:scale-[0.98]"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        if (!isOutOfStock) onAddToCart(product, u);
+                                                    }}
+                                                >
+                                                    <span className="font-bold text-slate-700 group-hover/btn:text-indigo-700 truncate mr-1">{u.name}</span>
+                                                    <span className="text-indigo-600 group-hover/btn:text-indigo-700 font-bold whitespace-nowrap">
+                                                        Rp {displayPrice.toLocaleString()}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                        {product.units.length > 3 && (
+                                            <span className="text-[9px] text-muted-foreground italic text-center pb-1">+{product.units.length - 3} satuan lain...</span>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>

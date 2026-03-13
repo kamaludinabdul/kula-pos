@@ -285,8 +285,8 @@ const ProductForm = () => {
             const { data: existingProducts } = await query.limit(1).maybeSingle();
 
             if (existingProducts) {
-                showAlert('Validasi Gagal', `Kode Produk (SKU) "${formData.code}" sudah digunakan oleh produk "${existingProducts.name}".`);
-                return;
+                showAlert('Validasi Gagal', `Kode ${term('product')} (SKU) "${formData.code}" sudah digunakan oleh ${term('product').toLowerCase()} "${existingProducts.name}".`);
+                return false;
             }
         }
 
@@ -363,7 +363,7 @@ const ProductForm = () => {
             if (isEditMode) {
                 const result = await updateProduct(id, productData);
                 if (result.success) {
-                    showAlert('Sukses', 'Produk berhasil diperbarui!', () => navigate('/products'));
+                    showAlert('Sukses', `${term('product')} berhasil diperbarui!`, () => navigate('/products'));
                 } else {
                     showAlert('Gagal', 'Gagal memperbarui produk.');
                 }
@@ -392,7 +392,7 @@ const ProductForm = () => {
                             is_prescription_required: false,
                             units: []
                         });
-                        showAlert('Sukses', 'Produk berhasil disimpan. Silakan tambah produk baru.');
+                        showAlert('Sukses', `${term('product')} berhasil disimpan. Silakan tambah ${term('product').toLowerCase()} baru.`);
                     }
                 } else {
                     showAlert('Gagal', result.error || 'Gagal menambahkan produk.');
@@ -423,8 +423,8 @@ const ProductForm = () => {
             <form onSubmit={(e) => handleSubmit(e, 'save')} className="space-y-6">
                 {/* Product Type Selection */}
                 <Card>
-                    <CardHeader>
-                        <CardTitle className="text-lg">Tipe Produk</CardTitle>
+                    <CardHeader className="pb-4">
+                        <CardTitle className="text-lg">Tipe {term('product')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="flex flex-wrap gap-2">
@@ -521,7 +521,7 @@ const ProductForm = () => {
                                     </div>
                                     <div className="space-y-2">
                                         <div className="flex items-center h-6">
-                                            <Label htmlFor="code">Kode Produk (SKU)</Label>
+                                            <Label htmlFor="code">Kode {term('product')} (SKU)</Label>
                                         </div>
                                         <div className="flex gap-2">
                                             <Input
@@ -670,7 +670,7 @@ const ProductForm = () => {
                                     {showField('buy_price') && (
                                         <div className="space-y-2">
                                             <div className="flex items-center h-6">
-                                                <Label htmlFor="buyPrice">Harga Beli {formData.pricingType !== 'fixed' && '(Modal Produk)'}</Label>
+                                                <Label htmlFor="buyPrice">Harga Beli {formData.pricingType !== 'fixed' && `(Modal ${term('product')})`}</Label>
                                             </div>
                                             <div className="relative">
                                                 <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">Rp</span>
@@ -1258,7 +1258,7 @@ const ProductForm = () => {
                     )}
                     <Button type="submit" disabled={isSubmitting}>
                         <Save className="h-4 w-4 mr-2" />
-                        {isSubmitting ? 'Menyimpan...' : (isEditMode ? 'Perbarui Produk' : 'Simpan Produk')}
+                        {isSubmitting ? 'Menyimpan...' : (isEditMode ? `Perbarui ${term('product')}` : `Simpan ${term('product')}`)}
                     </Button>
                 </div>
             </form>

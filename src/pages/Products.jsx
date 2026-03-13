@@ -42,11 +42,13 @@ import {
 import { hasFeatureAccess } from '../utils/plans';
 import { getPricingInsights } from '../utils/ai';
 import { Sparkles, Lock, Loader2 } from 'lucide-react';
+import { useBusinessType } from '../hooks/useBusinessType';
 
 const Products = () => {
     const navigate = useNavigate();
     const { checkPermission, user } = useAuth();
     const { deleteProduct, bulkAddProducts, categories, fetchProductsPage, fetchAllProducts, activeStoreId, stores } = useData();
+    const { term } = useBusinessType();
 
     // Server-side state
     const [currentProducts, setCurrentProducts] = useState([]);
@@ -501,8 +503,8 @@ const Products = () => {
         <div className="p-4 space-y-6">
             <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Products</h1>
-                    <p className="text-muted-foreground">Manage your product inventory</p>
+                    <h1 className="text-2xl font-bold tracking-tight">{term('product')} (Database)</h1>
+                    <p className="text-muted-foreground">Kelola data {term('product').toLowerCase()} Anda</p>
                 </div>
                 <div className="flex flex-wrap gap-2 w-full xl:w-auto">
                     <Button
@@ -595,7 +597,7 @@ const Products = () => {
                     {checkPermission('products.create') && (
                         <Button onClick={() => navigate('/products/add')}>
                             <Plus className="mr-2 h-4 w-4" />
-                            Add Product
+                            Tambah {term('product')}
                         </Button>
                     )}
                 </div>
@@ -605,7 +607,7 @@ const Products = () => {
                 <div className="relative w-full sm:w-96">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search products..."
+                        placeholder={`Cari ${term('product').toLowerCase()}...`}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
@@ -656,7 +658,7 @@ const Products = () => {
                                     onClick={() => handleSort('name')}
                                     className="h-8 px-2 hover:bg-transparent text-[10px] font-bold text-slate-500 uppercase tracking-widest"
                                 >
-                                    Produk
+                                    {term('product')}
                                     {sortConfig.key === 'name' ? (
                                         sortConfig.direction === 'asc' ? (
                                             <ArrowUp className="ml-2 h-4 w-4" />
@@ -787,14 +789,14 @@ const Products = () => {
                                 <TableCell colSpan={10} className="h-24 text-center">
                                     <div className="flex items-center justify-center gap-2">
                                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                        <span>Loading products...</span>
+                                        <span>Memuat data {term('product').toLowerCase()}...</span>
                                     </div>
                                 </TableCell>
                             </TableRow>
                         ) : currentProducts.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                                    No products found
+                                    Tidak ada data {term('product').toLowerCase()}
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -953,9 +955,9 @@ const Products = () => {
 
             <div className="lg:hidden grid grid-cols-1 gap-4">
                 {isLoading ? (
-                    <div className="text-center py-12 text-slate-400 font-medium bg-white rounded-2xl border border-dashed">Memuat Produk...</div>
+                    <div className="text-center py-12 text-slate-400 font-medium bg-white rounded-2xl border border-dashed">Memuat {term('product').toLowerCase()}...</div>
                 ) : currentProducts.length === 0 ? (
-                    <div className="text-center py-12 text-slate-400 font-medium bg-white rounded-2xl border border-dashed">Produk tidak ditemukan</div>
+                    <div className="text-center py-12 text-slate-400 font-medium bg-white rounded-2xl border border-dashed">Tidak ada data {term('product').toLowerCase()}</div>
                 ) : (
                     currentProducts.map(product => {
                         const stock = product.stock || 0;
@@ -1128,7 +1130,7 @@ const Products = () => {
                     ) : (
                         <div className="space-y-4 py-4">
                             <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Produk</div>
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{term('product')}</div>
                                 <div className="font-bold text-slate-900">{aiPricingData.product?.name}</div>
                             </div>
 
@@ -1165,9 +1167,9 @@ const Products = () => {
                 isOpen={isDeleteOpen}
                 onClose={() => setIsDeleteOpen(false)}
                 onConfirm={confirmDelete}
-                title="Delete Product"
-                description={`Are you sure you want to delete "${productToDelete?.name}"? This action cannot be undone.`}
-                confirmText="Delete"
+                title={`Hapus ${term('product')}`}
+                description={`Apakah Anda yakin ingin menghapus "${productToDelete?.name}"? Aksi ini tidak dapat dibatalkan.`}
+                confirmText="Hapus"
                 variant="destructive"
             />
 
@@ -1193,7 +1195,7 @@ const Products = () => {
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <span className="inline-block w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                            Mengimport Produk...
+                            Mengimport Data...
                         </DialogTitle>
                         <DialogDescription>
                             {importProgress.step}
@@ -1223,10 +1225,10 @@ const Products = () => {
             <Dialog open={isCopyModalOpen} onOpenChange={setIsCopyModalOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Salin Produk ke Toko Lain</DialogTitle>
+                        <DialogTitle>Salin Data ke Toko Lain</DialogTitle>
                         <DialogDescription>
-                            Pilih toko tujuan untuk menyalin {selectedProducts.length} produk terpilih.
-                            Katalog produk akan diduplikasi (stok mulai dari 0 di toko tujuan).
+                            Pilih toko tujuan untuk menyalin {selectedProducts.length} data terpilih.
+                            Katalog {term('product').toLowerCase()} akan diduplikasi (stok mulai dari 0 di toko tujuan).
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4 space-y-4">

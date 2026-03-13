@@ -75,16 +75,23 @@ export const usePOS = () => {
     // --- Cart Actions ---
 
     // Add Item to Cart
-    const addToCart = useCallback((product) => {
+    const addToCart = useCallback((product, scannedUnit = null) => {
         // Basic stock check (can be expanded for services vs goods)
         const currentStock = parseInt(product.stock) || 0;
         const minStock = parseInt(product.minStock) || 5;
         const isService = product.type === 'service';
 
+        // Determine added unit multiplier
+        const addedMultiplier = scannedUnit ? scannedUnit.multiplier : 1;
+
         setCart((prev) => {
+            // If they scan a Box, we want to group it with the Box entry if it exists, or base if we just increment qty?
+            // Usually, cart items are identified by ID. If we mix units, it's safer to have distinct cart items 
+            // OR just update the selectedUnit of the existing item. Kasir Pro currently uses single product ID per row.
+            // Let's stick to single row per product ID, and override the unit/price if a new unit is scanned.
             const existing = prev.find((item) => item.id === product.id);
             const currentQtyInCart = existing ? (existing.qty * (existing.multiplier || 1)) : 0;
-            const nextQtyBase = currentQtyInCart + 1;
+            const nextQtyBase = currentQtyInCart + addedMultiplier;
 
             if (!isService && nextQtyBase > currentStock) {
                 // Notify via callback if available
@@ -98,28 +105,40 @@ export const usePOS = () => {
                 if (window.onPOSNotification) window.onPOSNotification('Stok Menipis', `Stok produk "${product.name}" tersisa ${remaining}.`, 'warning');
             }
 
+            const targetUnitName = scannedUnit ? scannedUnit.name : (product.unit || 'Pcs');
+            const targetMultiplier = scannedUnit ? scannedUnit.multiplier : 1;
+            const targetPrice = (scannedUnit && scannedUnit.price) ? parseInt(scannedUnit.price) : ((parseInt(product.sellPrice || product.price) || 0) * targetMultiplier);
+
             if (existing) {
                 return prev.map((item) => {
                     if (item.id === product.id) {
                         const newQty = item.qty + 1;
-                        // Recalculate price if tiered pricing exists
-                        let newPrice = item.price;
-                        if (item.pricingTiers && item.pricingTiers.length > 0) {
+                        let newPrice = targetPrice;
+
+                        // Recalculate price if tiered pricing exists (usually applies to base unit multiplier = 1)
+                        if (item.pricingTiers && item.pricingTiers.length > 0 && targetMultiplier === 1) {
                             newPrice = calculateWholesaleUnitPrice(item, newQty);
                         }
-                        return { ...item, qty: newQty, price: newPrice };
+
+                        return {
+                            ...item,
+                            qty: newQty,
+                            price: newPrice,
+                            selectedUnit: targetUnitName,
+                            multiplier: targetMultiplier
+                        };
                     }
                     return item;
                 });
             }
-            // Calculate initial discount per unit
-            const unitPrice = parseInt(product.sellPrice || product.price) || 0;
+
+            // --- New Item ---
             const pDiscount = parseFloat(product.discount) || 0;
             const pDiscountType = product.discountType || 'percent';
+            let finalUnitPrice = targetPrice;
 
             // Check initial tiered price (usually base, but for robustness)
-            let finalUnitPrice = unitPrice;
-            if (product.pricingTiers && product.pricingTiers.length > 0) {
+            if (product.pricingTiers && product.pricingTiers.length > 0 && targetMultiplier === 1) {
                 finalUnitPrice = calculateWholesaleUnitPrice(product, 1);
             }
 
@@ -137,8 +156,8 @@ export const usePOS = () => {
                 qty: 1,
                 price: finalUnitPrice,
                 discount: initialDiscountAmount,
-                selectedUnit: product.unit || 'Pcs',
-                multiplier: 1,
+                selectedUnit: targetUnitName,
+                multiplier: targetMultiplier,
                 baseUnit: product.unit || 'Pcs'
             }];
         });
@@ -229,9 +248,11 @@ export const usePOS = () => {
 
             const matchesCategory = activeCategory === 'Semua' || pCatNames.includes(activeCategory.toLowerCase());
 
-            const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (p.code && p.code.toString().toLowerCase().includes(searchQuery.toLowerCase())) ||
-                (p.barcode && p.barcode.toString().toLowerCase().includes(searchQuery.toLowerCase()));
+            const searchLower = searchQuery.toLowerCase();
+            const matchesSearch = p.name.toLowerCase().includes(searchLower) ||
+                (p.code && p.code.toString().toLowerCase().includes(searchLower)) ||
+                (p.barcode && p.barcode.toString().toLowerCase().includes(searchLower)) ||
+                (p.units && Array.isArray(p.units) && p.units.some(u => u.barcode && u.barcode.toString().toLowerCase().includes(searchLower)));
 
             return matchesCategory && matchesSearch;
         });

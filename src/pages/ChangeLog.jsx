@@ -8,6 +8,18 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        "version": "0.24.0",
+        "date": "2026-03-13",
+        "type": "minor",
+        "title": "Feature Release",
+        "changes": [
+            "**Business Type Audit**: Successfully audited and hardened the application for multi-business types.",
+            "**Unit Testing**: Implemented a comprehensive test suite for `useBusinessType.js` (5 core test cases) to ensure term mapping and feature gating accuracy.",
+            "**UI FX**: Fixed focus ring clipping in the \"Keterangan\" (Description) textarea within Cash Flow modals.",
+            "**Navigation**: Resolved inconsistencies between `checkFeature` and `checkSetting` in the sidebar and routing layers."
+        ]
+    },
+    {
         "version": "0.23.0",
         "date": "2026-03-09",
         "type": "minor",

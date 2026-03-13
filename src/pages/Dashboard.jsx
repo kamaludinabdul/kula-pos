@@ -11,6 +11,7 @@ import { safeSupabaseRpc } from '../utils/supabaseHelper';
 import { SmartDatePicker } from '../components/SmartDatePicker';
 import { useAuth } from '../context/AuthContext';
 import { formatCompactNumber } from '../lib/utils';
+import { useBusinessType } from '../hooks/useBusinessType';
 
 const formatCurrency = (val) => formatCompactNumber(val);
 
@@ -18,6 +19,7 @@ const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#8b5cf6'
 
 const Dashboard = () => {
     const { user } = useAuth();
+    const { term } = useBusinessType();
     const userTimezone = useMemo(() => {
         try {
             return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta';
@@ -253,7 +255,7 @@ const Dashboard = () => {
                 {canViewFinancials && (
                     <>
                         <InfoCard
-                            title="Total Penjualan"
+                            title={`Total ${term('sale')}`}
                             value={`Rp ${stats.totalSales.toLocaleString('id-ID')}`}
                             icon={DollarSign}
                             variant="primary"
@@ -306,7 +308,7 @@ const Dashboard = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <Card className="rounded-xl border-none shadow-sm overflow-hidden">
                             <CardHeader className="bg-white border-b p-4">
-                                <CardTitle className="text-lg font-bold">Penjualan per Kategori</CardTitle>
+                                <CardTitle className="text-lg font-bold">{term('sale')} per Kategori</CardTitle>
                             </CardHeader>
                             <CardContent className="p-4">
                                 <div style={{ width: '100%', height: 300 }}>
@@ -338,7 +340,7 @@ const Dashboard = () => {
                             <CardHeader className="bg-white border-b p-4">
                                 <div className="flex items-center justify-between">
                                     <CardTitle className="flex items-center gap-2 text-lg font-bold">
-                                        Grafik Penjualan
+                                        Grafik {term('sale')}
                                         <span className="text-xs font-normal text-muted-foreground">
                                             ({isSingleDay ? 'Per Jam' : (chartView === 'hourly' ? 'Pola Per Jam' : 'Per Hari')})
                                         </span>
@@ -412,7 +414,7 @@ const Dashboard = () => {
                                                 <YAxis width={45} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} tickFormatter={(value) => formatCurrency(value)} />
                                                 <Tooltip
                                                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                                    formatter={(value) => [`Rp ${value.toLocaleString()}`, 'Penjualan']}
+                                                    formatter={(value) => [`Rp ${value.toLocaleString()}`, term('sale')]}
                                                 />
                                                 <Line type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={4} dot={false} activeDot={{ r: 6, strokeWidth: 0, fill: '#6366f1' }} />
                                             </LineChart>
@@ -433,11 +435,11 @@ const Dashboard = () => {
                 {canViewFinancials && (
                     <Card className="rounded-xl border-none shadow-sm overflow-hidden h-full">
                         <CardHeader className="bg-white border-b p-4">
-                            <CardTitle className="text-lg font-bold">Produk Terlaris</CardTitle>
+                            <CardTitle className="text-lg font-bold">{term('product')} Terlaris</CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
                             {topProducts.length === 0 ? (
-                                <p className="text-muted-foreground text-center py-12 text-sm font-medium">Tidak ada data penjualan.</p>
+                                <p className="text-muted-foreground text-center py-12 text-sm font-medium">Tidak ada data {term('sale').toLowerCase()}.</p>
                             ) : (
                                 <div className="divide-y divide-slate-50">
                                     {topProducts.map((item, index) => (

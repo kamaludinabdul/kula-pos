@@ -5,6 +5,7 @@ import { Badge } from "../ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "../ui/sheet";
 import { ScrollArea } from "../ui/scroll-area";
 import { Separator } from "../ui/separator";
+import { useBusinessType } from '../../hooks/useBusinessType';
 
 export const MobileBottomNav = ({ activeTab, setActiveTab, cartItemCount, onCartClick }) => {
     const handleTabClick = (tab) => {
@@ -54,6 +55,7 @@ export const MobileBottomNav = ({ activeTab, setActiveTab, cartItemCount, onCart
 };
 
 export const MobileCartSheet = ({ cart, isOpen, onClose, updateQty, totals, handleCheckout, clearCart }) => {
+    const { term } = useBusinessType();
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0 rounded-t-[2.5rem] border-t-0 shadow-2xl">
@@ -62,7 +64,7 @@ export const MobileCartSheet = ({ cart, isOpen, onClose, updateQty, totals, hand
                     <SheetTitle className="flex items-center justify-between">
                         <div className="flex flex-col">
                             <span className="text-xl font-black text-slate-900 tracking-tight">Keranjang</span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{cart.length} Jenis Produk</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{cart.length} Jenis {term('product')}</span>
                         </div>
                         {cart.length > 0 && (
                             <Button variant="ghost" size="sm" onClick={clearCart} className="text-red-500 hover:bg-red-50 h-8 text-[10px] font-bold uppercase tracking-widest">
@@ -80,7 +82,7 @@ export const MobileCartSheet = ({ cart, isOpen, onClose, updateQty, totals, hand
                             </div>
                             <div className="text-center">
                                 <p className="text-sm font-bold text-slate-900">Keranjang masih kosong</p>
-                                <p className="text-xs text-slate-400">Pilih produk untuk mulai berjualan</p>
+                                <p className="text-xs text-slate-400">Pilih {term('product').toLowerCase()} untuk mulai {term('sale').toLowerCase()}</p>
                             </div>
                         </div>
                     ) : (

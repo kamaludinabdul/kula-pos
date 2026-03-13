@@ -26,6 +26,7 @@ import { Label } from "../ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { cn } from "../../lib/utils";
 import { useBusinessType } from '../../hooks/useBusinessType';
+import CompoundingDialog from './CompoundingDialog';
 
 const CartPanel = ({
     cart,
@@ -40,6 +41,7 @@ const CartPanel = ({
     discountType,
     discountValue,
     onDiscountChange,
+    enableDiscount,
     recommendations,
     onAddRecommendation,
     enableSalesPerformance,
@@ -53,13 +55,16 @@ const CartPanel = ({
     onAddCustomer,
     prescriptionData,
     setPrescriptionData,
-    onUpdateItemUnit
+    onUpdateItemUnit,
+    products,
+    onAddToCart
 }) => {
-    const { term, showField } = useBusinessType();
+    const { term, hasFeature } = useBusinessType();
     const [isCustomerOpen, setIsCustomerOpen] = useState(false);
     const [customerSearch, setCustomerSearch] = useState('');
     const [editingItem, setEditingItem] = useState(null);
     const [showDiscountInput, setShowDiscountInput] = useState(false);
+    const [isCompoundingOpen, setIsCompoundingOpen] = useState(false);
     const customerRef = useRef(null);
 
     // Click outside handler for dropdown
@@ -222,6 +227,18 @@ const CartPanel = ({
                         )}
                     </div>
                 )}
+
+                {/* Tambah Racikan Button (Apotek Only) */}
+                {hasFeature('prescriptions') && (
+                    <Button
+                        variant="outline"
+                        className="w-full h-9 text-[10px] font-bold uppercase gap-2 border-indigo-100 bg-indigo-50/30 text-indigo-600 hover:bg-indigo-50"
+                        onClick={() => setIsCompoundingOpen(true)}
+                    >
+                        <Plus size={14} />
+                        Tambah Racikan (🧪)
+                    </Button>
+                )}
             </div>
 
             {/* Cart Items */}
@@ -325,6 +342,30 @@ const CartPanel = ({
                                         </Button>
                                     </div>
                                 </div>
+
+                                {hasFeature('prescriptions') && (
+                                    <div className="mt-3 pt-3 border-t border-slate-50 space-y-2">
+                                        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+                                            {['3x1', '2x1', '1x1', 'S. Makan', 'Habs-kan'].map(shortcut => (
+                                                <Button
+                                                    key={shortcut}
+                                                    variant="ghost"
+                                                    size="xs"
+                                                    className="h-5 px-1.5 text-[9px] bg-slate-50 border border-slate-100 text-slate-500 font-bold hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100"
+                                                    onClick={() => onUpdateItem(item.id, { aturanPakai: shortcut })}
+                                                >
+                                                    {shortcut}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                        <Input
+                                            className="h-7 text-[10px] bg-indigo-50/20 border-indigo-100/50 focus:ring-indigo-500"
+                                            placeholder="Aturan Pakai (Cth: 3 x 1 Tablet Sesudah Makan)"
+                                            value={item.aturanPakai || ''}
+                                            onChange={(e) => onUpdateItem(item.id, { aturanPakai: e.target.value })}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         ))
                     )}
@@ -392,47 +433,49 @@ const CartPanel = ({
             {/* Calculations & Checkout */}
             <div className="p-4 bg-white/80 backdrop-blur-xl border-t space-y-3 shadow-negative z-20">
                 {/* Discount Toggle */}
-                <div className="flex flex-col gap-2">
-                    <div
-                        className="flex items-center gap-1.5 text-xs font-medium text-slate-500 cursor-pointer hover:text-primary transition-colors"
-                        onClick={() => setShowDiscountInput(!showDiscountInput)}
-                    >
-                        <Percent size={12} />
-                        <span>Diskon Tambahan</span>
-                        <ChevronDown size={12} className={cn("transition-transform", showDiscountInput && "rotate-180")} />
-                    </div>
-
-                    {showDiscountInput && (
-                        <div className="flex gap-2 animate-in slide-in-from-top-2 fade-in">
-                            <div className="relative flex-1">
-                                <Input
-                                    type="number"
-                                    className="h-8 text-xs pr-8"
-                                    placeholder="0"
-                                    value={discountValue || ''}
-                                    onChange={(e) => onDiscountChange(parseFloat(e.target.value) || 0, discountType)}
-                                />
-                                <span className="absolute right-2 top-2 text-[10px] font-bold text-muted-foreground">
-                                    {discountType === 'percentage' ? '%' : 'Rp'}
-                                </span>
-                            </div>
-                            <div className="flex bg-slate-100 rounded-md p-1 h-8 items-center">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className={cn("h-6 px-2 text-[10px]", discountType === 'percentage' && "bg-white shadow-sm text-primary")}
-                                    onClick={() => onDiscountChange(discountValue, 'percentage')}
-                                >%</Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className={cn("h-6 px-2 text-[10px]", discountType === 'amount' && "bg-white shadow-sm text-primary")}
-                                    onClick={() => onDiscountChange(discountValue, 'amount')}
-                                >Rp</Button>
-                            </div>
+                {enableDiscount !== false && (
+                    <div className="flex flex-col gap-2">
+                        <div
+                            className="flex items-center gap-1.5 text-xs font-medium text-slate-500 cursor-pointer hover:text-primary transition-colors"
+                            onClick={() => setShowDiscountInput(!showDiscountInput)}
+                        >
+                            <Percent size={12} />
+                            <span>Diskon Tambahan</span>
+                            <ChevronDown size={12} className={cn("transition-transform", showDiscountInput && "rotate-180")} />
                         </div>
-                    )}
-                </div>
+
+                        {showDiscountInput && (
+                            <div className="flex gap-2 animate-in slide-in-from-top-2 fade-in">
+                                <div className="relative flex-1">
+                                    <Input
+                                        type="number"
+                                        className="h-8 text-xs pr-8"
+                                        placeholder="0"
+                                        value={discountValue || ''}
+                                        onChange={(e) => onDiscountChange(parseFloat(e.target.value) || 0, discountType)}
+                                    />
+                                    <span className="absolute right-2 top-2 text-[10px] font-bold text-muted-foreground">
+                                        {discountType === 'percentage' ? '%' : 'Rp'}
+                                    </span>
+                                </div>
+                                <div className="flex bg-slate-100 rounded-md p-1 h-8 items-center">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className={cn("h-6 px-2 text-[10px]", discountType === 'percentage' && "bg-white shadow-sm text-primary")}
+                                        onClick={() => onDiscountChange(discountValue, 'percentage')}
+                                    >%</Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className={cn("h-6 px-2 text-[10px]", discountType === 'amount' && "bg-white shadow-sm text-primary")}
+                                        onClick={() => onDiscountChange(discountValue, 'amount')}
+                                    >Rp</Button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 <Separator />
 
@@ -443,7 +486,7 @@ const CartPanel = ({
                     </div>
 
                     {/* Prescription Form (Apotek) */}
-                    {showField('prescriptions') && cart.length > 0 && (
+                    {hasFeature('prescriptions') && cart.length > 0 && (
                         <div className="mt-4 mb-2 p-3 bg-blue-50/50 rounded-xl border border-blue-100 flex flex-col gap-3">
                             <div className="flex items-center gap-1.5 text-blue-700 mb-1">
                                 <Sparkles size={14} className="text-blue-500" />
@@ -540,14 +583,16 @@ const CartPanel = ({
                                     onChange={(e) => setEditingItem({ ...editingItem, price: parseFloat(e.target.value) || 0 })}
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label>Diskon (Rp)</Label>
-                                <Input
-                                    type="number"
-                                    value={editingItem.discount || 0}
-                                    onChange={(e) => setEditingItem({ ...editingItem, discount: parseFloat(e.target.value) || 0 })}
-                                />
-                            </div>
+                            {enableDiscount !== false && (
+                                <div className="space-y-2">
+                                    <Label>Diskon (Rp)</Label>
+                                    <Input
+                                        type="number"
+                                        value={editingItem.discount || 0}
+                                        onChange={(e) => setEditingItem({ ...editingItem, discount: parseFloat(e.target.value) || 0 })}
+                                    />
+                                </div>
+                            )}
                         </div>
                     )}
                     <DialogFooter className="flex-row gap-2">
@@ -564,6 +609,12 @@ const CartPanel = ({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <CompoundingDialog
+                isOpen={isCompoundingOpen}
+                onClose={() => setIsCompoundingOpen(false)}
+                products={products}
+                onAddToCart={onAddToCart}
+            />
         </Card>
     );
 };

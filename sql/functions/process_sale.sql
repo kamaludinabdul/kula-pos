@@ -18,7 +18,8 @@ CREATE OR REPLACE FUNCTION public.process_sale(
     p_date TIMESTAMPTZ DEFAULT NOW(),
     p_subtotal NUMERIC DEFAULT NULL,
     p_cashier_id UUID DEFAULT NULL,
-    p_cashier_name TEXT DEFAULT NULL
+    p_cashier_name TEXT DEFAULT NULL,
+    p_stamp_updates JSONB DEFAULT '[]'::jsonb
 ) RETURNS JSONB 
 AS $$
 DECLARE
@@ -86,6 +87,17 @@ BEGIN
         IF p_points_earned > 0 THEN
             INSERT INTO loyalty_history (store_id, customer_id, points, description, transaction_id, date)
             VALUES (p_store_id, p_customer_id, p_points_earned, 'Penjualan #' || v_new_transaction_id, v_new_transaction_id, p_date);
+        END IF;
+
+        -- Handle Stamp Updates
+        IF p_stamp_updates IS NOT NULL AND jsonb_array_length(p_stamp_updates) > 0 THEN
+            INSERT INTO customer_stamps (customer_id, rule_id, current_stamps, completed_count, last_stamped_at)
+            SELECT p_customer_id, (s->>'rule_id')::UUID, (s->>'current_stamps')::INTEGER, (s->>'completed_count')::INTEGER, NOW()
+            FROM jsonb_array_elements(p_stamp_updates) AS s
+            ON CONFLICT (customer_id, rule_id) DO UPDATE SET
+                current_stamps = EXCLUDED.current_stamps,
+                completed_count = EXCLUDED.completed_count,
+                last_stamped_at = EXCLUDED.last_stamped_at;
         END IF;
     END IF;
 

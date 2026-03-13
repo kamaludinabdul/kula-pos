@@ -755,8 +755,8 @@ const ShoppingRecommendations = () => {
 
                 if (name && qty > 0) {
                     const cleanName = name.toString().trim().toLowerCase();
-                    // First find product by name
-                    const product = products.find(p => p.name.trim().toLowerCase() === cleanName);
+                    // First find product by name safely
+                    const product = products.find(p => p?.name?.trim().toLowerCase() === cleanName);
 
                     // Then check if it matches category filter
                     if (product && isCategoryMatch(product)) {

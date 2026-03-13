@@ -477,7 +477,7 @@ const CashFlow = () => {
                                         onChange={(val) => setFormData(prev => ({ ...prev, amount: val }))}
                                     />
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-2 pb-1">
                                     <Label>Keterangan</Label>
                                     <Textarea
                                         placeholder="Catatan tambahan..."

@@ -1361,45 +1361,84 @@ RETURNS TRIGGER
 AS $$
 DECLARE
     new_store_id UUID;
-    store_name TEXT;
-    owner_name TEXT;
-    target_role TEXT;
+    v_store_name TEXT;
+    v_owner_name TEXT;
+    v_target_role TEXT;
+    v_biz_type TEXT;
 BEGIN
-    store_name := new.raw_user_meta_data->>'store_name';
-    owner_name := COALESCE(new.raw_user_meta_data->>'name', new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'owner_name');
-    target_role := COALESCE(new.raw_user_meta_data->>'role', 'staff');
+    -- WRAP EVERYTHING IN A PROTECTIVE BLOCK
+    BEGIN
+        v_store_name := new.raw_user_meta_data->>'store_name';
+        v_owner_name := COALESCE(
+            new.raw_user_meta_data->>'name', 
+            new.raw_user_meta_data->>'full_name', 
+            new.raw_user_meta_data->>'owner_name',
+            split_part(new.email, '@', 1)
+        );
+        -- Default role is staff unless specified
+        v_target_role := COALESCE(new.raw_user_meta_data->>'role', 'staff');
+        v_biz_type := COALESCE(new.raw_user_meta_data->>'business_type', 'general');
 
-    IF store_name IS NOT NULL THEN
-        INSERT INTO public.stores (name, plan, trial_ends_at, plan_expiry_date, owner_id, owner_name, email)
-        VALUES (
-            store_name, 
-            'pro',                      
-            NOW() + INTERVAL '7 days',  
-            NOW() + INTERVAL '7 days',  
-            new.id, 
-            owner_name, 
-            new.email
-        )
-        RETURNING id INTO new_store_id;
-        
-        target_role := 'owner';
-    ELSE
+        -- A. Handle Profile Creation FIRST
         BEGIN
-            new_store_id := (new.raw_user_meta_data->>'store_id')::UUID;
+            INSERT INTO public.profiles (id, username, name, email, role, plan, status)
+            VALUES (
+                new.id, 
+                new.email, 
+                v_owner_name,
+                new.email, 
+                v_target_role,
+                CASE WHEN v_store_name IS NOT NULL AND v_store_name <> '' THEN 'pro' ELSE 'free' END,
+                'online'
+            );
         EXCEPTION WHEN OTHERS THEN
-            new_store_id := NULL;
+            -- Minimalist insert if primary fails
+            INSERT INTO public.profiles (id, name, email)
+            VALUES (new.id, v_owner_name, new.email)
+            ON CONFLICT (id) DO NOTHING;
         END;
-    END IF;
 
-    INSERT INTO public.profiles (id, username, name, email, role, store_id)
-    VALUES (
-        new.id, 
-        new.email, 
-        COALESCE(owner_name, new.email),
-        new.email, 
-        target_role, 
-        new_store_id 
-    );
+        -- B. Handle Store Creation
+        IF v_store_name IS NOT NULL AND v_store_name <> '' THEN
+            BEGIN
+                INSERT INTO public.stores (name, plan, trial_ends_at, plan_expiry_date, owner_id, owner_name, email, business_type)
+                VALUES (
+                    v_store_name, 
+                    'pro',                      -- 7-DAY PRO TRIAL
+                    NOW() + INTERVAL '7 days',  
+                    NOW() + INTERVAL '7 days',  
+                    new.id, 
+                    v_owner_name, 
+                    new.email,
+                    v_biz_type
+                )
+                RETURNING id INTO new_store_id;
+                
+                -- C. Update profile with store_id, role=owner, plan=pro
+                UPDATE public.profiles SET 
+                    store_id = new_store_id,
+                    role = 'owner',
+                    plan = 'pro',
+                    plan_expiry_date = NOW() + INTERVAL '7 days'
+                WHERE id = new.id;
+            EXCEPTION WHEN OTHERS THEN
+                NULL;
+            END;
+        ELSE
+            -- Try to get store_id for staff invitations
+            BEGIN
+                new_store_id := (new.raw_user_meta_data->>'store_id')::UUID;
+                IF new_store_id IS NOT NULL THEN
+                    UPDATE public.profiles SET store_id = new_store_id WHERE id = new.id;
+                END IF;
+            EXCEPTION WHEN OTHERS THEN
+                NULL; -- Ignore malformed UUIDs
+            END;
+        END IF;
+
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
 
     RETURN new;
 END;
@@ -1615,7 +1654,11 @@ CREATE OR REPLACE FUNCTION public.process_sale(
     p_date TIMESTAMPTZ DEFAULT NOW(),
     p_subtotal NUMERIC DEFAULT NULL,
     p_cashier_id UUID DEFAULT NULL,
-    p_cashier_name TEXT DEFAULT NULL
+    p_cashier_name TEXT DEFAULT NULL,
+    p_patient_name TEXT DEFAULT NULL,
+    p_doctor_name TEXT DEFAULT NULL,
+    p_prescription_number TEXT DEFAULT NULL,
+    p_tuslah_fee NUMERIC DEFAULT 0
 ) RETURNS JSONB 
 AS $$
 DECLARE
@@ -1639,16 +1682,18 @@ BEGIN
         id, store_id, customer_id, customer_name, total, discount, subtotal, payment_method, 
         amount_paid, "change", "type", rental_session_id, payment_details, 
         items, date, status, shift_id, points_earned,
-        cashier_id, cashier
+        cashier_id, cashier,
+        patient_name, doctor_name, prescription_number, tuslah_fee
     )
     VALUES (
         v_new_transaction_id, p_store_id, p_customer_id, v_customer_name, p_total, p_discount, v_subtotal, p_payment_method, 
         p_amount_paid, p_change, p_type, p_rental_session_id, p_payment_details, 
         p_items, p_date, 'completed', p_shift_id, p_points_earned,
-        p_cashier_id, p_cashier_name
+        p_cashier_id, p_cashier_name,
+        p_patient_name, p_doctor_name, p_prescription_number, p_tuslah_fee
     );
 
-    FOR v_item IN SELECT * FROM jsonb_to_recordset(p_items) AS x(id TEXT, qty NUMERIC, name TEXT, price NUMERIC, discount NUMERIC, stock_deducted BOOLEAN)
+    FOR v_item IN SELECT * FROM jsonb_to_recordset(p_items) AS x(id TEXT, qty NUMERIC, name TEXT, price NUMERIC, discount NUMERIC, stock_deducted BOOLEAN, ingredients JSONB, aturan_pakai TEXT)
     LOOP
         IF COALESCE(v_item.stock_deducted, false) IS TRUE THEN CONTINUE; END IF;
 
@@ -1661,14 +1706,87 @@ BEGIN
                 RAISE EXCEPTION 'Stok tidak cukup: % (Sisa: %, Diminta: %)', v_item.name, v_current_stock, v_item.qty;
             END IF;
 
+            -- 1. Deduct Stock (FEFO: First Expired First Out)
+            IF v_is_unlimited = false AND v_prod_type != 'service' THEN
+                -- Check if it is a Compounded Item (Racikan)
+                IF v_item.ingredients IS NOT NULL AND jsonb_array_length(v_item.ingredients) > 0 THEN
+                    -- Handle Ingredients
+                    DECLARE
+                        v_ing RECORD;
+                    BEGIN
+                        FOR v_ing IN SELECT * FROM jsonb_to_recordset(v_item.ingredients) AS y(id TEXT, qty NUMERIC, name TEXT)
+                        LOOP
+                            DECLARE
+                                v_ing_id UUID := v_ing.id::UUID;
+                                v_ing_total_qty NUMERIC := v_ing.qty * v_item.qty;
+                                v_ing_remaining NUMERIC := v_ing_total_qty;
+                                v_batch RECORD;
+                                v_deduct_now NUMERIC;
+                            BEGIN
+                                -- Batch Deduction for Ingredient
+                                FOR v_batch IN 
+                                    SELECT id, current_qty 
+                                    FROM batches 
+                                    WHERE product_id = v_ing_id 
+                                      AND store_id = p_store_id 
+                                      AND current_qty > 0 
+                                    ORDER BY expired_date ASC NULLS LAST, created_at ASC
+                                LOOP
+                                    IF v_ing_remaining <= 0 THEN EXIT; END IF;
+                                    v_deduct_now := LEAST(v_batch.current_qty, v_ing_remaining);
+                                    UPDATE batches SET current_qty = current_qty - v_deduct_now WHERE id = v_batch.id;
+                                    v_ing_remaining := v_ing_remaining - v_deduct_now;
+                                END LOOP;
+
+                                -- Update Ingredient Product Stock
+                                UPDATE products 
+                                SET stock = stock - v_ing_total_qty,
+                                    sold = sold + v_ing_total_qty
+                                WHERE id = v_ing_id AND store_id = p_store_id;
+
+                                -- Record Ingredient Movement
+                                INSERT INTO stock_movements (store_id, product_id, type, qty, date, note, ref_id)
+                                VALUES (p_store_id, v_ing_id, 'sale', -v_ing_total_qty, p_date, 'Bahan Racikan: ' || v_item.name, v_new_transaction_id);
+                            END;
+                        END LOOP;
+                    END;
+                ELSE
+                    -- Normal Product Deduction
+                    DECLARE
+                        v_remaining_to_deduct NUMERIC := v_item.qty;
+                        v_batch RECORD;
+                        v_deduct_now NUMERIC;
+                    BEGIN
+                        FOR v_batch IN 
+                            SELECT id, current_qty 
+                            FROM batches 
+                            WHERE product_id = v_item.id::UUID 
+                              AND store_id = p_store_id 
+                              AND current_qty > 0 
+                            ORDER BY expired_date ASC NULLS LAST, created_at ASC
+                        LOOP
+                            IF v_remaining_to_deduct <= 0 THEN EXIT; END IF;
+                            v_deduct_now := LEAST(v_batch.current_qty, v_remaining_to_deduct);
+                            UPDATE batches SET current_qty = current_qty - v_deduct_now WHERE id = v_batch.id;
+                            v_remaining_to_deduct := v_remaining_to_deduct - v_deduct_now;
+                        END LOOP;
+                    END;
+                END IF;
+            END IF;
+
+            -- 2. Update Transaction Item (Main Product) Stats
+            -- Note: If it's a racikan (unlimited), stock won't decrease but revenue/sold will increase on the 'virtual' item
             UPDATE products 
-            SET stock = stock - v_item.qty,
+            SET stock = CASE WHEN v_is_unlimited THEN stock ELSE stock - v_item.qty END,
                 sold = sold + v_item.qty,
                 revenue = revenue + (v_item.qty * (v_item.price - COALESCE(v_item.discount, 0)))
             WHERE id = v_item.id::UUID AND store_id = p_store_id;
 
-            INSERT INTO stock_movements (store_id, product_id, type, qty, date, note, ref_id)
-            VALUES (p_store_id, v_item.id::UUID, 'sale', -v_item.qty, p_date, 'Penjualan #' || right(v_new_transaction_id, 6), v_new_transaction_id);
+            -- 3. Record Movement for Main Item (If not unlimited)
+            IF NOT v_is_unlimited THEN
+                INSERT INTO stock_movements (store_id, product_id, type, qty, date, note, ref_id)
+                VALUES (p_store_id, v_item.id::UUID, 'sale', -v_item.qty, p_date, 'Penjualan #' || right(v_new_transaction_id, 6), v_new_transaction_id);
+            END IF;
         END IF;
     END LOOP;
 
@@ -2044,3 +2162,116 @@ BEGIN
     RETURN jsonb_build_object('success', true, 'transaction_id', p_transaction_id);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- =============================================================================
+-- DATA FIX: Shift Report Anomaly (Double-Counted Sales)
+-- Recalculate shift totals from transactions (source of truth)
+-- =============================================================================
+
+-- STEP 1: Recalculate shift sales totals from transactions
+UPDATE shifts s
+SET 
+    total_sales = COALESCE(tx.calc_total_sales, 0),
+    total_discount = COALESCE(tx.calc_total_discount, 0),
+    total_cash_sales = COALESCE(tx.calc_total_cash_sales, 0),
+    total_non_cash_sales = COALESCE(tx.calc_total_non_cash_sales, 0)
+FROM (
+    SELECT 
+        t.shift_id,
+        SUM(CASE WHEN t.status = 'completed' THEN t.total ELSE 0 END) as calc_total_sales,
+        SUM(CASE WHEN t.status = 'completed' THEN COALESCE(t.discount, 0) ELSE 0 END) as calc_total_discount,
+        SUM(CASE 
+            WHEN t.status = 'completed' AND t.payment_method = 'cash' THEN t.total 
+            WHEN t.status = 'completed' AND t.payment_method = 'split' AND t.payment_details->>'method1' = 'cash' 
+                THEN (t.payment_details->>'amount1')::NUMERIC
+            WHEN t.status = 'completed' AND t.payment_method = 'split' AND t.payment_details->>'method2' = 'cash' 
+                THEN (t.payment_details->>'amount2')::NUMERIC
+            ELSE 0 
+        END) as calc_total_cash_sales,
+        SUM(CASE 
+            WHEN t.status = 'completed' AND t.payment_method NOT IN ('cash', 'split') THEN t.total
+            WHEN t.status = 'completed' AND t.payment_method = 'split' THEN
+                (CASE WHEN t.payment_details->>'method1' != 'cash' THEN (t.payment_details->>'amount1')::NUMERIC ELSE 0 END) +
+                (CASE WHEN t.payment_details->>'method2' != 'cash' THEN (t.payment_details->>'amount2')::NUMERIC ELSE 0 END)
+            ELSE 0 
+        END) as calc_total_non_cash_sales
+    FROM transactions t
+    WHERE t.shift_id IS NOT NULL
+    GROUP BY t.shift_id
+) tx
+WHERE s.id = tx.shift_id;
+
+-- STEP 2: Recalculate expected_cash and cash_difference for closed shifts
+UPDATE shifts
+SET 
+    expected_cash = COALESCE(initial_cash, 0) + COALESCE(total_cash_sales, 0) + COALESCE(total_cash_in, 0) - COALESCE(total_cash_out, 0),
+    cash_difference = COALESCE(final_cash, 0) - (COALESCE(initial_cash, 0) + COALESCE(total_cash_sales, 0) + COALESCE(total_cash_in, 0) - COALESCE(total_cash_out, 0)),
+    expected_non_cash = COALESCE(total_non_cash_sales, 0),
+    non_cash_difference = COALESCE(final_non_cash, 0) - COALESCE(total_non_cash_sales, 0)
+WHERE status = 'closed';
+
+-- ============================================
+-- PLAN SYNC: profiles.plan + plan_expiry_date
+-- ============================================
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='plan') THEN
+        ALTER TABLE public.profiles ADD COLUMN plan TEXT DEFAULT 'free';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='profiles' AND column_name='plan_expiry_date') THEN
+        ALTER TABLE public.profiles ADD COLUMN plan_expiry_date TIMESTAMPTZ;
+    END IF;
+END $$;
+
+-- Sync existing store plans to owner profiles
+UPDATE public.profiles p
+SET 
+    plan = s.plan,
+    plan_expiry_date = s.plan_expiry_date
+FROM public.stores s
+WHERE s.owner_id = p.id
+  AND s.plan IS NOT NULL
+  AND (p.plan IS DISTINCT FROM s.plan OR p.plan_expiry_date IS DISTINCT FROM s.plan_expiry_date);
+
+-- Auto-sync trigger: stores.plan → profiles.plan
+CREATE OR REPLACE FUNCTION public.sync_store_plan_to_profile()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (OLD.plan IS DISTINCT FROM NEW.plan) OR (OLD.plan_expiry_date IS DISTINCT FROM NEW.plan_expiry_date) THEN
+        UPDATE public.profiles
+        SET plan = NEW.plan, plan_expiry_date = NEW.plan_expiry_date
+        WHERE id = NEW.owner_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS on_store_plan_updated ON public.stores;
+CREATE TRIGGER on_store_plan_updated
+    AFTER UPDATE OF plan, plan_expiry_date ON public.stores
+    FOR EACH ROW EXECUTE FUNCTION public.sync_store_plan_to_profile();
+
+-- Auto-sync trigger: stores.owner_id → profiles.store_id + role
+-- Prevents cross-store data leak when admin creates/assigns stores
+CREATE OR REPLACE FUNCTION public.sync_store_owner_to_profile()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' AND NEW.owner_id IS NOT NULL THEN
+        UPDATE public.profiles SET 
+            store_id = NEW.id, role = 'owner'
+        WHERE id = NEW.owner_id
+          AND (store_id IS NULL OR store_id != NEW.id);
+    END IF;
+    IF TG_OP = 'UPDATE' AND OLD.owner_id IS DISTINCT FROM NEW.owner_id AND NEW.owner_id IS NOT NULL THEN
+        UPDATE public.profiles SET 
+            store_id = NEW.id, role = 'owner'
+        WHERE id = NEW.owner_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS on_store_owner_synced ON public.stores;
+CREATE TRIGGER on_store_owner_synced
+    AFTER INSERT OR UPDATE OF owner_id ON public.stores
+    FOR EACH ROW EXECUTE FUNCTION public.sync_store_owner_to_profile();

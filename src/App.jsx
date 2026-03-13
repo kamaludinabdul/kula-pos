@@ -76,6 +76,9 @@ const SalesPerformanceReport = lazy(() => import('./pages/reports/SalesPerforman
 const PetHotelFeeReport = lazy(() => import('./pages/reports/PetHotelFeeReport'));
 const CustomerProfilingReport = lazy(() => import('./pages/reports/CustomerProfilingReport'));
 const ExpiryReport = lazy(() => import('./pages/reports/ExpiryReport'));
+const TuslahReport = lazy(() => import('./pages/reports/TuslahReport'));
+const DefectaReport = lazy(() => import('./pages/DefectaReport'));
+const PatientHistory = lazy(() => import('./pages/reports/PatientHistory'));
 
 // Sales & Finance
 const SalesTarget = lazy(() => import('./pages/sales/SalesTarget'));
@@ -96,12 +99,12 @@ import { checkPlanAccess, hasFeatureAccess } from './utils/plans';
 import { APP_VERSION } from './version';
 // const APP_VERSION = '0.13.5'; // Moved to version.js
 
-const PrivateRoute = ({ children, feature, plan, permission, checkFeature }) => {
+const PrivateRoute = ({ children, feature, plan, permission, checkFeature, checkSetting }) => {
   const authContext = useAuth();
   const dataContext = useData();
   const location = useLocation();
   const [showRefresh, setShowRefresh] = useState(false);
-  const { hasFeature } = useBusinessType();
+  const { hasFeature, checkSetting: checkBizSetting } = useBusinessType();
 
   useEffect(() => {
     let timeout;
@@ -187,6 +190,12 @@ const PrivateRoute = ({ children, feature, plan, permission, checkFeature }) => 
     // Check Business Type Feature Access
     if (checkFeature && !hasFeature(checkFeature)) {
       console.warn(`Access denied for ${location.pathname} (Business Type does not support: ${checkFeature})`);
+      return <Navigate to="/dashboard" replace />;
+    }
+
+    // Check Business Type Setting Access
+    if (checkSetting && !checkBizSetting(checkSetting)) {
+      console.warn(`Access denied for ${location.pathname} (Business Type does not have setting: ${checkSetting})`);
       return <Navigate to="/dashboard" replace />;
     }
 
@@ -566,8 +575,23 @@ const App = () => {
                         </PrivateRoute>
                       } />
                       <Route path="expiry" element={
-                        <PrivateRoute feature="reports.expiry">
+                        <PrivateRoute feature="reports.expiry" checkSetting="enableExpiryTracking">
                           <ExpiryReport />
+                        </PrivateRoute>
+                      } />
+                      <Route path="tuslah" element={
+                        <PrivateRoute feature="reports.tuslah" checkFeature="prescriptions">
+                          <TuslahReport />
+                        </PrivateRoute>
+                      } />
+                      <Route path="defecta" element={
+                        <PrivateRoute feature="reports.defecta" checkFeature="prescriptions">
+                          <DefectaReport />
+                        </PrivateRoute>
+                      } />
+                      <Route path="patient-history" element={
+                        <PrivateRoute feature="reports.patient_history" checkFeature="prescriptions">
+                          <PatientHistory />
                         </PrivateRoute>
                       } />
                     </Route>

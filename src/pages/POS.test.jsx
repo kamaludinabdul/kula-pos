@@ -212,7 +212,8 @@ describe('POS Component UI Flow', () => {
         fireEvent.click(rotiBakarBtn);
 
         expect(mockAddToCart).toHaveBeenCalledWith(
-            expect.objectContaining({ id: '2', name: 'Roti Bakar' })
+            expect.objectContaining({ id: '2', name: 'Roti Bakar' }),
+            null
         );
     });
 

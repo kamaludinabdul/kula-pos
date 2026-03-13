@@ -37,6 +37,7 @@ const CheckoutDialog = ({
     onProcessPayment,
     paymentSuccess,
     onPrintReceipt,
+    onPrintEtiket,
     onDownloadReceipt,
     onCloseSuccess,
     store,
@@ -56,7 +57,7 @@ const CheckoutDialog = ({
 
     // Check if user can backdate (admin/super_admin AND setting enabled)
     const canBackdate = (user?.role === 'owner' || user?.role === 'super_admin') && store?.settings?.allowBackdateTransaction;
-    const { term } = useBusinessType();
+    const { term, isPharmacy } = useBusinessType();
 
     // Auto print receipt
     useEffect(() => {
@@ -356,7 +357,18 @@ const CheckoutDialog = ({
                             <Button variant="outline" onClick={handleDownload} className="flex gap-2">
                                 <Download size={16} /> Simpan Gambar
                             </Button>
-                            <Button onClick={onCloseSuccess} className="col-span-2 bg-primary hover:bg-primary/90 text-white mt-2">
+
+                            {(isPharmacy || lastTransaction?.tuslah_fee > 0 || lastTransaction?.patient_name) && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => onPrintEtiket && onPrintEtiket()}
+                                    className="col-span-2 flex gap-2 border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                                >
+                                    <Sparkles size={16} /> Cetak Etiket Obat (🧪)
+                                </Button>
+                            )}
+
+                            <Button onClick={onCloseSuccess} className="col-span-2 bg-primary hover:bg-primary/90 text-white mt-1">
                                 Transaksi Baru
                             </Button>
                         </div>

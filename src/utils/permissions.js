@@ -86,6 +86,9 @@ export const PERMISSION_SCHEMA = [
             { id: 'reports.performance', label: 'Performa Sales' },
             { id: 'reports.forecast', label: 'Forecasting (Prediksi)' },
             { id: 'reports.expiry', label: 'Laporan Kadaluarsa' },
+            { id: 'reports.defecta', label: 'Laporan Defecta (Stok Kritis)' },
+            { id: 'reports.patient_history', label: 'Riwayat Obat Pasien' },
+            { id: 'reports.tuslah', label: 'Laporan Tuslah' },
             { id: 'reports.customer_profiling', label: 'Profiling Pelanggan' },
             { id: 'reports.pet_hotel_fee', label: 'Laporan Pet Hotel' },
             { id: 'reports.top_selling', label: 'Produk Terlaris' }
@@ -157,7 +160,7 @@ export const ROLE_PRESETS = {
         'suppliers.read', 'suppliers.create', 'suppliers.update', 'suppliers.delete',
 
         'finance.cash_flow',
-        'reports.view', 'reports.profit_loss', 'reports.sales_items', 'reports.sales_categories', 'reports.inventory_value', 'reports.shifts', 'reports.performance', 'reports.forecast', 'reports.expiry', 'reports.customer_profiling', 'reports.pet_hotel_fee', 'reports.top_selling', 'reports.loyalty',
+        'reports.view', 'reports.profit_loss', 'reports.sales_items', 'reports.sales_categories', 'reports.inventory_value', 'reports.shifts', 'reports.performance', 'reports.forecast', 'reports.expiry', 'reports.defecta', 'reports.patient_history', 'reports.customer_profiling', 'reports.pet_hotel_fee', 'reports.top_selling', 'reports.loyalty',
         'smart_insights.bundling', 'smart_insights.forecast', 'smart_insights.segmentation', 'smart_insights.analysis',
         'rental.access',
         'others.staff', 'others.login_history',

@@ -128,8 +128,10 @@ const Stores = () => {
     };
 
     const handleOpenStoreModal = (store = null) => {
+        setIsStoreModalOpen(true);
         if (store) {
             setEditingStore(store);
+            setSelectedOwner(null); // Ensure we don't accidentally inherit owner's plan while editing
             setStoreFormData({
                 name: store.name || '',
                 address: store.address || '',

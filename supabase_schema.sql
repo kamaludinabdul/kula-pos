@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS stores (
     status TEXT DEFAULT 'active',
     address TEXT,
     phone TEXT,
+    business_type TEXT DEFAULT 'general',
     telegram_bot_token TEXT,
     telegram_chat_id TEXT,
     enable_sales_performance BOOLEAN DEFAULT FALSE,
@@ -32,9 +33,12 @@ CREATE TABLE IF NOT EXISTS stores (
 -- 2. Users Profile Table (Extends Supabase Auth)
 CREATE TABLE IF NOT EXISTS profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    username TEXT,
     name TEXT,
     email TEXT UNIQUE,
     role TEXT DEFAULT 'staff',
+    plan TEXT DEFAULT 'free',
+    plan_expiry_date TIMESTAMPTZ,
     store_id UUID REFERENCES stores(id) ON DELETE SET NULL,
     status TEXT DEFAULT 'offline',
     last_login TIMESTAMPTZ,
@@ -57,51 +61,84 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
     new_store_id UUID;
-    store_name TEXT;
-    owner_name TEXT;
-    target_role TEXT;
+    v_store_name TEXT;
+    v_owner_name TEXT;
+    v_target_role TEXT;
+    v_biz_type TEXT;
 BEGIN
-    -- 1. Extract metadata
-    store_name := new.raw_user_meta_data->>'store_name';
-    owner_name := COALESCE(new.raw_user_meta_data->>'name', new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'owner_name');
-    
-    -- Default role logic
-    target_role := COALESCE(new.raw_user_meta_data->>'role', 'staff');
+    -- WRAP EVERYTHING IN A PROTECTIVE BLOCK
+    BEGIN
+        v_store_name := new.raw_user_meta_data->>'store_name';
+        v_owner_name := COALESCE(
+            new.raw_user_meta_data->>'name', 
+            new.raw_user_meta_data->>'full_name', 
+            new.raw_user_meta_data->>'owner_name',
+            split_part(new.email, '@', 1)
+        );
+        -- Default role is staff unless specified
+        v_target_role := COALESCE(new.raw_user_meta_data->>'role', 'staff');
+        v_biz_type := COALESCE(new.raw_user_meta_data->>'business_type', 'general');
 
-    -- 2. If store_name is present, create a store with 7-DAY PRO TRIAL
-    IF store_name IS NOT NULL THEN
-        INSERT INTO public.stores (name, plan, trial_ends_at, plan_expiry_date, owner_id, owner_name, email)
-        VALUES (
-            store_name, 
-            'pro',                      -- Set initial plan to PRO
-            NOW() + INTERVAL '7 days',  -- 7-Day Trial
-            NOW() + INTERVAL '7 days',  -- Expiry same as trial
-            new.id, 
-            owner_name, 
-            new.email
-        )
-        RETURNING id INTO new_store_id;
-        
-        target_role := 'owner';
-    ELSE
-        -- Staff registration or generic signup without store
+        -- A. Handle Profile Creation FIRST
         BEGIN
-            new_store_id := (new.raw_user_meta_data->>'store_id')::UUID;
+            INSERT INTO public.profiles (id, username, name, email, role, plan, status)
+            VALUES (
+                new.id, 
+                new.email, 
+                v_owner_name,
+                new.email, 
+                v_target_role,
+                CASE WHEN v_store_name IS NOT NULL AND v_store_name <> '' THEN 'pro' ELSE 'free' END,
+                'online'
+            );
         EXCEPTION WHEN OTHERS THEN
-            new_store_id := NULL;
+            -- Minimalist insert if primary fails
+            INSERT INTO public.profiles (id, name, email)
+            VALUES (new.id, v_owner_name, new.email)
+            ON CONFLICT (id) DO NOTHING;
         END;
-    END IF;
 
-    -- 3. Create Profile
-    INSERT INTO public.profiles (id, username, name, email, role, store_id)
-    VALUES (
-        new.id, 
-        new.email, 
-        COALESCE(owner_name, new.email),
-        new.email, 
-        target_role, 
-        new_store_id 
-    );
+        -- B. Handle Store Creation
+        IF v_store_name IS NOT NULL AND v_store_name <> '' THEN
+            BEGIN
+                INSERT INTO public.stores (name, plan, trial_ends_at, plan_expiry_date, owner_id, owner_name, email, business_type)
+                VALUES (
+                    v_store_name, 
+                    'pro',                      -- 7-DAY PRO TRIAL
+                    NOW() + INTERVAL '7 days',  
+                    NOW() + INTERVAL '7 days',  
+                    new.id, 
+                    v_owner_name, 
+                    new.email,
+                    v_biz_type
+                )
+                RETURNING id INTO new_store_id;
+                
+                -- C. Update profile with the new store_id AND set role to owner
+                UPDATE public.profiles SET 
+                    store_id = new_store_id,
+                    role = 'owner',
+                    plan = 'pro',
+                    plan_expiry_date = NOW() + INTERVAL '7 days'
+                WHERE id = new.id;
+            EXCEPTION WHEN OTHERS THEN
+                NULL;
+            END;
+        ELSE
+            -- Try to get store_id for staff invitations
+            BEGIN
+                new_store_id := (new.raw_user_meta_data->>'store_id')::UUID;
+                IF new_store_id IS NOT NULL THEN
+                    UPDATE public.profiles SET store_id = new_store_id WHERE id = new.id;
+                END IF;
+            EXCEPTION WHEN OTHERS THEN
+                NULL; -- Ignore malformed UUIDs
+            END;
+        END IF;
+
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
 
     RETURN new;
 END;

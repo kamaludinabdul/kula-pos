@@ -95,8 +95,26 @@ export const DataProvider = ({ children }) => {
     };
 
     // Determine the effective store ID to use for queries
-    const activeStoreId = ((user?.role === 'super_admin' || user?.role === 'owner') && selectedStoreId)
-        ? selectedStoreId
+    // SECURITY: Validate that selectedStoreId belongs to the current user
+    // to prevent cross-store data leaks from stale localStorage values.
+    const validatedSelectedStoreId = React.useMemo(() => {
+        if (!selectedStoreId || !user) return null;
+        // Super admin can access any store
+        if (user.role === 'super_admin') return selectedStoreId;
+        // For owners, verify the selected store is one they own
+        if (user.role === 'owner' && stores.length > 0) {
+            const ownsStore = stores.some(s => s.id === selectedStoreId);
+            if (!ownsStore) {
+                console.warn('DataContext: Clearing stale selectedStoreId - not owned by current user');
+                localStorage.removeItem('superAdminSelectedStoreId');
+                return null;
+            }
+        }
+        return selectedStoreId;
+    }, [selectedStoreId, user, stores]);
+
+    const activeStoreId = ((user?.role === 'super_admin' || user?.role === 'owner') && validatedSelectedStoreId)
+        ? validatedSelectedStoreId
         : user?.store_id;
     const currentStore = stores.find(s => s.id === activeStoreId) || null;
 
@@ -361,6 +379,11 @@ export const DataProvider = ({ children }) => {
             if (updates.telegramBotToken) dbUpdates.telegram_bot_token = updates.telegramBotToken;
             if (updates.telegramChatId) dbUpdates.telegram_chat_id = updates.telegramChatId;
 
+            // Plans & Business
+            if (updates.plan) dbUpdates.plan = updates.plan;
+            if (updates.plan_expiry_date !== undefined) dbUpdates.plan_expiry_date = updates.plan_expiry_date;
+            if (updates.business_type !== undefined) dbUpdates.business_type = updates.business_type;
+
             // Geo location
             if (updates.latitude) dbUpdates.latitude = updates.latitude;
             if (updates.longitude) dbUpdates.longitude = updates.longitude;
@@ -419,6 +442,22 @@ export const DataProvider = ({ children }) => {
                 .eq('id', id);
 
             if (error) throw error;
+
+            // Sync plan to owner's profile (belt-and-suspenders with DB trigger)
+            if (dbUpdates.plan || dbUpdates.plan_expiry_date) {
+                try {
+                    const { data: storeData } = await supabase.from('stores').select('owner_id').eq('id', id).single();
+                    if (storeData?.owner_id) {
+                        const profileUpdate = {};
+                        if (dbUpdates.plan) profileUpdate.plan = dbUpdates.plan;
+                        if (dbUpdates.plan_expiry_date !== undefined) profileUpdate.plan_expiry_date = dbUpdates.plan_expiry_date;
+                        await supabase.from('profiles').update(profileUpdate).eq('id', storeData.owner_id);
+                        console.log('DataContext: Synced plan to owner profile', storeData.owner_id, profileUpdate);
+                    }
+                } catch (syncErr) {
+                    console.warn('DataContext: Plan sync to profile failed (non-fatal):', syncErr.message);
+                }
+            }
 
             fetchStores(true); // Re-fetch store list silently
 
@@ -628,6 +667,7 @@ export const DataProvider = ({ children }) => {
             createdAt: p.created_at,
             pricingType: p.pricing_type,
             pricingTiers: p.pricing_tiers,
+            units: p.units || [], // Explicitly map units
             isBundlingEnabled: p.is_bundling_enabled,
             isWholesale: p.is_wholesale,
             stockType: p.stock_type,
@@ -1344,6 +1384,7 @@ export const DataProvider = ({ children }) => {
                 image_url: product.image || product.imageUrl || null,
                 pricing_type: product.pricingType || 'fixed',
                 pricing_tiers: product.pricingTiers || [],
+                units: product.units || [], // Explicitly insert units array
                 is_bundling_enabled: product.isBundlingEnabled || false,
                 is_wholesale: product.isWholesale || false,
                 stock_type: product.stockType || 'Barang',
@@ -1435,6 +1476,7 @@ export const DataProvider = ({ children }) => {
                     return pt === 'standard' ? 'fixed' : pt;
                 })(),
                 pricing_tiers: rawData.pricingTiers || rawData.pricing_tiers,
+                units: rawData.units, // Explicitly update units array
                 is_bundling_enabled: rawData.isBundlingEnabled || rawData.is_bundling_enabled,
                 is_wholesale: rawData.isWholesale ?? rawData.is_wholesale,
                 stock_type: rawData.stockType || rawData.stock_type || 'Barang',
@@ -2182,7 +2224,8 @@ export const DataProvider = ({ children }) => {
                 multiplier: item.multiplier || 1,
                 unit: item.unit,
                 buy_price: item.buyPrice || item.buy_price || 0, // Map to snake_case for RPC
-                discount: item.discount || 0 // Pass item-level discount
+                discount: item.discount || 0, // Pass item-level discount
+                aturan_pakai: item.aturanPakai || null // Save pharmacy usage instructions
             }));
 
             // Prepare payment_details for snapshotting points and other meta
@@ -2213,7 +2256,11 @@ export const DataProvider = ({ children }) => {
                 p_date: transactionData.date || new Date().toISOString(),
                 p_shift_id: transactionData.shiftId || null,
                 p_cashier_id: transactionData.cashierId || null,
-                p_cashier_name: transactionData.cashier || null
+                p_cashier_name: transactionData.cashier || null,
+                p_patient_name: transactionData.patient_name || null,
+                p_doctor_name: transactionData.doctor_name || null,
+                p_prescription_number: transactionData.prescription_number || null,
+                p_tuslah_fee: transactionData.tuslah_fee || 0
             });
 
             if (error) throw error;
@@ -2640,6 +2687,7 @@ export const DataProvider = ({ children }) => {
                         type: prod.type || 'product',
                         discount: prod.discount || 0,
                         discount_type: prod.discountType || 'percent',
+                        units: prod.units || [], // Include units in bulk insert
                         is_deleted: false
                     });
 

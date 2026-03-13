@@ -13,9 +13,11 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import AlertDialog from '../components/AlertDialog';
 import CustomerTransactionHistory from '../components/CustomerTransactionHistory';
 import CustomerFormDialog from '../components/CustomerFormDialog';
+import { useBusinessType } from '../hooks/useBusinessType';
 
 const Customers = () => {
     const { checkPermission } = useAuth();
+    const { term } = useBusinessType();
     const { customers, transactions, addCustomer, updateCustomer, deleteCustomer } = useData();
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -140,13 +142,13 @@ const Customers = () => {
         <div className="p-4 space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Pelanggan</h1>
-                    <p className="text-muted-foreground">Kelola database pelanggan Anda</p>
+                    <h1 className="text-2xl font-bold tracking-tight">{term('customer')}</h1>
+                    <p className="text-muted-foreground">Kelola database {term('customer').toLowerCase()} Anda</p>
                 </div>
                 {checkPermission('customers.create') && (
                     <Button onClick={() => handleOpenModal()} className="w-full sm:w-auto">
                         <Plus className="mr-2 h-4 w-4" />
-                        Tambah Pelanggan
+                        Tambah {term('customer')}
                     </Button>
                 )}
             </div>
@@ -155,7 +157,7 @@ const Customers = () => {
                 <div className="relative flex-1 max-w-sm">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Cari pelanggan..."
+                        placeholder={`Cari ${term('customer').toLowerCase()}...`}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
@@ -205,7 +207,7 @@ const Customers = () => {
                             {currentCustomers.length === 0 ? (
                                 <TableRow>
                                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                                        Tidak ada pelanggan ditemukan
+                                        Tidak ada data {term('customer').toLowerCase()}
                                     </TableCell>
                                 </TableRow>
                             ) : (
@@ -289,7 +291,7 @@ const Customers = () => {
             <div className="lg:hidden space-y-4">
                 {currentCustomers.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground bg-white rounded-xl border">
-                        Tidak ada pelanggan ditemukan
+                        Tidak ada data {term('customer').toLowerCase()}
                     </div>
                 ) : (
                     currentCustomers.map((customer) => (
@@ -391,8 +393,8 @@ const Customers = () => {
                 isOpen={isDeleteOpen}
                 onClose={() => setIsDeleteOpen(false)}
                 onConfirm={confirmDelete}
-                title="Hapus Pelanggan"
-                description={`Apakah Anda yakin ingin menghapus pelanggan "${customerToDelete?.name}" ? Tindakan ini tidak dapat dibatalkan.`}
+                title={`Hapus ${term('customer')}`}
+                description={`Apakah Anda yakin ingin menghapus ${term('customer').toLowerCase()} "${customerToDelete?.name}" ? Tindakan ini tidak dapat dibatalkan.`}
                 confirmText="Hapus"
                 variant="destructive"
             />

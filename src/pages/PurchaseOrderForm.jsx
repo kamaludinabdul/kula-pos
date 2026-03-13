@@ -41,6 +41,7 @@ import {
     DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
 import { getRecommendationReasoning } from '../utils/ai';
+import useBusinessType from '../hooks/useBusinessType';
 
 const PurchaseOrderForm = () => {
     const { id } = useParams();
@@ -48,6 +49,7 @@ const PurchaseOrderForm = () => {
     const location = useLocation();
     const { toast } = useToast();
     const { suppliers, products, addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, purchaseOrders, stores, activeStoreId, fetchAllProducts, currentStore } = useData();
+    const { checkSetting } = useBusinessType();
 
     const isEditMode = !!id;
     const [loading, setLoading] = useState(false);
@@ -921,7 +923,9 @@ const PurchaseOrderForm = () => {
                                     <TableHead className="w-[150px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Harga Beli PO</TableHead>
                                     <TableHead className="w-[120px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">QTY PCS</TableHead>
                                     <TableHead className="w-[150px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">Harga Satuan</TableHead>
-                                    <TableHead className="w-[150px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Expired Date</TableHead>
+                                    {checkSetting('enableExpiryTracking') && (
+                                        <TableHead className="w-[150px] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Expired Date</TableHead>
+                                    )}
                                     <TableHead className="w-[150px] text-right text-[10px] font-bold uppercase tracking-widest text-slate-500 pr-6">Subtotal</TableHead>
                                     {!isReadOnly && <TableHead className="w-[50px]"></TableHead>}
                                 </TableRow>
@@ -1003,15 +1007,17 @@ const PurchaseOrderForm = () => {
                                                         return <span className="font-bold text-slate-900">Rp {(Number(item.buyPrice) || 0).toLocaleString('id-ID')}</span>;
                                                     })()}
                                                 </TableCell>
-                                                <TableCell className="text-center">
-                                                    <Input
-                                                        type="date"
-                                                        value={item.expiredDate || ''}
-                                                        onChange={e => updateItem(index, 'expiredDate', e.target.value)}
-                                                        disabled={isReadOnly}
-                                                        className="h-9 w-[130px] mx-auto text-sm rounded-lg border-slate-200"
-                                                    />
-                                                </TableCell>
+                                                {checkSetting('enableExpiryTracking') && (
+                                                    <TableCell className="text-center">
+                                                        <Input
+                                                            type="date"
+                                                            value={item.expiredDate || ''}
+                                                            onChange={e => updateItem(index, 'expiredDate', e.target.value)}
+                                                            disabled={isReadOnly}
+                                                            className="h-9 w-[130px] mx-auto text-sm rounded-lg border-slate-200"
+                                                        />
+                                                    </TableCell>
+                                                )}
                                                 <TableCell className="text-right font-extrabold text-slate-900 pr-6">
                                                     Rp {(item.subtotal || 0).toLocaleString('id-ID')}
                                                 </TableCell>
@@ -1095,16 +1101,18 @@ const PurchaseOrderForm = () => {
                                                     <p className="text-[10px] text-slate-500 ml-1 mt-1">@ Rp {(Number(item.buyPrice) || 0).toLocaleString('id-ID')} / {itemUnit}</p>
                                                 )}
                                             </div>
-                                            <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Expired Date (Opsional)</label>
-                                                <Input
-                                                    type="date"
-                                                    value={item.expiredDate || ''}
-                                                    onChange={e => updateItem(index, 'expiredDate', e.target.value)}
-                                                    disabled={isReadOnly}
-                                                    className="h-10 rounded-xl border-slate-200 focus:ring-indigo-500"
-                                                />
-                                            </div>
+                                             {checkSetting('enableExpiryTracking') && (
+                                                <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Expired Date (Opsional)</label>
+                                                    <Input
+                                                        type="date"
+                                                        value={item.expiredDate || ''}
+                                                        onChange={e => updateItem(index, 'expiredDate', e.target.value)}
+                                                        disabled={isReadOnly}
+                                                        className="h-10 rounded-xl border-slate-200 focus:ring-indigo-500"
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="bg-slate-50/50 rounded-xl p-3 flex justify-between items-center border border-slate-50">

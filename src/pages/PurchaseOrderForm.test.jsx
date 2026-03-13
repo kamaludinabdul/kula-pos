@@ -21,7 +21,22 @@ vi.mock('../components/ui/use-toast', () => ({
     useToast: () => ({ toast: mockToast }),
 }));
 
-
+vi.mock('../hooks/useBusinessType', () => ({
+    default: () => ({
+        term: (key) => key,
+        checkSetting: () => true,
+        showField: () => true,
+        type: 'general',
+        config: { productFields: [] }
+    }),
+    useBusinessType: () => ({
+        term: (key) => key,
+        checkSetting: () => true,
+        showField: () => true,
+        type: 'general',
+        config: { productFields: [] }
+    })
+}));
 
 // Mock DataContext
 const mockAddPurchaseOrder = vi.fn();

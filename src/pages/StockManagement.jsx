@@ -29,8 +29,11 @@ import {
 } from "../components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
+import useBusinessType from '../hooks/useBusinessType';
+
 const StockManagement = () => {
     const { products, categories, addStockBatch, reduceStockFIFO, bulkUpdateStock, deleteProduct, fetchAllProducts, activeStoreId } = useData();
+    const { checkSetting } = useBusinessType();
 
     // Fetch all products for stock management
     React.useEffect(() => {
@@ -972,15 +975,17 @@ const StockManagement = () => {
                                     placeholder="Kosongkan jika tidak berubah"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="addExpiredDate">Tanggal Kedaluwarsa (Opsional)</Label>
-                                <Input
-                                    id="addExpiredDate"
-                                    type="date"
-                                    value={addExpiredDate}
-                                    onChange={(e) => setAddExpiredDate(e.target.value)}
-                                />
-                            </div>
+                            {checkSetting('enableExpiryTracking') && (
+                                <div className="space-y-2">
+                                    <Label htmlFor="addExpiredDate">Tanggal Kedaluwarsa (Opsional)</Label>
+                                    <Input
+                                        id="addExpiredDate"
+                                        type="date"
+                                        value={addExpiredDate}
+                                        onChange={(e) => setAddExpiredDate(e.target.value)}
+                                    />
+                                </div>
+                            )}
                             <div className="space-y-2">
                                 <Label htmlFor="addNote">Keterangan</Label>
                                 <Textarea

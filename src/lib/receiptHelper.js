@@ -266,3 +266,116 @@ export const printReceiptBrowser = (transaction, store) => {
         alert("Gagal mencetak struk di browser: " + e.message);
     }
 };
+
+export const generateEtiketHtml = (item, transaction, store) => {
+    return `
+        <html>
+            <head>
+                <title>Etiket - ${item.name}</title>
+                <style>
+                    @page { size: auto; margin: 0mm; }
+                    body { 
+                        font-family: 'Courier New', monospace;
+                        background-color: #fff;
+                        width: 48mm; 
+                        margin: 0 auto; 
+                        padding: 5px;
+                        color: #000;
+                        font-size: 11px;
+                        line-height: 1.2;
+                    }
+                    .header { text-align: center; border-bottom: 1px solid #000; padding-bottom: 3px; margin-bottom: 5px; }
+                    .store-name { font-size: 12px; font-weight: bold; text-transform: uppercase; }
+                    .patient-info { margin-bottom: 5px; font-weight: bold; font-size: 12px; }
+                    .medicine-name { font-size: 11px; margin-bottom: 3px; border-bottom: 1px dashed #ccc; padding-bottom: 2px; }
+                    .usage { font-size: 16px; font-weight: bold; text-align: center; margin: 8px 0; border: 1px solid #000; padding: 5px; }
+                    .footer { text-align: center; margin-top: 8px; font-size: 9px; font-style: italic; }
+                    .date { font-size: 9px; text-align: right; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div class="store-name">${store?.name || 'Apotek'}</div>
+                    <div style="font-size: 8px;">${store?.address || ''}</div>
+                </div>
+
+                <div class="date">${formatDate(transaction.date)}</div>
+                
+                <div class="patient-info">
+                    Pasien: ${transaction.customerName || transaction.prescriptionData?.patientName || 'Umum'}
+                </div>
+
+                <div class="medicine-name">
+                    <strong>${item.name}</strong>
+                    <div style="font-size: 9px; color: #666;">Qty: ${item.qty} ${item.unit || 'Pcs'}</div>
+                </div>
+
+                <div class="usage">
+                    ${item.aturanPakai || item.aturan_pakai || 'Sesuai Petunjuk Dokter'}
+                </div>
+
+                <div class="footer">
+                    Semoga Cepat Sembuh
+                </div>
+
+                <script>
+                    window.onload = function() { 
+                        setTimeout(function() {
+                            window.print();
+                        }, 500);
+                    }
+                </script>
+            </body>
+        </html>
+    `;
+};
+
+export const printEtiketBrowser = (items, transaction, store) => {
+    try {
+        let iframe = document.getElementById('print-iframe');
+        if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.id = 'print-iframe';
+            iframe.style.position = 'absolute';
+            iframe.style.width = '0px';
+            iframe.style.height = '0px';
+            iframe.style.border = 'none';
+            document.body.appendChild(iframe);
+        }
+
+        // Print each item as a separate page if possible, or just build one long HTML
+        // For thermal printers, one long HTML with page breaks is best
+        const fullHtml = `
+            <html>
+                <body>
+                    ${items.map(item => `
+                        <div style="page-break-after: always; min-height: 40mm;">
+                            ${generateEtiketHtml(item, transaction, store).replace('<html>', '').replace('</html>', '').replace('<body>', '').replace('</body>', '')}
+                        </div>
+                    `).join('')}
+                    <script>
+                        window.onload = function() { 
+                            setTimeout(function() {
+                                window.print();
+                            }, 800);
+                        }
+                    </script>
+                </body>
+            </html>
+        `;
+
+        const doc = iframe.contentWindow?.document || iframe.contentDocument;
+        doc.open();
+        doc.write(fullHtml);
+        doc.close();
+
+        setTimeout(() => {
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+        }, 1200);
+
+    } catch (e) {
+        console.error("Error printing etiket:", e);
+        alert("Gagal mencetak etiket: " + e.message);
+    }
+};

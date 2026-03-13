@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.24.0] - 2026-03-13
+
+### Added
+- **Business Type Audit**: Successfully audited and hardened the application for multi-business types.
+  - Restricted pharmacy-only menus (Defecta, Laporan Kadaluwarsa) for general stores.
+  - Added conditional visibility for Expiry Date tracking in Stock Management and PO forms.
+- **Unit Testing**: Implemented a comprehensive test suite for `useBusinessType.js` (5 core test cases) to ensure term mapping and feature gating accuracy.
+
+### Fixed
+- **UI FX**: Fixed focus ring clipping in the "Keterangan" (Description) textarea within Cash Flow modals.
+- **Navigation**: Resolved inconsistencies between `checkFeature` and `checkSetting` in the sidebar and routing layers.
+
 ## [0.23.0] - 2026-03-09
 ### Changed
 - Bumped version to 0.23.0

@@ -636,24 +636,43 @@ export const AuthProvider = ({ children }) => {
         return { success: true };
     };
 
-    const signup = async (email, password, name, storeName, businessType = 'general') => {
+    const signup = async (email, password, name, storeName, businessType = 'general', captchaToken = null) => {
         // We now handle Store & Profile creation via Database Trigger (handle_new_user)
         // Check supabase_schema.sql for the logic.
-        const { error } = await supabase.auth.signUp({
+        const signUpOptions = {
+            data: {
+                name,
+                store_name: storeName, // Trigger looks for this to create store
+                role: 'owner',
+                business_type: businessType // Trigger stores this in stores table
+            }
+        };
+
+        // Include CAPTCHA token if provided (Cloudflare Turnstile)
+        if (captchaToken) {
+            signUpOptions.captchaToken = captchaToken;
+        }
+
+        const { data, error } = await supabase.auth.signUp({
             email,
             password,
-            options: {
-                data: {
-                    name,
-                    store_name: storeName, // Trigger looks for this to create store
-                    role: 'owner',
-                    business_type: businessType // Trigger stores this in stores table
-                }
-            }
+            options: signUpOptions
         });
 
         if (error) return { success: false, message: error.message };
-        return { success: true };
+
+        // Check if email confirmation is required
+        // When "Confirm email" is enabled in Supabase, the user object exists
+        // but identities array is empty or email_confirmed_at is null
+        if (data?.user && !data.user.email_confirmed_at) {
+            return { 
+                success: true, 
+                requiresConfirmation: true,
+                message: 'Registrasi berhasil! Silakan cek email Anda untuk konfirmasi akun.'
+            };
+        }
+
+        return { success: true, requiresConfirmation: false };
     };
 
 

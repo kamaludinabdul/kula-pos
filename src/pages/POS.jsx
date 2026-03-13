@@ -11,7 +11,7 @@ import { constructTransactionData } from '../lib/transactionLogic';
 import { calculateLoyaltyPoints, calculateStampUpdates } from '../lib/loyaltyLogic';
 
 import { usePOS } from '../hooks/usePOS';
-import { printReceiptBrowser } from '../lib/receiptHelper';
+import { printReceiptBrowser, printEtiketBrowser } from '../lib/receiptHelper';
 import { cn } from '../lib/utils';
 
 // Components
@@ -115,12 +115,12 @@ const POS = () => {
     const [selectedRentalProduct, setSelectedRentalProduct] = useState(null);
 
     // Wrapper to intercept rental products
-    const handleProductClick = (product) => {
+    const handleProductClick = (product, unit = null) => {
         if (product.pricingType === 'hourly' || product.pricingType === 'minutely') {
             setSelectedRentalProduct(product);
             setIsRentalDialogOpen(true);
         } else {
-            addToCart(product);
+            addToCart(product, unit);
         }
     };
 
@@ -364,13 +364,32 @@ const POS = () => {
     // --- Handlers ---
 
     const handleBarcodeScan = (code) => {
-        const product = products.find(p =>
-            (p.code && p.code.toLowerCase() === code.toLowerCase()) ||
-            (p.barcode && p.barcode.toLowerCase() === code.toLowerCase())
-        );
+        const scanCode = code.toLowerCase();
+        let foundProduct = null;
+        let foundUnit = null;
 
-        if (product) {
-            addToCart(product);
+        // Search through all products
+        for (const p of products) {
+            // Check base barcode/code
+            if ((p.code && p.code.toLowerCase() === scanCode) ||
+                (p.barcode && p.barcode.toLowerCase() === scanCode)) {
+                foundProduct = p;
+                break;
+            }
+
+            // Check sub-units barcodes if they exist
+            if (p.units && Array.isArray(p.units)) {
+                const matchedUnit = p.units.find(u => u.barcode && u.barcode.toLowerCase() === scanCode);
+                if (matchedUnit) {
+                    foundProduct = p;
+                    foundUnit = matchedUnit;
+                    break;
+                }
+            }
+        }
+
+        if (foundProduct) {
+            addToCart(foundProduct, foundUnit);
             const audio = new Audio('/beep.mp3');
             audio.play().catch(() => { });
             setSearchQuery('');
@@ -413,6 +432,19 @@ const POS = () => {
         }
 
         printReceiptBrowser(lastTransaction, config);
+    }, [lastTransaction, currentStore]);
+
+    const handlePrintEtiket = useCallback(async () => {
+        if (!lastTransaction || !lastTransaction.items) return;
+
+        const config = {
+            ...currentStore,
+            ...(currentStore?.settings || {})
+        };
+
+        // For etiket, we only print items that have aturanPakai (or all pharmacy items if needed)
+        // Let's print all items in the transaction for pharmacy
+        printEtiketBrowser(lastTransaction.items, lastTransaction, config);
     }, [lastTransaction, currentStore]);
 
     // --- Memoized Loyalty/Stamp Results for Modal ---
@@ -721,6 +753,7 @@ const POS = () => {
                         discountType={discountType}
                         discountValue={discountValue}
                         onDiscountChange={(val, type) => { setDiscountValue(val); setDiscountType(type); }}
+                        enableDiscount={currentStore?.enableDiscount}
 
                         onCheckout={handleCheckout}
 
@@ -732,6 +765,10 @@ const POS = () => {
 
                         prescriptionData={prescriptionData}
                         setPrescriptionData={setPrescriptionData}
+
+                        // New Props for Compounding
+                        products={products}
+                        onAddToCart={addToCart}
                     />
                 </div>
 
@@ -758,6 +795,7 @@ const POS = () => {
                 paymentSuccess={paymentSuccess}
                 lastTransaction={lastTransaction}
                 onPrintReceipt={handlePrintReceipt}
+                onPrintEtiket={handlePrintEtiket}
                 onDownloadReceipt={() => { }}
                 onCloseSuccess={() => { setIsCheckoutOpen(false); clearCart(); setPaymentSuccess(false); }}
                 store={{ ...currentStore, ...storeSettings }}
@@ -816,7 +854,8 @@ const POS = () => {
             <DiscountPinDialog
                 isOpen={isDiscountPinOpen}
                 onClose={() => setIsDiscountPinOpen(false)}
-                onSuccess={() => { setIsDiscountPinOpen(false); if (pendingCheckout) handleCheckout(); }}
+                onConfirm={() => { setIsDiscountPinOpen(false); if (pendingCheckout) handleCheckout(); }}
+                expectedPin={currentStore?.discountPin}
             />
 
             <RentalDurationDialog

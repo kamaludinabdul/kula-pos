@@ -78,7 +78,11 @@ export const REQUIRED_PLANS = {
     'features.ai_budgeting': 'enterprise',
     'features.ai_pricing': 'enterprise',
     'features.ai_fraud_detection': 'enterprise',
-    'features.telegram_reports': 'enterprise'
+    'features.telegram_reports': 'enterprise',
+
+    // Pharmacy Specific
+    'pharmacy.prescriptions': 'pro',
+    'pharmacy.multi_unit': 'pro'
 };
 
 export const checkPlanAccess = (currentPlan, requiredPlan) => {
@@ -91,7 +95,7 @@ export const checkPlanAccess = (currentPlan, requiredPlan) => {
  * Checks if a plan has access to a specific feature, 
  * prioritized by dynamic plan data if provided.
  */
-export const hasFeatureAccess = (currentPlan, feature, dynamicPlans = null) => {
+export const hasFeatureAccess = (currentPlan, feature, dynamicPlans = null, businessType = 'general') => {
     // Feature Aliasing: Some features automatically grant others
     // e.g. Having 'settings.loyalty' also grants 'reports.loyalty'
     const ALIAS_MAP = {
@@ -99,9 +103,9 @@ export const hasFeatureAccess = (currentPlan, feature, dynamicPlans = null) => {
         'reports.performance': 'settings.sales_performance'
     };
 
-    const checkSingle = (feat) => {
-        if (dynamicPlans && dynamicPlans[currentPlan]) {
-            const planData = dynamicPlans[currentPlan];
+    const checkSingle = (planId, feat) => {
+        if (dynamicPlans && dynamicPlans[planId]) {
+            const planData = dynamicPlans[planId];
             if (planData.features && planData.features.includes(feat)) {
                 return true;
             }
@@ -110,10 +114,19 @@ export const hasFeatureAccess = (currentPlan, feature, dynamicPlans = null) => {
     };
 
     // 1. Check direct access (dynamic)
-    if (checkSingle(feature)) return true;
+    // Priority: 
+    // a. Business-specific ID (e.g. 'pharmacy_pro')
+    // b. Base ID (e.g. 'pro')
+    const businessSpecificPlanId = businessType !== 'general' ? `${businessType}_${currentPlan}` : currentPlan;
+
+    if (checkSingle(businessSpecificPlanId, feature)) return true;
+    if (checkSingle(currentPlan, feature)) return true;
 
     // 2. Check aliased access (dynamic)
-    if (ALIAS_MAP[feature] && checkSingle(ALIAS_MAP[feature])) return true;
+    if (ALIAS_MAP[feature]) {
+        if (checkSingle(businessSpecificPlanId, ALIAS_MAP[feature])) return true;
+        if (checkSingle(currentPlan, ALIAS_MAP[feature])) return true;
+    }
 
     // 3. Fallback to hardcoded level-based check
     const requiredPlan = getRequiredPlanForFeature(feature);

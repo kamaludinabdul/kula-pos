@@ -61,7 +61,8 @@ const AccessSettings = () => {
                 { id: 'reports.loyalty', label: 'Laporan Poin' },
                 { id: 'reports.performance', label: 'Sales Performance' },
                 { id: 'reports.expiry', label: 'Laporan Kadaluarsa' },
-                { id: 'reports.customer_profiling', label: 'Profiling Pelanggan' },
+                { id: 'reports.defecta', label: 'Laporan Defecta' },
+                { id: 'reports.patient_history', label: 'Riwayat Obat Pasien' },
                 { id: 'reports.pet_hotel_fee', label: 'Laporan Pet Hotel' },
             ]
         },
@@ -104,7 +105,7 @@ const AccessSettings = () => {
                         'products.list', 'products.categories', 'products.stock', 'products.stock_opname', 'products.customers',
                         'reports.profit_loss', 'reports.sales_items', 'reports.top_selling', 'reports.sales_categories',
                         'reports.inventory_value', 'reports.shifts', 'reports.expenses', 'reports.loyalty', 'reports.performance',
-                        'reports.expiry', 'reports.customer_profiling', 'reports.pet_hotel_fee',
+                        'reports.expiry', 'reports.defecta', 'reports.patient_history', 'reports.customer_profiling', 'reports.pet_hotel_fee',
                         'finance.cash_flow', 'transactions.void', 'transactions.refund',
                         'smart_insights', 'smart_insights.analysis',
                         'others.staff', 'others.login_history',

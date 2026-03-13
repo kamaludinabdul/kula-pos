@@ -1,8 +1,9 @@
 import { useData } from '../context/DataContext';
 import { BUSINESS_TYPES } from '../config/businessTypes';
+import { hasFeatureAccess } from '../utils/plans';
 
 export function useBusinessType() {
-    const { currentStore } = useData();
+    const { currentStore, plans } = useData();
     // Default to 'general' if business_type is null or missing
     const type = currentStore?.business_type || 'general';
 
@@ -15,6 +16,10 @@ export function useBusinessType() {
 
         // Helper methods for clean logic gates
         hasFeature: (feat) => config.features.includes(feat),
+
+        // Check if the current plan HAS the feature (Dynamic & Multi-Business aware)
+        hasPlanFeature: (feat) => hasFeatureAccess(currentStore?.plan || 'free', feat, plans, type),
+
         term: (key) => config.terminology[key] || key,
         showField: (field) => config.productFields.includes(field),
         setting: (key) => config.settings[key],
