@@ -23,6 +23,7 @@ export function useBusinessType() {
         term: (key) => config.terminology[key] || key,
         showField: (field) => config.productFields.includes(field),
         setting: (key) => config.settings[key],
+        checkSetting: (key) => config.settings[key],
 
         // Convenience boolean flags
         isGeneral: type === 'general',
