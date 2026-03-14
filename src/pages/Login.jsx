@@ -66,7 +66,7 @@ const Login = () => {
             <Card className="w-full max-w-md shadow-2xl">
                 <CardHeader className="space-y-4 text-center pb-8">
                     <div className="mx-auto w-48 h-24 flex items-center justify-center mb-4">
-                        <img src="/logo.png" alt="KULA Logo" className="w-full h-full object-contain drop-shadow-xl" />
+                        <img src="/logo.png" alt="KULA Logo" className="w-full h-full object-contain" />
                     </div>
                     <div>
 

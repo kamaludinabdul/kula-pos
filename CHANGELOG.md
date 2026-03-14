@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.25.1] - 2026-03-14
+### Changed
+- Bumped version to 0.25.1
+
 ## [0.25.0] - 2026-03-14
 
 ### Added

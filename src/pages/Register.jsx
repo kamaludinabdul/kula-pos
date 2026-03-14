@@ -191,7 +191,7 @@ const Register = () => {
             <Card className="w-full max-w-md shadow-xl border-slate-200">
                 <CardHeader className="space-y-1 text-center">
                     <div className="mx-auto w-40 h-20 flex items-center justify-center mb-4">
-                        <img src="/logo.png" alt="KULA Logo" className="w-full h-full object-contain drop-shadow-lg" />
+                        <img src="/logo.png" alt="KULA Logo" className="w-full h-full object-contain" />
                     </div>
                     <CardTitle className="text-2xl font-bold text-slate-900">Daftarkan Toko Anda</CardTitle>
                     <CardDescription>

@@ -8,6 +8,15 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        "version": "0.25.1",
+        "date": "2026-03-14",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.25.1"
+        ]
+    },
+    {
         "version": "0.25.0",
         "date": "2026-03-14",
         "type": "minor",
