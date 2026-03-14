@@ -13,7 +13,7 @@ vi.mock('../context/AuthContext', () => ({
 // Mock TurnstileWidget to bypass CAPTCHA requirement
 vi.mock('../components/TurnstileWidget', () => ({
     __esModule: true,
-    default: React.forwardRef(({ onVerify }) => {
+    default: React.forwardRef(function MockTurnstile({ onVerify }) {
         // Automatically trigger verification in tests if needed, 
         // or just render a dummy div.
         React.useEffect(() => {

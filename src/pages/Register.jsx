@@ -7,6 +7,7 @@ import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { Store, User, Mail, Lock, Loader2, ArrowRight, Eye, EyeOff, UtensilsCrossed, Pill, PawPrint, Timer, Shirt, CheckCircle2, MailCheck, Circle } from 'lucide-react';
 import TurnstileWidget from '../components/TurnstileWidget';
+import { supabase } from '../supabase';
 
 const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 
@@ -92,6 +93,21 @@ const Register = () => {
         }
 
         try {
+            // Check if email already exists in profiles (staff or owner)
+            const { data: checkData, error: checkError } = await supabase
+                .rpc('check_staff_conflict', {
+                    p_email: formData.email,
+                    p_target_store_id: '00000000-0000-0000-0000-000000000000' // Use dummy ID to force conflict status if email exists
+                });
+
+            if (checkError) {
+                console.error("Uniqueness check failed:", checkError);
+            } else if (checkData && (checkData.status === 'conflict' || checkData.status === 'same_store')) {
+                setError(`Email ini sudah terdaftar sebagai ${checkData.current_role} di ${checkData.current_store_name || 'toko lain'}. Silakan gunakan email lain.`);
+                setLoadingState(false);
+                return;
+            }
+
             const result = await signup(
                 formData.email,
                 formData.password,

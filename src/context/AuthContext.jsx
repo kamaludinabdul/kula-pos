@@ -586,8 +586,17 @@ export const AuthProvider = ({ children }) => {
     };
 
     // --- Auth Actions ---
-    const login = async (email, password) => {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const login = async (email, password, captchaToken = null) => {
+        const signInOptions = {};
+        if (captchaToken) {
+            signInOptions.captchaToken = captchaToken;
+        }
+
+        const { data, error } = await supabase.auth.signInWithPassword({ 
+            email, 
+            password,
+            options: signInOptions
+        });
         if (error) {
             console.error("Login Error:", error);
             let message = error.message;

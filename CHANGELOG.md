@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.25.0] - 2026-03-14
+
+### Added
+- **Reset Password Security**: Enhanced `ResetPassword.jsx` with full password complexity requirements (length, case, numbers, symbols) and a show/hide visibility toggle.
+- **Registration Safeguard**: Added pre-signup validation to block existing staff/cashiers from registering new accounts with the same email, improving user management integrity.
+- **CAPTCHA Integration**: Added Cloudflare Turnstile CAPTCHA to both **Registration** and **Login** pages to protect against brute-force and automated attacks.
+
+### Fixed
+- **Production Store Creation**: Resolved a critical issue where new owners had no stores created and incorrect terminology ("Barang" instead of "Obat") due to missing `business_type` and plan columns in the `stores` table.
+- **Signup Automation**: Updated the `handle_new_user` trigger to robustly handle business type assignment and trial period initialization.
+- **Audit Logging**: Restored the missing `insert_audit_log` RPC function in the production environment.
+- **Security Posture**: Enabled RLS on the `debug_logs` table and relocated the `pg_trgm` extension to the `extensions` schema to follow security best practices.
+
 ## [0.24.0] - 2026-03-13
 
 ### Added

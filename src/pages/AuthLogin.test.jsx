@@ -15,6 +15,17 @@ vi.mock('react-router-dom', async () => {
     return { ...actual, useNavigate: () => mockNavigate };
 });
 
+// Mock TurnstileWidget to bypass CAPTCHA requirement
+vi.mock('../components/TurnstileWidget', () => ({
+    __esModule: true,
+    default: function MockTurnstile({ onVerify }) {
+        React.useEffect(() => {
+            onVerify?.('mock-token');
+        }, [onVerify]);
+        return <div data-testid="mock-turnstile" />;
+    }
+}));
+
 describe('Login Page', () => {
     const mockLogin = vi.fn();
     beforeEach(() => {
@@ -38,6 +49,6 @@ describe('Login Page', () => {
         const loginBtn = screen.getByRole('button', { name: /Masuk/i });
         fireEvent.click(loginBtn);
         
-        await waitFor(() => expect(mockLogin).toHaveBeenCalledWith('test@kula.com', 'pass123'));
+        await waitFor(() => expect(mockLogin).toHaveBeenCalledWith('test@kula.com', 'pass123', 'mock-token'));
     });
 });

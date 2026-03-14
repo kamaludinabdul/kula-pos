@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { Button } from '../components/ui/button';
@@ -6,18 +6,33 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
-import { Lock, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Lock, Loader2, CheckCircle2, AlertTriangle, Eye, EyeOff, Circle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const ResetPassword = () => {
     const navigate = useNavigate();
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null);
     const [error, setError] = useState(null);
     const [hasValidSession, setHasValidSession] = useState(false);
     const [checking, setChecking] = useState(true);
+
+    // Password strength criteria
+    const passwordCriteria = useMemo(() => {
+        return [
+            { label: 'Minimal 8 karakter', met: password.length >= 8 },
+            { label: 'Huruf besar (A-Z)', met: /[A-Z]/.test(password) },
+            { label: 'Huruf kecil (a-z)', met: /[a-z]/.test(password) },
+            { label: 'Angka (0-9)', met: /[0-9]/.test(password) },
+            { label: 'Karakter spesial (!@#$%^&*)', met: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password) },
+        ];
+    }, [password]);
+
+    const allCriteriaMet = passwordCriteria.every(c => c.met);
 
     // Check if we have a valid recovery session
     useEffect(() => {
@@ -85,8 +100,8 @@ const ResetPassword = () => {
             return;
         }
 
-        if (password.length < 6) {
-            setError('Password minimal 6 karakter');
+        if (!allCriteriaMet) {
+            setError('Password belum memenuhi semua kriteria keamanan.');
             return;
         }
 
@@ -167,28 +182,65 @@ const ResetPassword = () => {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="password">Password Baru</Label>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    placeholder="Minimal 6 karakter"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                    minLength={6}
-                                />
+                                <div className="relative">
+                                    <Input
+                                        id="password"
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="Min. 8 karakter + Huruf Besar/Kecil + Angka"
+                                        className="pr-10"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                    >
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
+                                </div>
                             </div>
+
+                            {/* Password Strength Checklist */}
+                            {password.length > 0 && (
+                                <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 space-y-1.5 mt-2">
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Kriteria Keamanan</p>
+                                    {passwordCriteria.map((criteria, idx) => (
+                                        <div key={idx} className={`flex items-center gap-2 text-sm transition-colors duration-200 ${criteria.met ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                            {criteria.met ? (
+                                                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                                            ) : (
+                                                <Circle className="h-4 w-4 shrink-0" />
+                                            )}
+                                            <span className={criteria.met ? 'font-medium' : ''}>{criteria.label}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
                             <div className="space-y-2">
                                 <Label htmlFor="confirmPassword">Konfirmasi Password</Label>
-                                <Input
-                                    id="confirmPassword"
-                                    type="password"
-                                    placeholder="Ulangi password"
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                    required
-                                />
+                                <div className="relative">
+                                    <Input
+                                        id="confirmPassword"
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        placeholder="Ulangi password"
+                                        className="pr-10"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 focus:outline-none"
+                                    >
+                                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </button>
+                                </div>
                             </div>
-                            <Button type="submit" className="w-full" disabled={loading}>
+                            <Button type="submit" className="w-full" disabled={loading || !allCriteriaMet}>
                                 {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                 Simpan Password Baru
                             </Button>

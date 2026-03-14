@@ -6,6 +6,9 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '../components/ui/card';
+import TurnstileWidget from '../components/TurnstileWidget';
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -13,6 +16,7 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [captchaToken, setCaptchaToken] = useState(null);
 
     const { login, user, loading } = useAuth();
     const navigate = useNavigate();
@@ -35,12 +39,18 @@ const Login = () => {
             return;
         }
 
+        if (TURNSTILE_SITE_KEY && !captchaToken) {
+            setError('Silakan selesaikan verifikasi CAPTCHA.');
+            setIsLoading(false);
+            return;
+        }
+
         let finalEmail = email.trim();
         if (finalEmail && !finalEmail.includes('@')) {
             finalEmail = `${finalEmail.toLowerCase().replace(/\s+/g, '')}@kula.id`;
         }
 
-        const result = await login(finalEmail, password);
+        const result = await login(finalEmail, password, captchaToken);
 
         if (result.success) {
             // Navigate to root to let RootRedirect component handle the destination based on role
@@ -121,6 +131,17 @@ const Login = () => {
                                 </button>
                             </div>
                         </div>
+
+                        {TURNSTILE_SITE_KEY && (
+                            <div className="flex justify-center py-2">
+                                <TurnstileWidget
+                                    siteKey={TURNSTILE_SITE_KEY}
+                                    onVerify={setCaptchaToken}
+                                    onExpire={() => setCaptchaToken(null)}
+                                    onError={() => setCaptchaToken(null)}
+                                />
+                            </div>
+                        )}
 
                         <Button
                             type="submit"

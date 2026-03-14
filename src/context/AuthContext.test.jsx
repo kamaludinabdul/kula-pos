@@ -144,7 +144,8 @@ describe('AuthContext - Login', () => {
 
         expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
             email: 'test@kula.com',
-            password: 'mypassword'
+            password: 'mypassword',
+            options: {}
         });
         expect(response.success).toBe(true);
     });

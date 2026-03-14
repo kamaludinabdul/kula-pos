@@ -1,6 +1,10 @@
 -- SCHEMA CORRECTIONS
 ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS image_url TEXT;
 ALTER TABLE public.loyalty_history ADD COLUMN IF NOT EXISTS store_id UUID REFERENCES stores(id) ON DELETE CASCADE;
+ALTER TABLE public.stores ADD COLUMN IF NOT EXISTS business_type TEXT DEFAULT 'general';
+ALTER TABLE public.stores ADD COLUMN IF NOT EXISTS plan_expiry_date TIMESTAMPTZ;
+ALTER TABLE public.stores ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ;
+ALTER TABLE public.stores ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'free';
 NOTIFY pgrst, 'reload schema';
 
 
