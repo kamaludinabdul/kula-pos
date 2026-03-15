@@ -15,8 +15,10 @@ BEGIN
         WHERE id = auth.uid() AND (role = 'super_admin' OR id = p_owner_id)
     ) THEN
         RETURN QUERY
-        SELECT * FROM public.customers
-        WHERE store_id IN (
+        SELECT c.*, s.name as branch_name
+        FROM public.customers c
+        JOIN public.stores s ON c.store_id = s.id
+        WHERE c.store_id IN (
             SELECT id FROM public.stores WHERE owner_id = p_owner_id
         );
     ELSE

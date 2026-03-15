@@ -40,7 +40,7 @@ export const calculateActivePromotions = (promotions, cart, rawTotal, products =
                     const price = Number(product?.sellPrice || product?.price) || 0;
                     return sum + price;
                 }, 0);
-                const bundlePrice = Number(promo.value) || 0;
+                const bundlePrice = Number(promo.value !== undefined ? promo.value : promo.discountValue) || 0;
                 const oneSetDiscount = Math.max(0, oneSetNormalPrice - bundlePrice);
                 const multiplier = (promo.allowMultiples === false) ? 1 : minSets;
                 potentialDiscount = oneSetDiscount * multiplier;
@@ -55,13 +55,14 @@ export const calculateActivePromotions = (promotions, cart, rawTotal, products =
         else if (promo.type === 'percentage' && (!promo.targetType || promo.targetType === 'transaction')) {
             if (rawTotal >= (Number(promo.minPurchase) || 0)) {
                 isApplicable = true;
-                potentialDiscount = rawTotal * (Number(promo.value || 0) / 100);
+                const pValue = Number(promo.value !== undefined ? promo.value : promo.discountValue) || 0;
+                potentialDiscount = rawTotal * (pValue / 100);
             }
         }
         // 3. Fixed Amount on Total
         else if (promo.type === 'fixed' && (!promo.targetType || promo.targetType === 'transaction')) {
             const minPurchase = Number(promo.minPurchase) || 0;
-            const promoValue = Number(promo.value) || 0;
+            const promoValue = Number(promo.value !== undefined ? promo.value : promo.discountValue) || 0;
             if (rawTotal >= minPurchase) {
                 isApplicable = true;
                 if (promo.allowMultiples && minPurchase > 0) {

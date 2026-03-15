@@ -746,6 +746,14 @@ export const DataProvider = ({ children }) => {
             return;
         }
 
+        // --- RACE CONDITION FIX ---
+        // Do not fetch store-specific data until we know the store settings (Shared vs Single)
+        // If stores are still loading, wait for the next callback trigger when storesLoading becomes false.
+        if (storesLoading) {
+            console.log("DataContext: Stores still loading, deferring fetchData...");
+            return;
+        }
+
         if (isFetchingRef.current && fetchingStoreIdRef.current === activeStoreId) {
             console.log("DataContext: Fetch already in progress for this store, skipping redundant call");
             return;
@@ -859,6 +867,7 @@ export const DataProvider = ({ children }) => {
                                     params: { p_owner_id: user.id }
                                 });
                                 if (data) {
+                                    console.log(`DataContext: Shared customers RPC returned ${data.length} records.`);
                                     const processed = data.map(c => ({
                                         ...c,
                                         loyaltyPoints: c.loyalty_points || 0,
@@ -973,7 +982,7 @@ export const DataProvider = ({ children }) => {
                 fetchingStoreIdRef.current = null;
             }
         }
-    }, [user, activeStoreId, fetchStockMovements, currentStore?.settings?.enableSharedCustomers]);
+    }, [user, activeStoreId, fetchStockMovements, currentStore?.settings?.enableSharedCustomers, storesLoading]);
 
     useEffect(() => {
         const fetchPlans = async () => {
@@ -1682,22 +1691,28 @@ export const DataProvider = ({ children }) => {
             return { success: false, error: "No active store selected" };
         }
 
-        // Phone number is mandatory for ID
-        const customerId = customerData.phone ? customerData.phone.replace(/[^0-9]/g, '') : '';
-
-        if (!customerId) {
-            return { success: false, error: "Nomor HP wajib diisi sebagai ID." };
-        }
+        // Generate a unique UUID for the customer ID
+        // Support for older browsers / environments where crypto.randomUUID might be missing
+        const customerId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+            ? crypto.randomUUID() 
+            : `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
         try {
+            // Check if phone number already exists WITHIN THE SAME STORE
+            const cleanPhone = customerData.phone ? customerData.phone.replace(/[^0-9]/g, '') : '';
+            if (!cleanPhone) {
+                return { success: false, error: "Nomor HP wajib diisi." };
+            }
+
             const { data: existing } = await supabase
                 .from('customers')
                 .select('id')
-                .eq('id', customerId)
+                .eq('phone', customerData.phone)
+                .eq('store_id', activeStoreId)
                 .maybeSingle();
 
             if (existing) {
-                return { success: false, error: "Pelanggan dengan nomor HP ini sudah terdaftar." };
+                return { success: false, error: "Pelanggan dengan nomor HP ini sudah terdaftar di outlet ini." };
             }
 
             // Map to snake_case for Supabase

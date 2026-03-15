@@ -73,4 +73,22 @@ describe('calculateActivePromotions', () => {
         expect(result[0].isApplicable).toBe(false);
         expect(result[0].missingItems).toContain('2');
     });
+
+    it('should support discountValue property as fallback for value', () => {
+        const promotions = [{
+            id: 'p1',
+            type: 'bundle',
+            targetIds: ['1', '2'],
+            discountValue: 25000, // Using discountValue instead of value
+            isActive: true
+        }];
+        const cart = [
+            { id: '1', qty: 1, price: 10000 },
+            { id: '2', qty: 1, price: 20000 }
+        ];
+        const result = calculateActivePromotions(promotions, cart, 30000, mockProducts);
+
+        expect(result[0].isApplicable).toBe(true);
+        expect(result[0].potentialDiscount).toBe(5000);
+    });
 });

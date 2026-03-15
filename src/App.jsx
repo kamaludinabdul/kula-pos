@@ -188,13 +188,18 @@ const PrivateRoute = ({ children, feature, plan, permission, checkFeature, check
     const hasFeatAccess = feature ? hasFeatureAccess(currentPlan, feature, dynamicPlans) : true;
 
     // Check Business Type Feature Access
-    if (checkFeature && !hasFeature(checkFeature)) {
-      console.warn(`Access denied for ${location.pathname} (Business Type does not support: ${checkFeature})`);
-      return <Navigate to="/dashboard" replace />;
-    }
+    // If BOTH checkFeature AND checkSetting are specified, treat as OR:
+    // allow access if either the business-type feature OR the store setting is enabled.
+    if (checkFeature) {
+      const featureOk = hasFeature(checkFeature);
+      const settingOk = checkSetting ? !!currentStore?.[checkSetting] : false;
 
-    // Check Business Type Setting Access
-    if (checkSetting && !checkBizSetting(checkSetting)) {
+      if (!featureOk && !(checkSetting && settingOk)) {
+        console.warn(`Access denied for ${location.pathname} (Business Type does not support: ${checkFeature})`);
+        return <Navigate to="/dashboard" replace />;
+      }
+    } else if (checkSetting && !checkBizSetting(checkSetting)) {
+      // Only checkSetting without checkFeature
       console.warn(`Access denied for ${location.pathname} (Business Type does not have setting: ${checkSetting})`);
       return <Navigate to="/dashboard" replace />;
     }
@@ -341,7 +346,7 @@ const App = () => {
 
 
                     <Route path="/rental" element={
-                      <PrivateRoute feature="rental" permission="pos" plan="pro" checkFeature="rental_timer">
+                      <PrivateRoute feature="rental" permission="pos" plan="pro" checkFeature="rental_timer" checkSetting="enableRental">
                         <RentalDashboard />
                       </PrivateRoute>
                     } />

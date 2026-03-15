@@ -48,6 +48,7 @@ const CartPanel = ({
     salesUsers,
     salesPerson,
     onSelectSalesPerson,
+    appliedPromoId,
     availablePromos,
     onApplyPromo,
     onCollapse,
@@ -161,7 +162,7 @@ const CartPanel = ({
                                 <div className="flex flex-col truncate">
                                     <span className="text-[10px] uppercase text-muted-foreground font-bold leading-none">{term('customer')}</span>
                                     <span className="text-xs font-semibold truncate">
-                                        {selectedCustomer ? selectedCustomer.name : `${term('generalCustomer')} (Non-Member)`}
+                                        {selectedCustomer ? selectedCustomer.name : term('generalCustomer')}
                                     </span>
                                     {selectedCustomer && (
                                         <span className="text-[9px] font-bold text-amber-600 leading-none mt-0.5">
@@ -205,7 +206,7 @@ const CartPanel = ({
                                         className="px-2 py-1.5 hover:bg-slate-100 rounded text-xs cursor-pointer text-slate-600"
                                         onClick={() => { onSelectCustomer(null); setIsCustomerOpen(false); }}
                                     >
-                                        {term('generalCustomer')} (Non-Member)
+                                        {term('generalCustomer')}
                                     </div>
                                     {filteredCustomers.map(c => (
                                         <div
@@ -215,7 +216,14 @@ const CartPanel = ({
                                         >
                                             <div className="flex flex-col">
                                                 <span className="font-medium">{c.name}</span>
-                                                <span className="text-[10px] text-muted-foreground">{c.phone}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] text-muted-foreground">{c.phone}</span>
+                                                    {(c.branch_name || c.store_name) && (
+                                                        <span className="text-[9px] px-1 bg-slate-100 text-slate-500 rounded border border-slate-200">
+                                                            {c.branch_name || c.store_name}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                             <Badge variant="secondary" className="text-[10px] h-5 px-1.5 bg-amber-100 text-amber-700 hover:bg-amber-100 whitespace-nowrap">
                                                 {c.loyaltyPoints || c.points || 0} Pts
@@ -400,29 +408,36 @@ const CartPanel = ({
             </ScrollArea>
 
             {/* Promo Notification */}
-            {availablePromos?.length > 0 && discountValue === 0 && (
+            {availablePromos?.length > 0 && (
                 <div className="px-4 pb-2">
-                    <div className="bg-gradient-to-r from-pink-500 to-rose-500 text-white p-3 rounded-lg shadow-md animate-in slide-in-from-bottom-2">
+                    <div className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white p-3 rounded-lg shadow-md animate-in slide-in-from-bottom-2">
                         <div className="flex justify-between items-center mb-2">
                             <div className="flex items-center gap-2">
                                 <Ticket size={16} className="animate-pulse" />
-                                <span className="font-bold text-xs">{availablePromos.length} Promo Tersedia!</span>
+                                <span className="font-bold text-xs">Promo Tersedia!</span>
                             </div>
                         </div>
                         <div className="space-y-2 max-h-32 overflow-y-auto pr-1 custom-scrollbar">
                             {availablePromos.map(promo => (
                                 <div
                                     key={promo.id}
-                                    className="bg-white/10 hover:bg-white/20 p-2 rounded cursor-pointer transition-colors flex justify-between items-center"
+                                    className={cn(
+                                        "p-2 rounded cursor-pointer transition-colors flex justify-between items-center",
+                                        appliedPromoId === promo.id ? "bg-white/30" : "bg-white/10 hover:bg-white/20"
+                                    )}
                                     onClick={() => onApplyPromo(promo)}
                                 >
                                     <div className="flex flex-col">
-                                        <span className="text-xs font-bold">{promo.title}</span>
+                                        <span className="text-xs font-bold">{promo.name || promo.title}</span>
                                         <span className="text-[10px] opacity-90">Hemat Rp {(promo.potentialDiscount || 0).toLocaleString()}</span>
                                     </div>
-                                    <Button size="xs" variant="secondary" className="h-6 text-[10px] bg-white text-rose-600 hover:bg-white/90">
-                                        Pakai
-                                    </Button>
+                                    {appliedPromoId === promo.id ? (
+                                        <div className="bg-white text-indigo-600 px-2 py-0.5 rounded-full text-[10px] font-bold">Terpasang</div>
+                                    ) : (
+                                        <Button size="xs" variant="secondary" className="h-6 text-[10px] bg-white text-indigo-600 hover:bg-white/90">
+                                            Pakai
+                                        </Button>
+                                    )}
                                 </div>
                             ))}
                         </div>

@@ -4,7 +4,7 @@ export const BUSINESS_TYPES = {
         label: 'Toko',
         features: ['pos', 'inventory', 'finance', 'reports', 'customers'],
         productFields: ['name', 'category', 'sku', 'barcode', 'sell_price', 'buy_price', 'stock', 'min_stock'],
-        terminology: { customer: 'Pelanggan', product: 'Barang', sale: 'Penjualan' },
+        terminology: { customer: 'Pelanggan', product: 'Barang', sale: 'Penjualan', generalCustomer: 'Pelanggan Umum' },
         settings: { showRental: false, showPetHotel: false }
     },
     fnb: {
@@ -12,7 +12,7 @@ export const BUSINESS_TYPES = {
         label: 'Food & Beverage',
         features: ['pos', 'inventory', 'finance', 'reports', 'customers', 'kitchen'],
         productFields: ['name', 'category', 'sku', 'barcode', 'sell_price', 'buy_price', 'stock', 'min_stock', 'is_raw_material', 'recipe'],
-        terminology: { customer: 'Pelanggan', product: 'Menu', sale: 'Pesanan' },
+        terminology: { customer: 'Pelanggan', product: 'Menu', sale: 'Pesanan', generalCustomer: 'Pelanggan Umum' },
         settings: { showRental: false, showPetHotel: false, enableTableManagement: true }
     },
     pharmacy: {
@@ -20,7 +20,7 @@ export const BUSINESS_TYPES = {
         label: 'Apotek',
         features: ['pos', 'inventory', 'finance', 'reports', 'customers', 'prescriptions'],
         productFields: ['name', 'category', 'sku', 'barcode', 'sell_price', 'buy_price', 'stock', 'min_stock', 'is_prescription_required', 'units'],
-        terminology: { customer: 'Pasien', product: 'Obat', sale: 'Penjualan' },
+        terminology: { customer: 'Pasien', product: 'Obat', sale: 'Penjualan', generalCustomer: 'Pasien Umum' },
         settings: { showRental: false, showPetHotel: false, enableExpiryTracking: true, enableTuslah: true }
     },
     laundry: {
@@ -28,7 +28,7 @@ export const BUSINESS_TYPES = {
         label: 'Laundry',
         features: ['pos', 'inventory', 'finance', 'reports', 'customers', 'services'],
         productFields: ['name', 'category', 'sku', 'sell_price'], // simplified fields for services
-        terminology: { customer: 'Pelanggan', product: 'Layanan', sale: 'Order' },
+        terminology: { customer: 'Pelanggan', product: 'Layanan', sale: 'Order', generalCustomer: 'Pelanggan Umum' },
         settings: { showRental: false, showPetHotel: false, enableStatusTracking: true }
     },
     rental: {
@@ -36,7 +36,7 @@ export const BUSINESS_TYPES = {
         label: 'Rental',
         features: ['pos', 'inventory', 'finance', 'reports', 'customers', 'rental_timer'],
         productFields: ['name', 'category', 'sku', 'sell_price'], // usually hourly rates
-        terminology: { customer: 'Penyewa', product: 'Item Sewa', sale: 'Sewa' },
+        terminology: { customer: 'Penyewa', product: 'Item Sewa', sale: 'Sewa', generalCustomer: 'Pelanggan Umum' },
         settings: { showRental: true, showPetHotel: false }
     },
     pet_clinic: {
@@ -44,7 +44,7 @@ export const BUSINESS_TYPES = {
         label: 'Klinik Hewan',
         features: ['pos', 'inventory', 'finance', 'reports', 'customers', 'pet_hotel'],
         productFields: ['name', 'category', 'sku', 'barcode', 'sell_price', 'buy_price', 'stock', 'min_stock'],
-        terminology: { customer: 'Pet Owner', product: 'Layanan/Produk', sale: 'Transkasi' },
+        terminology: { customer: 'Pet Owner', product: 'Layanan/Produk', sale: 'Transkasi', generalCustomer: 'Umum' },
         settings: { showRental: false, showPetHotel: true }
     }
 };

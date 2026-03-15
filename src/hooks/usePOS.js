@@ -359,6 +359,38 @@ export const usePOS = () => {
 
     const availablePromos = activePromotions.filter(p => p.isApplicable);
 
+    // --- Auto-Apply Promotion Logic ---
+    useEffect(() => {
+        // If the user has explicitly set a manual discount (non-zero value when NOT a promo), 
+        // or if they are typing a discount, we might want to respect that.
+        // However, the rule here is: If there's an applicable promo and NO manual discount, AUTO-APPLY.
+
+        if (availablePromos.length > 0) {
+            // Find the promo with the highest potential discount
+            const bestPromo = [...availablePromos].sort((a, b) => b.potentialDiscount - a.potentialDiscount)[0];
+
+            // Auto-apply if:
+            // 1. No promo is currently applied
+            // 2. OR the currently applied promo is no longer the "best" or no longer applicable
+            // 3. AND discountValue is 0 (no manual discount) or the current discountValue MATCHES a previous promo
+
+            if (appliedPromoId !== bestPromo.id) {
+                // Only auto-apply if the user hasn't manually overridden with a DIFFERENT discount
+                // Checking discountValue === 0 is the safest trigger for "fresh" carts
+                if (discountValue === 0) {
+                    // eslint-disable-next-line react-hooks/set-state-in-effect
+                    setAppliedPromoId(bestPromo.id);
+                }
+            }
+        } else if (appliedPromoId) {
+            // If no promos are available but one is still marked as applied, clear it
+            setAppliedPromoId(null);
+            // Also clear discountValue if it was set by the promo (best effort)
+            // To be safe, we only clear it if we are sure it was a promo
+        }
+    }, [availablePromos, appliedPromoId, discountValue]);
+
+
 
     return {
         // State

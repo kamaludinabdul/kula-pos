@@ -21,7 +21,7 @@ const NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', feature: 'dashboard' },
   { icon: Receipt, label: 'Transaksi', path: '/transactions', feature: 'transactions' },
   { icon: ShoppingCart, label: 'Kasir (POS)', path: '/pos', feature: 'pos' },
-  { icon: Gamepad2, label: 'Rental', path: '/rental', feature: 'rental', permission: 'pos', requiredPlan: 'pro', checkFeature: 'rental_timer' },
+  { icon: Gamepad2, label: 'Rental', path: '/rental', feature: 'rental', permission: 'pos', requiredPlan: 'pro', checkFeature: 'rental_timer', checkSetting: 'enableRental' },
   { icon: Ticket, label: 'Promosi', path: '/promotions', feature: 'products.read' },
 ];
 
@@ -177,9 +177,18 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
     const isSuperAdmin = user?.role === 'super_admin';
     const hasPerm = hasPermission(item.permission || item.feature);
     const settingEnabled = !item.checkSetting || currentStore?.[item.checkSetting];
-    const featureEnabled = !item.checkFeature || hasFeature(item.checkFeature);
     const currentPlan = (currentStore?.plan || user?.plan || 'free').toLowerCase();
     const planRequired = item.requiredPlan ? (currentPlan === item.requiredPlan || currentPlan === 'enterprise') : true;
+
+    // Feature gate: if item has BOTH checkFeature AND checkSetting,
+    // treat them as OR — visible if either the business-type feature
+    // OR the store-level DB flag is enabled.
+    let featureEnabled;
+    if (item.checkFeature && item.checkSetting) {
+      featureEnabled = hasFeature(item.checkFeature) || !!currentStore?.[item.checkSetting];
+    } else {
+      featureEnabled = !item.checkFeature || hasFeature(item.checkFeature);
+    }
 
     // Common visibility logic used across all groups
     return hasPerm && featureEnabled && (isSuperAdmin || user?.role === 'owner' || (settingEnabled && planRequired));

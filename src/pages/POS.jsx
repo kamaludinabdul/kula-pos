@@ -733,6 +733,7 @@ const POS = () => {
 
                         promotions={promotions}
                         availablePromos={availablePromos}
+                        appliedPromoId={appliedPromoId}
                         onApplyPromo={(promo) => {
                             // Handling applying promo
                             setAppliedPromoId(promo.id);

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.25.3] - 2026-03-15
+### Changed
+- Bumped version to 0.25.3
+
+## [0.25.2] - 2026-03-16
+
+### Added
+- **Rental Menu Override**: Menu Rental sekarang bisa muncul di toko non-Rental (misal Pet Clinic) jika kolom `enable_rental` diaktifkan di database. Logika OR diterapkan di Sidebar dan PrivateRoute.
+- **Shared Customer Branch Label**: Tampilkan nama cabang asal di dropdown pencarian pelanggan saat fitur "Berbagi Pelanggan" aktif.
+
+### Fixed
+- **Customer ID Isolation**: Beralih dari phone-based ID ke UUID untuk record pelanggan baru, mencegah konflik antar-outlet saat registrasi nomor HP yang sama.
+- **Store-Scoped Duplicate Check**: Pengecekan duplikat nomor HP sekarang di-scope per `store_id`, memungkinkan nomor yang sama terdaftar di cabang berbeda.
+- **Shared Customers Hilang Setelah Refresh**: Memperbaiki race condition di mana `fetchData` berjalan sebelum pengaturan toko (flag `enableSharedCustomers`) selesai dimuat, menyebabkan pelanggan dari cabang lain tidak tampil.
+
 ## [0.25.1] - 2026-03-14
 ### Changed
 - Bumped version to 0.25.1
