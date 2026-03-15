@@ -65,6 +65,12 @@ const ProductForm = () => {
     const [isAlertOpen, setIsAlertOpen] = useState(false);
     const [alertData, setAlertData] = useState({ title: '', message: '', onConfirm: null });
     const [isScannerOpen, setIsScannerOpen] = useState(false);
+    const hasLoadedRef = React.useRef(false); // Prevent re-loading on realtime updates
+
+    // Reset when navigating to a different product
+    useEffect(() => {
+        hasLoadedRef.current = false;
+    }, [id]);
 
     // Category Dialog State
     const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
@@ -98,6 +104,9 @@ const ProductForm = () => {
     useEffect(() => {
         const loadProductData = async () => {
             if (!isEditMode) return;
+
+            // Guard: Only load once to prevent real-time subscription updates from resetting the form
+            if (hasLoadedRef.current) return;
 
             // 1. Try to find in global context first
             let product = products.find(p => String(p.id) === String(id));
@@ -152,6 +161,7 @@ const ProductForm = () => {
 
             // 3. Populate Form
             if (product) {
+                hasLoadedRef.current = true; // Mark as loaded
                 setFormData({
                     type: product.type || 'Default',
                     name: product.name || '',
@@ -162,8 +172,11 @@ const ProductForm = () => {
                     buyPrice: product.buyPrice || product.buy_price || '',
                     sellPrice: product.sellPrice || product.sell_price || product.price || '',
                     stockType: (() => {
-                        const st = product.stock_type || product.stockType || 'Barang';
-                        return st.toLowerCase() === 'jasa' ? 'Jasa' : 'Barang';
+                        const st = product.stockType || product.stock_type || 'Barang';
+                        // Case-insensitive match for known values
+                        const lower = st.toLowerCase();
+                        if (lower === 'jasa') return 'Jasa';
+                        return 'Barang';
                     })(),
                     stock: product.isUnlimited ? '' : (product.stock !== undefined ? product.stock : ''),
                     minStock: product.minStock || product.min_stock || '',
@@ -178,7 +191,7 @@ const ProductForm = () => {
                     purchaseUnit: product.purchaseUnit || product.purchase_unit || '',
                     conversionToUnit: product.conversionToUnit || product.conversion_to_unit || '',
                     pricingType: (() => {
-                        const pt = product.pricing_type || product.pricingType || 'fixed';
+                        const pt = product.pricingType || product.pricing_type || 'fixed';
                         if (pt === 'standard') return 'fixed';
                         return ['fixed', 'hourly', 'minutely', 'daily'].includes(pt) ? pt : 'fixed';
                     })(),
