@@ -139,7 +139,7 @@ ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS doctor_name TEXT;
 ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS prescription_number TEXT;
 ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS tuslah_fee NUMERIC(15, 2) DEFAULT 0;
 ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS medical_record_id UUID REFERENCES public.medical_records(id) ON DELETE SET NULL;
-ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS cashier_id TEXT;
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS cashier_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
 ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS cashier TEXT;
 
 -- 3.2 Extend Transaction Items (Multi-role Commissions)
@@ -280,7 +280,8 @@ DECLARE
     v_prod_type TEXT;
     v_is_authorized BOOLEAN;
     v_customer_name TEXT := NULL;
-    v_resolved_cashier_id TEXT;
+    v_raw_cashier_id TEXT;
+    v_resolved_cashier_id UUID := NULL;
     v_resolved_cashier_name TEXT;
 BEGIN
     SELECT EXISTS (
@@ -301,7 +302,11 @@ BEGIN
         SELECT name INTO v_customer_name FROM customers WHERE id = p_customer_id AND store_id = p_store_id;
     END IF;
     
-    v_resolved_cashier_id := COALESCE(p_cashier_id, p_payment_details->>'cashier_id');
+    v_raw_cashier_id := COALESCE(p_cashier_id, p_payment_details->>'cashier_id');
+    IF v_raw_cashier_id ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' THEN
+        v_resolved_cashier_id := v_raw_cashier_id::UUID;
+    END IF;
+
     v_resolved_cashier_name := COALESCE(p_cashier_name, p_payment_details->>'cashier_name', p_payment_details->>'cashier');
     v_new_transaction_id := to_char(NOW(), 'YYMMDDHH24MISS') || floor(random() * 1000)::text;
 
