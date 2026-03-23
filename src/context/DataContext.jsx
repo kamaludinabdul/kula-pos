@@ -65,8 +65,16 @@ export const DataProvider = ({ children }) => {
     const [stockMovements, setStockMovements] = useState([]);
     const [salesTargets, setSalesTargets] = useState([]);
     const [promotions, setPromotions] = useState([]);
+    const [pets, setPets] = useState([]);
+    const [petRooms, setPetRooms] = useState([]);
+    const [petBookings, setPetBookings] = useState([]);
+    const [petServices, setPetServices] = useState([]);
+    const [medicalRecords, setMedicalRecords] = useState([]);
+    const [petDailyLogs, setPetDailyLogs] = useState([]);
+    const [staff, setStaff] = useState([]);
     const isFetchingRef = useRef(false);
     const fetchingStoreIdRef = useRef(null);
+    const lastFetchedProductsStoreIdRef = useRef(null);
     // latestActiveStoreId moved down
 
 
@@ -209,9 +217,9 @@ export const DataProvider = ({ children }) => {
                     // Plan Logic: Prioritize highest plan found in either profile or store
                     const pPlan = profileData?.plan || 'free';
                     const sPlan = s.plan || 'free';
-                    const effectivePlan = (pPlan === 'enterprise' || sPlan === 'enterprise')
+                    const effectivePlan = (pPlan.includes('enterprise') || sPlan.includes('enterprise'))
                         ? 'enterprise'
-                        : (pPlan === 'pro' || sPlan === 'pro')
+                        : (pPlan.includes('pro') || sPlan.includes('pro'))
                             ? 'pro'
                             : 'free';
 
@@ -613,7 +621,7 @@ export const DataProvider = ({ children }) => {
 
 
     const fetchStockMovements = useCallback(async () => {
-        if (!activeStoreId) return;
+        if (!activeStoreId) return [];
         try {
             const data = await safeSupabaseRpc({
                 rpcName: 'get_stock_history',
@@ -644,8 +652,718 @@ export const DataProvider = ({ children }) => {
             return [];
         }
     }, [activeStoreId]);
+    
+    // --- Pet Care Management ---
+    const fetchPets = useCallback(async () => {
+        if (!activeStoreId) return [];
+        try {
+            const data = await safeFetchSupabase({
+                supabase, activeStoreId,
+                tableName: 'pets',
+                setterFn: setPets,
+                queryBuilder: (q) => q.order('name', { ascending: true }),
+                processFn: (data) => data.map(p => ({
+                    ...p,
+                    customerId: p.customer_id,
+                    rmNumber: p.rm_number,
+                    petType: p.pet_type,
+                    petAge: p.pet_age,
+                    isNeutered: p.is_neutered,
+                    isVaccinated: p.is_vaccinated,
+                    lastCheckup: p.last_checkup,
+                    specialNeeds: p.special_needs,
+                    medicalHistory: p.medical_history,
+                    imageUrl: p.image_url
+                }))
+            });
+            return data;
+        } catch (error) {
+            console.error("Failed to fetch pets:", error);
+            return [];
+        }
+    }, [activeStoreId]);
+
+    const addPet = async (petData) => {
+        if (!activeStoreId) return { success: false, error: 'No active store' };
+        try {
+            const dbData = {
+                store_id: activeStoreId,
+                name: petData.name,
+                customer_id: petData.customerId || null,
+                pet_type: petData.petType,
+                breed: petData.breed,
+                gender: petData.gender,
+                pet_age: petData.petAge,
+                weight: (petData.weight === "" || petData.weight === null) ? null : parseFloat(petData.weight),
+                color: petData.color,
+                rm_number: petData.rmNumber,
+                is_neutered: petData.isNeutered || false,
+                is_vaccinated: petData.isVaccinated || false,
+                special_needs: petData.specialNeeds,
+                medical_history: petData.medicalHistory,
+                image_url: petData.imageUrl || null
+            };
+
+            const { data, error } = await supabase
+                .from('pets')
+                .insert(dbData)
+                .select()
+                .single();
+
+            if (error) throw error;
+            
+            setPets(prev => [...prev, {
+                ...data,
+                customerId: data.customer_id,
+                rmNumber: data.rm_number,
+                petType: data.pet_type,
+                petAge: data.pet_age,
+                isNeutered: data.is_neutered,
+                isVaccinated: data.is_vaccinated,
+                specialNeeds: data.special_needs,
+                medicalHistory: data.medical_history,
+                imageUrl: data.image_url
+            }]);
+            return { success: true, data };
+        } catch (error) {
+            console.error("Error adding pet:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const updatePet = async (id, petData) => {
+        try {
+            const dbData = {
+                name: petData.name,
+                customer_id: petData.customerId || null,
+                pet_type: petData.petType,
+                breed: petData.breed,
+                gender: petData.gender,
+                pet_age: petData.petAge,
+                weight: (petData.weight === "" || petData.weight === null) ? null : parseFloat(petData.weight),
+                color: petData.color,
+                is_neutered: petData.isNeutered || false,
+                is_vaccinated: petData.isVaccinated || false,
+                special_needs: petData.specialNeeds,
+                medical_history: petData.medicalHistory,
+                image_url: petData.imageUrl || null
+            };
+
+            const { error } = await supabase
+                .from('pets')
+                .update(dbData)
+                .eq('id', id);
+
+            if (error) throw error;
+
+            setPets(prev => prev.map(p => p.id === id ? { ...p, ...petData } : p));
+            return { success: true };
+        } catch (error) {
+            console.error("Error updating pet:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const deletePet = async (id) => {
+        try {
+            const { error } = await supabase
+                .from('pets')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            setPets(prev => prev.filter(p => p.id !== id));
+            return { success: true };
+        } catch (error) {
+            console.error("Error deleting pet:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const fetchPetRooms = useCallback(async () => {
+        if (!activeStoreId) return [];
+        try {
+            const data = await safeFetchSupabase({
+                supabase, activeStoreId,
+                tableName: 'pet_rooms',
+                setterFn: setPetRooms,
+                queryBuilder: (q) => q.order('name', { ascending: true }),
+                processFn: (data) => data.map(r => ({
+                    ...r,
+                    currentBookingId: r.current_booking_id,
+                    linkedServiceId: r.linked_service_id
+                }))
+            });
+            return data;
+        } catch (error) {
+            console.error("Failed to fetch pet rooms:", error);
+            return [];
+        }
+    }, [activeStoreId]);
+
+    const addPetRoom = async (roomData) => {
+        if (!activeStoreId) return { success: false, error: 'No active store' };
+        try {
+            const { data, error } = await supabase
+                .from('pet_rooms')
+                .insert({ ...roomData, store_id: activeStoreId })
+                .select()
+                .single();
+
+            if (error) throw error;
+            setPetRooms(prev => [...prev, data]);
+            return { success: true, data };
+        } catch (error) {
+            console.error("Error adding pet room:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const updatePetRoom = async (id, roomData) => {
+        try {
+            const { error } = await supabase
+                .from('pet_rooms')
+                .update(roomData)
+                .eq('id', id);
+
+            if (error) throw error;
+            setPetRooms(prev => prev.map(r => r.id === id ? { ...r, ...roomData } : r));
+            return { success: true };
+        } catch (error) {
+            console.error("Error updating pet room:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const deletePetRoom = async (id) => {
+        try {
+            const { error } = await supabase
+                .from('pet_rooms')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            setPetRooms(prev => prev.filter(r => r.id !== id));
+            return { success: true };
+        } catch (error) {
+            console.error("Error deleting pet room:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const mapPetBookingData = useCallback((b) => ({
+        ...b,
+        customerId: b.customer_id,
+        petId: b.pet_id,
+        serviceType: b.service_type,
+        serviceId: b.service_id,
+        roomId: b.room_id,
+        startDate: b.start_date,
+        startTime: b.start_time,
+        endDate: b.end_date,
+        unitPrice: b.unit_price,
+        totalPrice: b.total_price,
+        paymentStatus: b.payment_status,
+        groomerId: b.groomer_id,
+        extraItems: b.extra_items || [],
+        status: b.status || (b.service_type ? 'pending' : '') // Explicitly keep status
+    }), []);
+
+    const fetchPetBookings = useCallback(async () => {
+        if (!activeStoreId) return [];
+        try {
+            const data = await safeFetchSupabase({
+                supabase, activeStoreId,
+                tableName: 'pet_bookings',
+                setterFn: setPetBookings,
+                queryBuilder: (q) => q.order('start_date', { ascending: false }),
+                processFn: (data) => data.map(mapPetBookingData)
+            });
+            return data;
+        } catch (error) {
+            console.error("Failed to fetch pet bookings:", error);
+            return [];
+        }
+    }, [activeStoreId, mapPetBookingData]);
+
+    const addPetBooking = async (bookingData) => {
+        if (!activeStoreId) return { success: false, error: 'No active store' };
+        try {
+            const dbData = {
+                store_id: activeStoreId,
+                customer_id: bookingData.customerId || null,
+                pet_id: bookingData.petId || null,
+                service_type: bookingData.serviceType,
+                service_id: bookingData.serviceId || null,
+                room_id: bookingData.roomId || null,
+                start_date: bookingData.startDate || null,
+                start_time: bookingData.startTime || null,
+                end_date: bookingData.endDate || null,
+                unit_price: Number(bookingData.unitPrice) || 0,
+                total_price: Number(bookingData.totalPrice) || 0,
+                payment_status: bookingData.paymentStatus || 'unpaid',
+                groomer_id: bookingData.groomerId || null,
+                status: bookingData.status || 'pending',
+                notes: bookingData.notes || null,
+                extra_items: bookingData.extraItems || []
+            };
+
+            const { data, error } = await supabase
+                .from('pet_bookings')
+                .insert(dbData)
+                .select()
+                .single();
+
+            if (error) throw error;
+            
+            // If it's a room booking and room_id is provided, update room status
+            if (dbData.room_id && dbData.status === 'confirmed') {
+                await supabase.from('pet_rooms').update({ status: 'occupied', current_booking_id: data.id }).eq('id', dbData.room_id);
+                fetchPetRooms();
+            }
+
+            const processed = mapPetBookingData(data);
+            setPetBookings(prev => [processed, ...prev]);
+            return { success: true, data: processed };
+        } catch (error) {
+            console.error("Error adding pet booking:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const updatePetBooking = async (id, bookingData) => {
+        try {
+            const dbData = {
+                customer_id: bookingData.customerId || null,
+                pet_id: bookingData.petId || null,
+                service_type: bookingData.serviceType,
+                service_id: bookingData.serviceId || null,
+                room_id: bookingData.roomId || null,
+                start_date: bookingData.startDate || null,
+                start_time: bookingData.startTime || null,
+                end_date: bookingData.endDate || null,
+                unit_price: Number(bookingData.unitPrice) || 0,
+                total_price: Number(bookingData.totalPrice) || 0,
+                payment_status: bookingData.paymentStatus || 'unpaid',
+                groomer_id: bookingData.groomerId || null,
+                status: bookingData.status,
+                notes: bookingData.notes || null,
+                ...(bookingData.extraItems !== undefined && { extra_items: bookingData.extraItems })
+            };
+
+            const { data: updatedRow, error } = await supabase
+                .from('pet_bookings')
+                .update(dbData)
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            // Handle room status updates if status changes
+            if (dbData.room_id) {
+                if (dbData.status === 'completed' || dbData.status === 'cancelled') {
+                    await supabase.from('pet_rooms').update({ status: 'available', current_booking_id: null }).eq('id', dbData.room_id);
+                } else if (dbData.status === 'confirmed') {
+                    await supabase.from('pet_rooms').update({ status: 'occupied', current_booking_id: id }).eq('id', dbData.room_id);
+                }
+                fetchPetRooms();
+            }
+
+            // Use actual DB response to update local state (ensures all fields are correct)
+            const processed = mapPetBookingData(updatedRow || dbData);
+            setPetBookings(prev => prev.map(b => b.id === id ? { ...b, ...processed, id } : b));
+            return { success: true };
+        } catch (error) {
+            console.error("Error updating pet booking:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const deletePetBooking = async (id) => {
+        try {
+            const { error } = await supabase
+                .from('pet_bookings')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            setPetBookings(prev => prev.filter(b => b.id !== id));
+            return { success: true };
+        } catch (error) {
+            console.error("Error deleting pet booking:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const mapPetServiceData = useCallback((s) => ({
+        ...s,
+        capitalPrice: s.capital_price,
+        paramedicCommission: s.paramedic_commission,
+        isActive: s.is_active,
+        doctorFeeType: s.doctor_fee_type,
+        doctorFeeValue: s.doctor_fee_value,
+        commissions: s.commission || {} // DB stores as 'commission' (singular), frontend uses 'commissions' (plural)
+    }), []);
+
+    const fetchPetServices = useCallback(async () => {
+        if (!activeStoreId) return [];
+        try {
+            const data = await safeFetchSupabase({
+                supabase, activeStoreId,
+                tableName: 'pet_services',
+                setterFn: setPetServices,
+                queryBuilder: (q) => q.order('name', { ascending: true }),
+                processFn: (data) => data.map(mapPetServiceData)
+            });
+            return data;
+        } catch (error) {
+            console.error("Failed to fetch pet services:", error);
+            return [];
+        }
+    }, [activeStoreId, mapPetServiceData]);
+
+    const addPetService = async (serviceData) => {
+        if (!activeStoreId) return { success: false, error: 'No active store' };
+        try {
+            const dbData = {
+                ...serviceData,
+                store_id: activeStoreId,
+                capital_price: serviceData.capitalPrice,
+                commission: serviceData.commissions, // Store the new multi-role object
+                is_active: serviceData.isActive ?? true,
+                doctor_fee_type: serviceData.doctorFeeType || 'fixed',
+                doctor_fee_value: serviceData.doctorFeeValue || 0
+            };
+            
+            // Clean up UI-only fields
+            delete dbData.capitalPrice;
+            delete dbData.isActive;
+            delete dbData.doctorFeeType;
+            delete dbData.doctorFeeValue;
+            delete dbData.commissions;
+
+            const { data, error } = await supabase
+                .from('pet_services')
+                .insert(dbData)
+                .select()
+                .single();
+
+            if (error) throw error;
+            const processed = mapPetServiceData(data);
+            setPetServices(prev => [...prev, processed]);
+            return { success: true, data: processed };
+        } catch (error) {
+            console.error("Error adding pet service:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const updatePetService = async (id, serviceData) => {
+        try {
+            const dbData = {
+                ...serviceData,
+                capital_price: serviceData.capitalPrice,
+                commission: serviceData.commissions,
+                is_active: serviceData.isActive,
+                doctor_fee_type: serviceData.doctorFeeType || 'fixed',
+                doctor_fee_value: serviceData.doctorFeeValue || 0
+            };
+
+            // Clean up UI-only fields
+            delete dbData.capitalPrice;
+            delete dbData.isActive;
+            delete dbData.doctorFeeType;
+            delete dbData.doctorFeeValue;
+            delete dbData.commissions;
+
+            const { data, error } = await supabase
+                .from('pet_services')
+                .update(dbData)
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            const processed = mapPetServiceData(data);
+            setPetServices(prev => prev.map(s => s.id === id ? processed : s));
+            return { success: true, data: processed };
+        } catch (error) {
+            console.error("Error updating pet service:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const deletePetService = async (id) => {
+        try {
+            const { error } = await supabase
+                .from('pet_services')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            setPetServices(prev => prev.filter(s => s.id !== id));
+            return { success: true };
+        } catch (error) {
+            console.error("Error deleting pet service:", error);
+            return { success: false, error: error.message };
+        }
+    };
 
 
+
+    const fetchMedicalRecords = useCallback(async () => {
+        if (!activeStoreId) return [];
+        try {
+            const data = await safeFetchSupabase({
+                supabase, activeStoreId,
+                tableName: 'medical_records',
+                setterFn: setMedicalRecords,
+                queryBuilder: (q) => q.order('date', { ascending: false }),
+                processFn: (data) => data.map(m => ({
+                    ...m,
+                    petId: m.pet_id,
+                    customerId: m.customer_id,
+                    bookingId: m.booking_id,
+                    doctorId: m.doctor_id,
+                    doctorName: m.doctor_name,
+                    paramedicId: m.paramedic_id,
+                    nextVisit: m.next_visit,
+                    paymentStatus: m.payment_status,
+                    isPaidPos: m.is_paid_pos
+                }))
+            });
+            return data;
+        } catch (error) {
+            console.error("Failed to fetch medical records:", error);
+            return [];
+        }
+    }, [activeStoreId]);
+
+    const addMedicalRecord = async (recordData) => {
+        if (!activeStoreId) return { success: false, error: 'No active store' };
+        try {
+            const dbData = {
+                store_id: activeStoreId,
+                pet_id: recordData.petId || null,
+                customer_id: recordData.customerId || null,
+                booking_id: recordData.bookingId || null,
+                date: recordData.date || new Date().toISOString(),
+                doctor_id: recordData.doctorId || null,
+                doctor_name: recordData.doctorName || null,
+                paramedic_id: recordData.paramedicId || null,
+                symptoms: recordData.symptoms || null,
+                diagnosis: recordData.diagnosis || null,
+                treatment: recordData.treatment || null,
+                services: recordData.services || [],
+                prescriptions: recordData.prescriptions || [],
+                next_visit: recordData.nextVisit || null,
+                notes: recordData.notes || null,
+                payment_status: recordData.paymentStatus || 'unpaid'
+            };
+
+            const { data, error } = await supabase
+                .from('medical_records')
+                .insert(dbData)
+                .select()
+                .single();
+
+            if (error) throw error;
+            setMedicalRecords(prev => [data, ...prev]);
+            return { success: true, data };
+        } catch (error) {
+            console.error("Error adding medical record:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const updateMedicalRecord = async (id, recordData) => {
+        try {
+            const dbData = {
+                pet_id: recordData.petId || null,
+                customer_id: recordData.customerId || null,
+                booking_id: recordData.bookingId || null,
+                date: recordData.date || new Date().toISOString(),
+                doctor_id: recordData.doctorId || null,
+                doctor_name: recordData.doctorName || null,
+                paramedic_id: recordData.paramedicId || null,
+                symptoms: recordData.symptoms || null,
+                diagnosis: recordData.diagnosis || null,
+                treatment: recordData.treatment || null,
+                services: recordData.services || [],
+                prescriptions: recordData.prescriptions || [],
+                next_visit: recordData.nextVisit || null,
+                notes: recordData.notes || null,
+                payment_status: recordData.paymentStatus
+            };
+
+            const { error } = await supabase
+                .from('medical_records')
+                .update(dbData)
+                .eq('id', id);
+
+            if (error) throw error;
+            setMedicalRecords(prev => prev.map(m => m.id === id ? { ...m, ...recordData } : m));
+            return { success: true };
+        } catch (error) {
+            console.error("Error updating medical record:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const fetchMedicalRecordsByRM = useCallback(async (rmNumber) => {
+        if (!activeStoreId || !rmNumber) return [];
+        try {
+            // 1. First find the pet with this RM number
+            const { data: petData, error: petError } = await supabase
+                .from('pets')
+                .select('id, name')
+                .eq('store_id', activeStoreId)
+                .eq('rm_number', rmNumber)
+                .maybeSingle();
+
+            if (petError) throw petError;
+            if (!petData) return [];
+
+            // 2. Then find unpaid medical records for this pet
+            const { data, error } = await supabase
+                .from('medical_records')
+                .select('*')
+                .eq('pet_id', petData.id)
+                .eq('is_paid_pos', false)
+                .order('date', { ascending: false });
+
+            if (error) throw error;
+            return (data || []).map(m => ({
+                ...m,
+                petId: m.pet_id,
+                petName: petData.name,
+                customerId: m.customer_id,
+                bookingId: m.booking_id,
+                doctorId: m.doctor_id,
+                doctorName: m.doctor_name,
+                paramedicId: m.paramedic_id,
+                isPaidPos: m.is_paid_pos
+            }));
+        } catch (error) {
+            console.error("Error fetching medical records by RM:", error);
+            return [];
+        }
+    }, [activeStoreId]);
+
+    const deleteMedicalRecord = async (id) => {
+        try {
+            const { error } = await supabase
+                .from('medical_records')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            setMedicalRecords(prev => prev.filter(m => m.id !== id));
+            return { success: true };
+        } catch (error) {
+            console.error("Error deleting medical record:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const fetchPetDailyLogs = useCallback(async () => {
+        if (!activeStoreId) return [];
+        try {
+            const data = await safeFetchSupabase({
+                supabase, activeStoreId,
+                tableName: 'pet_daily_logs',
+                setterFn: setPetDailyLogs,
+                queryBuilder: (q) => q.order('date', { ascending: false }),
+                processFn: (data) => data.map(l => ({
+                    ...l,
+                    petId: l.pet_id,
+                    bookingId: l.booking_id,
+                    staffId: l.staff_id,
+                    staffName: l.staff_name,
+                    logType: l.log_type,
+                    imageUrl: l.image_url
+                }))
+            });
+            return data;
+        } catch (error) {
+            console.error("Failed to fetch pet daily logs:", error);
+            return [];
+        }
+    }, [activeStoreId]);
+
+    const addPetDailyLog = async (logData) => {
+        if (!activeStoreId) return { success: false, error: 'No active store' };
+        try {
+            const dbData = {
+                store_id: activeStoreId,
+                booking_id: logData.bookingId || null,
+                pet_id: logData.petId || null,
+                eating: logData.eating || null,
+                mood: logData.mood || null,
+                bathroom: logData.bathroom || null,
+                notes: logData.notes || null,
+                staff_id: logData.staffId || null,
+                staff_name: logData.staffName || null
+            };
+
+            const { data, error } = await supabase
+                .from('pet_daily_logs')
+                .insert(dbData)
+                .select()
+                .single();
+
+            if (error) throw error;
+            setPetDailyLogs(prev => [data, ...prev]);
+            return { success: true, data };
+        } catch (error) {
+            console.error("Error adding pet daily log:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const updatePetDailyLog = async (id, logData) => {
+        try {
+            const dbData = {
+                booking_id: logData.bookingId || null,
+                pet_id: logData.petId || null,
+                eating: logData.eating || null,
+                mood: logData.mood || null,
+                bathroom: logData.bathroom || null,
+                notes: logData.notes || null,
+                staff_id: logData.staffId || null,
+                staff_name: logData.staffName || null
+            };
+
+            const { error } = await supabase
+                .from('pet_daily_logs')
+                .update(dbData)
+                .eq('id', id);
+
+            if (error) throw error;
+            setPetDailyLogs(prev => prev.map(l => l.id === id ? { ...l, ...logData } : l));
+            return { success: true };
+        } catch (error) {
+            console.error("Error updating pet daily log:", error);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const deletePetDailyLog = async (id) => {
+        try {
+            const { error } = await supabase
+                .from('pet_daily_logs')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            setPetDailyLogs(prev => prev.filter(l => l.id !== id));
+            return { success: true };
+        } catch (error) {
+            console.error("Error deleting pet daily log:", error);
+            return { success: false, error: error.message };
+        }
+    };
 
     // Helper to map snake_case products (from DB) to camelCase frontend objects
     const mapProductData = useCallback((p) => {
@@ -674,12 +1392,22 @@ export const DataProvider = ({ children }) => {
             overtime_hourly_penalty: p.overtime_hourly_penalty,
             overtime_trigger_hours: p.overtime_trigger_hours,
             price: p.sell_price,
-            category: p.categories?.name || p.category || null
+            category: p.categories?.name || p.category || null,
+            doctorFeeType: p.doctor_fee_type,
+            doctorFeeValue: p.doctor_fee_value
         };
     }, []);
 
-    const fetchAllProducts = useCallback(async (storeId = activeStoreId) => {
+    const fetchAllProducts = useCallback(async (storeId = activeStoreId, force = false) => {
         if (!storeId) return [];
+        
+        // Guard: Prevent redundant fetches if products already loaded for this store
+        // Skip guard if 'force' is true (manual refresh)
+        if (!force && products.length > 0 && lastFetchedProductsStoreIdRef.current === storeId) {
+            console.log("DataContext: Products already fetched for store", storeId, "skipping redundant fetch.");
+            return products;
+        }
+
         const phase2Start = performance.now();
         try {
             console.log("DataContext: Fetching ALL products for POS/Cache...");
@@ -702,6 +1430,7 @@ export const DataProvider = ({ children }) => {
             }
 
             setProducts(processed || []);
+            lastFetchedProductsStoreIdRef.current = storeId; // Mark as fetched
             console.log(`DataContext: fetchAllProducts took: ${((performance.now() - phase2Start) / 1000).toFixed(2)}s`);
 
             // Update cache
@@ -712,7 +1441,7 @@ export const DataProvider = ({ children }) => {
             console.error('DataContext: Failed to fetch products:', e);
             return [];
         }
-    }, [activeStoreId, categories, mapProductData]);
+    }, [activeStoreId, categories, mapProductData, products]);
 
     // New RPC-based Pagination
     const fetchProductsPage = useCallback(async ({ page, pageSize, search = '', category = 'all', satuanPO = 'all', sortKey = 'name', sortDir = 'asc' }) => {
@@ -737,6 +1466,28 @@ export const DataProvider = ({ children }) => {
         } catch (e) {
             console.error("DataContext: fetchProductsPage error:", e);
             throw e;
+        }
+    }, [activeStoreId]);
+    const fetchStaff = useCallback(async (storeId = activeStoreId) => {
+        if (!storeId) return [];
+        try {
+            const data = await safeSupabaseQuery({
+                tableName: 'profiles',
+                queryBuilder: (q) => q.eq('store_id', storeId),
+                fallbackParams: `?store_id=eq.${storeId}`,
+                processFn: (data) => data.map(u => ({ 
+                    ...u, 
+                    storeId: u.store_id, 
+                    petCareAccess: u.pet_care_access 
+                }))
+            });
+            if (storeId === activeStoreId) {
+                setStaff(data || []);
+            }
+            return data || [];
+        } catch (e) {
+            console.error('DataContext: Failed to fetch staff:', e);
+            return [];
         }
     }, [activeStoreId]);
 
@@ -949,6 +1700,13 @@ export const DataProvider = ({ children }) => {
                             createdAt: po.created_at
                         }))
                     }),
+                    fetchPets(),
+                    fetchPetRooms(),
+                    fetchPetBookings(),
+                    fetchPetServices(),
+                    fetchMedicalRecords(),
+                    fetchPetDailyLogs(),
+                    fetchStaff(),
                     fetchStockMovements()
                 ]).then(() => {
                     // Final verification that we finished for the correct store
@@ -982,7 +1740,7 @@ export const DataProvider = ({ children }) => {
                 fetchingStoreIdRef.current = null;
             }
         }
-    }, [user, activeStoreId, fetchStockMovements, currentStore?.settings?.enableSharedCustomers, storesLoading]);
+    }, [user, activeStoreId, fetchStockMovements, fetchPets, fetchPetRooms, fetchPetBookings, fetchPetServices, fetchMedicalRecords, fetchPetDailyLogs, fetchStaff, currentStore?.settings?.enableSharedCustomers, storesLoading]);
 
     useEffect(() => {
         const fetchPlans = async () => {
@@ -1225,31 +1983,35 @@ export const DataProvider = ({ children }) => {
     const addUser = async (userData) => {
         if (!activeStoreId) return { success: false, error: 'No active store' };
         try {
-            // 1. SECURITY CHECK: Prevent overriding staff from other stores
-            // Using RPC to check profile status safely (Security Definer)
-            const { data: checkData, error: checkError } = await supabase
-                .rpc('check_staff_conflict', {
-                    p_email: userData.email,
-                    p_target_store_id: activeStoreId
-                });
+            // If we already have an authId (from Edge Function create-user), the
+            // handle_new_user trigger already created the profile automatically.
+            // We skip the conflict check and just upsert to fill in details.
+            if (!userData.id) {
+                // Conflict check only needed when there's NO known auth user
+                const { data: checkData, error: checkError } = await supabase
+                    .rpc('check_staff_conflict', {
+                        p_email: userData.email,
+                        p_target_store_id: activeStoreId
+                    });
 
-            if (checkError) {
-                console.error("Staff conflict check failed:", checkError);
-                // Proceed with caution or fail? Better to fail safe.
-                return { success: false, error: "Gagal memverifikasi keamanan data staff." };
-            }
+                if (checkError) {
+                    console.error("Staff conflict check failed:", checkError);
+                    return { success: false, error: "Gagal memverifikasi keamanan data staff." };
+                }
 
-            if (checkData && checkData.status === 'conflict') {
-                return {
-                    success: false,
-                    error: `Username/Email ini sudah digunakan oleh toko lain (${checkData.current_store_name}). Gunakan username unik.`
-                };
-            }
+                if (checkData && checkData.status === 'conflict') {
+                    console.warn("Staff registration conflict detected:", {
+                        email: userData.email,
+                        targetStore: activeStoreId,
+                        conflictData: checkData
+                    });
+                    return {
+                        success: false,
+                        error: `Username/Email ini sudah digunakan oleh toko lain (${checkData.current_store_name || 'Unknown Store'}). Gunakan username unik.`
+                    };
+                }
 
-            // 2. SAME STORE CHECK: Prevent accidental role downgrade or overwrite
-            if (checkData && checkData.status === 'same_store') {
-                // If attempting to ADD (no ID, meaning userData.id is undefined or null) but user exists -> Block to prevent overwrite
-                if (!userData.id) {
+                if (checkData && checkData.status === 'same_store') {
                     return {
                         success: false,
                         error: `Staff ini sudah terdaftar di toko ini sebagai ${checkData.current_role}. Silakan EDIT data staff tersebut jika ingin mengubah role.`
@@ -1257,14 +2019,14 @@ export const DataProvider = ({ children }) => {
                 }
             }
 
-            // 2. Upsert Profile (Safe to proceed)
+            // Upsert Profile (handles both new create and updating auto-created trigger profile)
             const { error } = await supabase
                 .from('profiles')
                 .upsert({
                     ...userData,
                     store_id: activeStoreId,
                     created_at: new Date().toISOString()
-                }, { onConflict: 'email', ignoreDuplicates: false });
+                }, { onConflict: 'id', ignoreDuplicates: false });
 
             if (error) throw error;
             return { success: true };
@@ -1403,6 +2165,8 @@ export const DataProvider = ({ children }) => {
                 overtime_trigger_hours: Number(product.overtime_trigger_hours) || 0,
                 rack_location: product.shelf || product.rackLocation || null,
                 weight: product.weight || 0,
+                doctor_fee_type: product.doctorFeeType || 'fixed',
+                doctor_fee_value: product.doctorFeeValue || 0,
                 is_deleted: false
             };
 
@@ -1491,7 +2255,9 @@ export const DataProvider = ({ children }) => {
                 stock_type: rawData.stockType || rawData.stock_type || 'Barang',
                 overtime_hourly_penalty: Number(rawData.overtime_hourly_penalty) || 0,
                 overtime_trigger_hours: Number(rawData.overtime_trigger_hours) || 0,
-                category_id: rawData.categoryId ?? rawData.category_id
+                category_id: rawData.categoryId ?? rawData.category_id,
+                doctor_fee_type: rawData.doctorFeeType || rawData.doctor_fee_type,
+                doctor_fee_value: rawData.doctorFeeValue ?? rawData.doctor_fee_value
             };
 
             // Convert category name array to category_id
@@ -2240,7 +3006,17 @@ export const DataProvider = ({ children }) => {
                 unit: item.unit,
                 buy_price: item.buyPrice || item.buy_price || 0, // Map to snake_case for RPC
                 discount: item.discount || 0, // Pass item-level discount
-                aturan_pakai: item.aturanPakai || null // Save pharmacy usage instructions
+                aturan_pakai: item.aturanPakai || null, // Save pharmacy usage instructions
+                doctor_id: item.doctorId || null,
+                doctor_commission_type: item.doctorFeeType || null,
+                doctor_commission_value: item.doctorFeeValue || 0,
+                doctor_commission_amount: item.doctorCommissionAmount || 0,
+                groomer_id: item.groomerId || null,
+                groomer_commission_amount: item.groomerCommissionAmount || 0,
+                paramedic_id: item.paramedicId || null,
+                paramedic_commission_amount: item.paramedicCommissionAmount || 0,
+                cashier_id: item.cashierId || null,
+                cashier_commission_amount: item.cashierCommissionAmount || 0
             }));
 
             // Prepare payment_details for snapshotting points and other meta
@@ -2275,7 +3051,8 @@ export const DataProvider = ({ children }) => {
                 p_patient_name: transactionData.patient_name || null,
                 p_doctor_name: transactionData.doctor_name || null,
                 p_prescription_number: transactionData.prescription_number || null,
-                p_tuslah_fee: transactionData.tuslah_fee || 0
+                p_tuslah_fee: transactionData.tuslah_fee || 0,
+                p_medical_record_id: transactionData.medicalRecordId || null
             });
 
             if (error) throw error;
@@ -2620,7 +3397,7 @@ export const DataProvider = ({ children }) => {
 
 
     const bulkAddProducts = async (newProducts) => {
-        if (!activeStoreId) return;
+        if (!activeStoreId) return { success: false, error: 'No active store' };
         try {
             const storePlan = currentStore?.ownerPlan || 'free';
             const limits = PLAN_LIMITS[storePlan] || PLAN_LIMITS.free;
@@ -2632,86 +3409,103 @@ export const DataProvider = ({ children }) => {
                 };
             }
 
-            let addedCount = 0;
-            let skippedCount = 0;
-            let newCategoriesCount = 0;
+            // 1. Pre-process input: filter missing names and normalize categories
+            const validProducts = newProducts.filter(p => p.name);
+            let skippedCount = newProducts.length - validProducts.length;
+            const categoryNames = [...new Set(validProducts.map(p => p.category).filter(c => c && c !== 'Uncategorized'))];
+            const barcodes = validProducts.map(p => p.barcode).filter(b => b);
 
-            // Process each product
-            for (const prod of newProducts) {
-                // Skip if no name
-                if (!prod.name) {
+            // 2. Batch check existing barcodes to skip duplicates
+            let existingBarcodes = new Set();
+            if (barcodes.length > 0) {
+                // Supabase filter has limits, but for 276 it's fine. 
+                // If it's huge, we might need smaller chunks.
+                const { data: existingProds } = await supabase
+                    .from('products')
+                    .select('barcode')
+                    .eq('store_id', activeStoreId)
+                    .eq('is_deleted', false)
+                    .in('barcode', barcodes);
+                
+                if (existingProds) {
+                    existingProds.forEach(p => existingBarcodes.add(p.barcode));
+                }
+            }
+
+            // 3. Batch handle categories
+            let categoryMap = {}; // name -> id
+            let newCategoriesCount = 0;
+            
+            // 3.1 Fetch existing categories
+            const { data: existingCats } = await supabase
+                .from('categories')
+                .select('id, name')
+                .eq('store_id', activeStoreId);
+            
+            if (existingCats) {
+                existingCats.forEach(c => {
+                    categoryMap[c.name.toLowerCase()] = c.id;
+                });
+            }
+
+            // 3.2 Create missing categories
+            const missingCats = categoryNames.filter(name => !categoryMap[name.toLowerCase()]);
+            if (missingCats.length > 0) {
+                const { data: newlyCreatedCats, error: catError } = await supabase
+                    .from('categories')
+                    .insert(missingCats.map(name => ({ store_id: activeStoreId, name })))
+                    .select('id, name');
+                
+                if (catError) throw catError;
+                if (newlyCreatedCats) {
+                    newlyCreatedCats.forEach(c => {
+                        categoryMap[c.name.toLowerCase()] = c.id;
+                    });
+                    newCategoriesCount = newlyCreatedCats.length;
+                }
+            }
+
+            // 4. Prepare products for bulk insert
+            const toInsert = [];
+            for (const prod of validProducts) {
+                // Skip duplicates
+                if (prod.barcode && existingBarcodes.has(prod.barcode)) {
                     skippedCount++;
                     continue;
                 }
 
-                // Check duplicate barcode
-                if (prod.barcode) {
-                    const { data: existing } = await supabase
-                        .from('products')
-                        .select('id')
-                        .eq('store_id', activeStoreId)
-                        .eq('barcode', prod.barcode)
-                        .eq('is_deleted', false)
-                        .maybeSingle();
+                const catId = (prod.category && prod.category !== 'Uncategorized') 
+                    ? categoryMap[prod.category.toLowerCase()] 
+                    : null;
 
-                    if (existing) {
-                        skippedCount++;
-                        continue;
-                    }
-                }
+                toInsert.push({
+                    store_id: activeStoreId,
+                    category_id: catId,
+                    name: prod.name,
+                    barcode: prod.barcode || null,
+                    buy_price: prod.buyPrice || 0,
+                    sell_price: prod.sellPrice || prod.price || 0,
+                    stock: prod.stock || 0,
+                    unit: prod.unit || 'pcs',
+                    min_stock: prod.minStock || 0,
+                    type: prod.type || 'product',
+                    discount: prod.discount || 0,
+                    discount_type: prod.discountType || 'percent',
+                    units: prod.units || [],
+                    is_deleted: false
+                });
+            }
 
-                // Handle category
-                let categoryId = null;
-                if (prod.category && prod.category !== 'Uncategorized') {
-                    const { data: existingCat } = await supabase
-                        .from('categories')
-                        .select('id')
-                        .eq('store_id', activeStoreId)
-                        .ilike('name', prod.category)
-                        .maybeSingle();
-
-                    if (existingCat) {
-                        categoryId = existingCat.id;
-                    } else {
-                        const { data: newCat } = await supabase
-                            .from('categories')
-                            .insert({ store_id: activeStoreId, name: prod.category })
-                            .select('id')
-                            .single();
-
-                        if (newCat) {
-                            categoryId = newCat.id;
-                            newCategoriesCount++;
-                        }
-                    }
-                }
-
-                // Insert product with snake_case mapping
-                const { error } = await supabase
+            // 5. Bulk insert products
+            let addedCount = 0;
+            if (toInsert.length > 0) {
+                const { data: insertedData, error: insertError } = await supabase
                     .from('products')
-                    .insert({
-                        store_id: activeStoreId,
-                        category_id: categoryId,
-                        name: prod.name,
-                        barcode: prod.barcode || null,
-                        buy_price: prod.buyPrice || 0,
-                        sell_price: prod.sellPrice || prod.price || 0,
-                        stock: prod.stock || 0,
-                        unit: prod.unit || 'pcs',
-                        min_stock: prod.minStock || 0,
-                        type: prod.type || 'product',
-                        discount: prod.discount || 0,
-                        discount_type: prod.discountType || 'percent',
-                        units: prod.units || [], // Include units in bulk insert
-                        is_deleted: false
-                    });
-
-                if (!error) {
-                    addedCount++;
-                } else {
-                    console.error('Insert error for', prod.name, ':', error.message);
-                    skippedCount++;
-                }
+                    .insert(toInsert)
+                    .select('id');
+                
+                if (insertError) throw insertError;
+                addedCount = insertedData ? insertedData.length : toInsert.length;
             }
 
             if (addedCount > 0) {
@@ -3015,6 +3809,8 @@ export const DataProvider = ({ children }) => {
             processDebtPayment,
             addUser,
             fetchUsersByStore,
+            staff,
+            fetchStaff,
             plans,
             updatePlans,
             addCategory,
@@ -3027,6 +3823,12 @@ export const DataProvider = ({ children }) => {
             addCustomer,
             updateCustomer,
             deleteCustomer,
+            pets, addPet, updatePet, deletePet,
+            petRooms, addPetRoom, updatePetRoom, deletePetRoom, fetchPetRooms,
+            petBookings, addPetBooking, updatePetBooking, deletePetBooking, fetchPetBookings,
+            petServices, addPetService, updatePetService, deletePetService, fetchPetServices,
+            medicalRecords, addMedicalRecord, updateMedicalRecord, deleteMedicalRecord, fetchMedicalRecords, fetchMedicalRecordsByRM,
+            petDailyLogs, addPetDailyLog, updatePetDailyLog, deletePetDailyLog, fetchPetDailyLogs,
             adjustCustomerPoints,
             getPointAdjustmentHistory,
             checkAndResetExpiredPoints,

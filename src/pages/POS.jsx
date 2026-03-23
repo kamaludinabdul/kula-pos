@@ -27,6 +27,7 @@ import AlertDialog from '../components/AlertDialog';
 import DiscountPinDialog from '../components/DiscountPinDialog';
 import RentalDurationDialog from '../components/pos/RentalDurationDialog';
 import CustomerFormDialog from '../components/CustomerFormDialog';
+import RMSearchDialog from '../components/pos/RMSearchDialog';
 
 const POS = () => {
     // --- Contexts ---
@@ -72,11 +73,13 @@ const POS = () => {
 
 
 
-    const { currentShift, startShift, endShift, updateShiftStats, getShiftSummary } = useShift();
+    const { currentShift, startShift, endShift, getShiftSummary } = useShift();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const bookingIdParam = searchParams.get('bookingId');
+    const recordIdParam = searchParams.get('recordId');
     const hasProcessedBooking = useRef(false);
+    const hasProcessedRecord = useRef(false);
 
     // --- usePOS Hook (Core Logic) ---
     const {
@@ -91,7 +94,7 @@ const POS = () => {
         salesPerson, setSalesPerson,
         filteredProducts, totals, recommendedItems,
         promotions, availablePromos, // Destructure new return values
-        addToCart, updateQty, updateCartItem, updateItemUnit, clearCart
+        addToCart, updateQty, updateCartItem, updateItemUnit, clearCart, loadMedicalRecord
     } = usePOS();
 
     // Fetch Stamps when customer selected
@@ -109,6 +112,7 @@ const POS = () => {
     const [lastTransaction, setLastTransaction] = useState(null);
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     const [isCustomerFormOpen, setIsCustomerFormOpen] = useState(false);
+    const [isRMSearchOpen, setIsRMSearchOpen] = useState(false);
 
     // Rental Specific
     const [isRentalDialogOpen, setIsRentalDialogOpen] = useState(false);
@@ -318,8 +322,8 @@ const POS = () => {
             if (!bookingIdParam || hasProcessedBooking.current || !customers.length) return;
             try {
                 const { data: booking, error } = await supabase
-                    .from('bookings')
-                    .select('*')
+                    .from('pet_bookings')
+                    .select('*, pets(name), pet_rooms(name), customers(id, name, phone)')
                     .eq('id', bookingIdParam)
                     .single();
 
@@ -335,23 +339,46 @@ const POS = () => {
                     if (booking.service_type === 'hotel') {
                         productToAdd = {
                             id: `hotel-${booking.room_id || 'room'}`,
-                            name: `Hotel: ${booking.room_name || 'Room'} (${booking.pet_name || 'Pet'})`,
+                            name: `Hotel: ${booking.room_name || booking.pet_rooms?.name || 'Room'} (${booking.pet_name || booking.pets?.name || 'Pet'})`,
                             price: booking.total_price || 0,
                             qty: 1,
                             type: 'service',
-                            stock: 999
+                            stock: 999,
+                            bookingId: booking.id
                         };
                     } else if (booking.service_id) {
-                        productToAdd = products.find(p => p.id === booking.service_id);
+                        const baseProduct = products.find(p => p.id === booking.service_id);
+                        if (baseProduct) {
+                            productToAdd = { ...baseProduct, bookingId: booking.id };
+                        }
                     }
 
                     if (productToAdd) {
                         setCart(prev => {
                             if (prev.some(item => item.bookingId === booking.id)) return prev;
-                            return [...prev, { ...productToAdd, qty: 1, price: productToAdd.price, bookingId: booking.id }];
+                            const updatedCart = [...prev, productToAdd];
+                            return updatedCart;
                         });
                         showAlert('Booking Loaded', 'Data dari reservasi berhasil dimuat.');
                     }
+
+                    // --- NEW: Load linked medical record items if any ---
+                    try {
+                        const { data: linkedRecords, error: mrError } = await supabase
+                            .from('medical_records')
+                            .select('*, pets(name)')
+                            .eq('booking_id', booking.id);
+                        
+                        if (!mrError && linkedRecords && linkedRecords.length > 0) {
+                            linkedRecords.forEach(record => {
+                                loadMedicalRecord(record, booking.customer_id ? customers.find(c => c.id === booking.customer_id) : null);
+                            });
+                            // No need for separate alert, loadMedicalRecord handles logic
+                        }
+                    } catch (mrErr) {
+                        console.error("Error loading linked medical records", mrErr);
+                    }
+
                     hasProcessedBooking.current = true;
                 }
             } catch (err) {
@@ -359,7 +386,92 @@ const POS = () => {
             }
         };
         loadBooking();
-    }, [bookingIdParam, customers, products, setCart, showAlert, setSelectedCustomer]);
+    }, [bookingIdParam, customers, products, setCart, showAlert, setSelectedCustomer, loadMedicalRecord]);
+
+    // --- Medical Record Integration ---
+    useEffect(() => {
+        const loadMedicalRecord = async () => {
+            if (!recordIdParam || hasProcessedRecord.current || !customers.length) return;
+            try {
+                const { data: record, error } = await supabase
+                    .from('medical_records')
+                    .select('*, pets(name)')
+                    .eq('id', recordIdParam)
+                    .single();
+
+                if (error) throw error;
+                if (record) {
+                    if (record.customer_id) {
+                        const customer = customers.find(c => c.id === record.customer_id);
+                        if (customer) setSelectedCustomer(customer);
+                    }
+
+                    const newItems = [];
+                    
+                    // Add Services
+                    if (record.services && Array.isArray(record.services)) {
+                        record.services.forEach(s => {
+                            const product = products.find(p => p.id === s.service_id);
+                            if (product) {
+                                newItems.push({
+                                    ...product,
+                                    qty: 1,
+                                    recordId: record.id,
+                                    doctorId: record.doctor_id || null,
+                                    doctorFeeType: product.doctorFeeType || 'fixed',
+                                    doctorFeeValue: product.doctorFeeValue || 0
+                                });
+                            }
+                        });
+                    }
+
+                    // Add Prescriptions
+                    if (record.prescriptions && Array.isArray(record.prescriptions)) {
+                        record.prescriptions.forEach(p => {
+                            const product = products.find(prod => prod.id === p.product_id);
+                            if (product) {
+                                newItems.push({ 
+                                    ...product, 
+                                    qty: p.quantity || 1, 
+                                    price: p.price || product.price,
+                                    recordId: record.id,
+                                    aturanPakai: p.instructions,
+                                    // Attach doctor fee from product master data (only for prescription-sourced items)
+                                    doctorId: record.doctor_id || null,
+                                    doctorFeeType: product.doctorFeeType || 'fixed',
+                                    doctorFeeValue: product.doctorFeeValue || 0
+                                });
+                            }
+                        });
+                    }
+
+                    if (newItems.length > 0) {
+                        setCart(prev => {
+                            // Avoid duplicates if already loaded
+                            const filteredNew = newItems.filter(newItem => 
+                                !prev.some(existing => existing.recordId === record.id && existing.id === newItem.id)
+                            );
+                            return [...prev, ...filteredNew];
+                        });
+                        
+                        // Set patient name in prescription data for easier checkout
+                        if (record.pets?.name || record.pet_name) {
+                            setPrescriptionData(prev => ({
+                                ...prev,
+                                patientName: record.pets?.name || record.pet_name
+                            }));
+                        }
+
+                        showAlert('Data Medis Dimuat', 'Layanan dan obat dari rekam medis berhasil ditambahkan ke keranjang.');
+                    }
+                    hasProcessedRecord.current = true;
+                }
+            } catch (err) {
+                console.error("Error loading medical record", err);
+            }
+        };
+        loadMedicalRecord();
+    }, [recordIdParam, customers, products, setCart, showAlert, setSelectedCustomer, setPrescriptionData]);
 
     // --- Handlers ---
 
@@ -490,9 +602,29 @@ const POS = () => {
         });
 
         // Calculate Gross Subtotal and Total Item Discounts for accurate receipt display
+        // Calculate commissions per item before constructing transaction data
+        const cartWithCommissions = cart.map(item => {
+            let commissionAmount = 0;
+            if (item.doctorId) {
+                const feeValue = parseFloat(item.doctorFeeValue) || 0;
+                if (item.doctorFeeType === 'percentage') {
+                    commissionAmount = (item.price * feeValue) / 100;
+                } else if (item.doctorFeeType === 'fixed') {
+                    commissionAmount = feeValue;
+                }
+            }
+            return {
+                ...item,
+                doctorCommissionAmount: commissionAmount
+            };
+        });
+
+        // Determine if this is linked to a medical record
+        const linkedRecordId = cart.find(item => item.recordId)?.recordId || null;
+
         // 1. Construct Transaction Data using shared logic
         const transactionData = constructTransactionData({
-            cart,
+            cart: cartWithCommissions,
             totals,
             user,
             customer: selectedCustomer,
@@ -512,6 +644,7 @@ const POS = () => {
         transactionData.salesPersonId = salesPerson?.id || null;
         transactionData.salesPersonName = salesPerson?.name || null;
         transactionData.storeName = currentStore?.name;
+        transactionData.medicalRecordId = linkedRecordId;
 
         // Pharmacy Prescription Data
         if (prescriptionData) {
@@ -552,7 +685,8 @@ const POS = () => {
 
         if (result?.success) {
             try {
-                await updateShiftStats(totals.finalTotal, paymentMethod, totals.discountAmount);
+                // Shift stats are updated automatically by the process_sale RPC in the database.
+                // updateShiftStats call removed to prevent double-counting.
                 if (selectedCustomer) {
                     await updateCustomer(selectedCustomer.id, {
                         totalSpent: (selectedCustomer.totalSpent || 0) + totals.finalTotal,
@@ -582,7 +716,7 @@ const POS = () => {
         } else {
             showAlert('Gagal', `Transaksi gagal: ${result?.error || 'Unknown error'}`);
         }
-    }, [cart, totals, user, selectedCustomer, currentStore, currentShift, discountType, discountValue, appliedPromoId, salesPerson, loyaltyRules, currentStamps, processSale, updateShiftStats, updateCustomer, updateCustomerStamps, showAlert, prescriptionData]);
+    }, [cart, totals, user, selectedCustomer, currentStore, currentShift, discountType, discountValue, appliedPromoId, salesPerson, loyaltyRules, currentStamps, processSale, updateCustomer, updateCustomerStamps, showAlert, prescriptionData]);
 
     // --- Shortcuts ---
     useEffect(() => {
@@ -681,6 +815,7 @@ const POS = () => {
                             searchQuery={searchQuery}
                             setSearchQuery={setSearchQuery}
                             onOpenScanner={() => setIsScannerOpen(true)}
+                            onOpenRMSearch={() => setIsRMSearchOpen(true)}
                             onEnter={(query) => {
                                 if (!query) return;
                                 const product = products.find(p =>
@@ -873,24 +1008,30 @@ const POS = () => {
                 onSave={async (data) => {
                     const result = await addCustomer(data);
                     if (result.success) {
-                        // Optimistically select the new customer
-                        // The addCustomer usually triggers a refresh of users, but we might need to find the new one.
-                        // Since we deal with local state 'customers' in DataContext, it should update.
-                        // However, to be safe and fast, we can set the selected customer manually if we had the ID.
-                        // But addCustomer (in DataContext) usually re-fetches.
-                        // Let's assume result.data contains the new customer or we wait for effect.
-                        // Better: DataContext's addCustomer returns {success:true, data: newCustomer} ?
-                        // Let's check DataContext if possible, but standard practice:
                         if (result.data) {
                             setSelectedCustomer(result.data);
                             showAlert('Sukses', 'Pelanggan berhasil ditambahkan');
                         } else {
-                            // Fallback if data not returned immediately (though it should be)
                             showAlert('Sukses', 'Pelanggan ditambahkan. Silakan cari di daftar.');
                         }
                     } else {
                         showAlert('Gagal', result.error || 'Gagal menambah pelanggan');
                         throw new Error(result.error);
+                    }
+                }}
+            />
+
+            <RMSearchDialog
+                isOpen={isRMSearchOpen}
+                onClose={() => setIsRMSearchOpen(false)}
+                onSelectRecord={(item) => {
+                    setIsRMSearchOpen(false);
+                    if (item.itemType === 'booking') {
+                        hasProcessedBooking.current = false;
+                        navigate(`?bookingId=${item.id}`);
+                    } else {
+                        hasProcessedRecord.current = false;
+                        navigate(`?recordId=${item.id}`);
                     }
                 }}
             />

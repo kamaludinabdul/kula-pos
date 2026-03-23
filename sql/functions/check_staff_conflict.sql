@@ -28,6 +28,11 @@ BEGIN
         -- Fetch store name for friendly error message
         SELECT name INTO v_store_name FROM stores WHERE id = v_profile.store_id;
         
+        -- If store doesn't exist (Orphan Profile) or store_id is NULL, allow claiming it
+        IF NOT FOUND OR v_profile.store_id IS NULL THEN
+            RETURN jsonb_build_object('status', 'available');
+        END IF;
+
         RETURN jsonb_build_object(
             'status', 'conflict', 
             'current_store_name', COALESCE(v_store_name, 'Unknown Store')

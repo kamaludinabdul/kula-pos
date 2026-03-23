@@ -17,6 +17,8 @@ const Login = () => {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [captchaToken, setCaptchaToken] = useState(null);
+    const [captchaError, setCaptchaError] = useState('');
+    const [captchaRetryKey, setCaptchaRetryKey] = useState(0);
 
     const { login, user, loading } = useAuth();
     const navigate = useNavigate();
@@ -57,8 +59,33 @@ const Login = () => {
             navigate('/');
         } else {
             setError(result.message);
+            // Reset captcha on failed login to force re-verification
+            setCaptchaToken(null);
+            setCaptchaError('');
+            setCaptchaRetryKey(prev => prev + 1);
         }
         setIsLoading(false);
+    };
+
+    const handleCaptchaError = (errorCode) => {
+        setCaptchaToken(null);
+        let errorMsg = 'Gagal memuat CAPTCHA.';
+        
+        if (!window.isSecureContext) {
+            errorMsg = 'Koneksi tidak aman (Bukan HTTPS). Keamanan Cloudflare memerlukan koneksi HTTPS agar berfungsi.';
+        } else if (errorCode === '600010') {
+            errorMsg = `Masalah Konfigurasi (Error 600010): Domain ini kemungkinan belum terdaftar di dashboard Cloudflare Turnstile, atau Site Key tidak cocok.`;
+        } else if (errorCode) {
+            errorMsg = `Verifikasi Keamanan Gagal (Kode: ${errorCode}). Kemungkinan karena masalah koneksi atau konfigurasi.`;
+        }
+        
+        setCaptchaError(errorMsg);
+    };
+
+    const handleCaptchaRetry = () => {
+        setCaptchaError('');
+        setCaptchaToken(null);
+        setCaptchaRetryKey(prev => prev + 1);
     };
 
     return (
@@ -81,6 +108,11 @@ const Login = () => {
                         {error && (
                             <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm">
                                 {error}
+                            </div>
+                        )}
+                        {captchaError && (
+                            <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm">
+                                {captchaError}
                             </div>
                         )}
 
@@ -133,13 +165,35 @@ const Login = () => {
                         </div>
 
                         {TURNSTILE_SITE_KEY && (
-                            <div className="flex justify-center py-2">
+                            <div className="flex flex-col items-center py-2 space-y-2">
                                 <TurnstileWidget
-                                    siteKey={TURNSTILE_SITE_KEY}
-                                    onVerify={setCaptchaToken}
-                                    onExpire={() => setCaptchaToken(null)}
-                                    onError={() => setCaptchaToken(null)}
+                                    key={captchaRetryKey}
+                                    onVerify={(token) => {
+                                        setCaptchaToken(token);
+                                        setCaptchaError('');
+                                    }}
+                                    onExpire={() => {
+                                        setCaptchaToken(null);
+                                        setCaptchaError('Sesi CAPTCHA berakhir. Silakan verifikasi ulang.');
+                                    }}
+                                    onError={handleCaptchaError}
                                 />
+                                {captchaError && (
+                                    <div className="flex flex-col items-center space-y-2">
+                                        <Button 
+                                            type="button" 
+                                            variant="outline" 
+                                            size="sm" 
+                                            onClick={handleCaptchaRetry}
+                                            className="text-xs h-8"
+                                        >
+                                            Coba Lagi (Retry)
+                                        </Button>
+                                        <p className="text-[10px] text-muted-foreground text-center max-w-[250px]">
+                                            Jika terus gagal, pastikan domain diizinkan di Cloudflare, atau gunakan <b>Emergency Bypass Key</b> di .env.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         )}
 

@@ -34,7 +34,7 @@ const ProfitLoss = () => {
     const [isLoading, setIsLoading] = useState(false);
     // Initial state: This Month
     const [datePickerDate, setDatePickerDate] = useState(() => {
-        const { startDate, endDate } = getDateRange('today');
+        const { startDate, endDate } = getDateRange('thisMonth');
         return { from: startDate, to: endDate };
     });
 
@@ -111,9 +111,9 @@ const ProfitLoss = () => {
                     .gte('date', startDateStr)
                     .lte('date', endDateStr)
                     .order('date', { ascending: false })
-                    .limit(100)
+                    .limit(10000)
                     .select('*, profiles:cashier_id(name)'),
-                fallbackParams: `?select=*,profiles:cashier_id(name)&store_id=eq.${currentStore.id}&date=gte.${startDateStr}&date=lte.${endDateStr}&order=date.desc&limit=100`
+                fallbackParams: `?select=*,profiles:cashier_id(name)&store_id=eq.${currentStore.id}&date=gte.${startDateStr}&date=lte.${endDateStr}&order=date.desc&limit=10000`
             });
 
             // Map snake_case to camelCase for UI compatibility

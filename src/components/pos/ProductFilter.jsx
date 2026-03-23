@@ -13,9 +13,10 @@ const ProductFilter = ({
     categories,
     searchInputRef,
     onOpenScanner,
+    onOpenRMSearch,
     onEnter
 }) => {
-    const { term } = useBusinessType();
+    const { term, isPetClinic } = useBusinessType();
 
     return (
         <div className="space-y-3 p-4 bg-slate-50/50">
@@ -48,6 +49,15 @@ const ProductFilter = ({
                 <Button variant="outline" size="icon" onClick={onOpenScanner} title="Scan Barcode (Enter)">
                     <ScanBarcode className="h-4 w-4" />
                 </Button>
+                {isPetClinic && (
+                    <Button 
+                        variant="default" 
+                        className="bg-teal-600 hover:bg-teal-700 text-white gap-2" 
+                        onClick={onOpenRMSearch}
+                    >
+                        Rekam Medis (RM)
+                    </Button>
+                )}
             </div>
 
             <CategoryTabs

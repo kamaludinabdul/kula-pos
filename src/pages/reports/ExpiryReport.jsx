@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useData } from '../../context/DataContext';
 import { supabase } from '../../supabase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
@@ -53,13 +53,20 @@ const ExpiryReport = () => {
         }
     }, [activeStoreId]);
 
-    const loadData = useCallback(async () => {
+    const isInitialFetchDone = useRef(false);
+
+    const loadData = useCallback(async (isManual = false) => {
         if (!activeStoreId) return;
         setLoading(true);
         try {
-            // Make sure products match store
-            if (products.length === 0) {
-                await fetchAllProducts(activeStoreId);
+            // Guard against infinite loop if products.length is 0
+            if (products.length === 0 && !isInitialFetchDone.current) {
+                console.log("[ExpiryReport] Products empty, fetching...");
+                isInitialFetchDone.current = true;
+                await fetchAllProducts(activeStoreId, isManual);
+            } else if (isManual) {
+                // Manual refresh always forces a fetch
+                await fetchAllProducts(activeStoreId, true);
             }
 
             // Fetch active batches that actually have an expired_date

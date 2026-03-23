@@ -13,6 +13,19 @@ export const PERMISSION_SCHEMA = [
         ]
     },
     {
+        id: 'clinic',
+        label: 'Klinik & Pet Care',
+        children: [
+            { id: 'clinic.pets.read', label: 'Hewan: Lihat Daftar' },
+            { id: 'clinic.pets.create', label: 'Hewan: Tambah Baru' },
+            { id: 'clinic.medical_records.read', label: 'Rekam Medis: Lihat' },
+            { id: 'clinic.medical_records.create', label: 'Rekam Medis: Tambah' },
+            { id: 'clinic.bookings', label: 'Pet Hotel: Bookings' },
+            { id: 'clinic.rooms', label: 'Pet Hotel: Kamar & Fasilitas' },
+            { id: 'clinic.services', label: 'Hewan: Kelola Layanan' }
+        ]
+    },
+    {
         id: 'transactions',
         label: 'Transaksi',
         children: [
@@ -36,27 +49,24 @@ export const PERMISSION_SCHEMA = [
         id: 'database',
         label: 'Database (Master Data)',
         children: [
-            // Returns to granular Product permissions
             { id: 'products.read', label: 'Produk: Lihat Daftar' },
             { id: 'products.create', label: 'Produk: Tambah Baru' },
             { id: 'products.update', label: 'Produk: Edit' },
             { id: 'products.delete', label: 'Produk: Hapus' },
             { id: 'products.stock', label: 'Produk: Opname Stok' },
             { id: 'products.import_export', label: 'Produk: Import / Export' },
+            { id: 'products.promotions', label: 'Produk: Promo & Diskon' },
 
-            // Categories
             { id: 'categories.read', label: 'Kategori: Lihat' },
             { id: 'categories.create', label: 'Kategori: Tambah' },
             { id: 'categories.update', label: 'Kategori: Edit' },
             { id: 'categories.delete', label: 'Kategori: Hapus' },
 
-            // Customers
             { id: 'customers.read', label: 'Pelanggan: Lihat' },
             { id: 'customers.create', label: 'Pelanggan: Tambah' },
             { id: 'customers.update', label: 'Pelanggan: Edit' },
             { id: 'customers.delete', label: 'Pelanggan: Hapus' },
 
-            // Suppliers
             { id: 'suppliers.read', label: 'Supplier: Lihat' },
             { id: 'suppliers.create', label: 'Supplier: Tambah' },
             { id: 'suppliers.update', label: 'Supplier: Edit' },
@@ -91,7 +101,8 @@ export const PERMISSION_SCHEMA = [
             { id: 'reports.tuslah', label: 'Laporan Tuslah' },
             { id: 'reports.customer_profiling', label: 'Profiling Pelanggan' },
             { id: 'reports.pet_hotel_fee', label: 'Laporan Pet Hotel' },
-            { id: 'reports.top_selling', label: 'Produk Terlaris' }
+            { id: 'reports.top_selling', label: 'Produk Terlaris' },
+            { id: 'reports.doctor_commissions', label: 'Laporan Komisi Dokter' }
         ]
     },
     {
@@ -115,7 +126,7 @@ export const PERMISSION_SCHEMA = [
         id: 'others',
         label: 'Lainnya',
         children: [
-            { id: 'others.staff', label: 'Manajemen Staff (Lihat)' }, // App.jsx uses others.staff
+            { id: 'others.staff', label: 'Manajemen Staff (Lihat)' },
             { id: 'others.login_history', label: 'Riwayat Login' }
         ]
     },
@@ -123,11 +134,17 @@ export const PERMISSION_SCHEMA = [
         id: 'settings',
         label: 'Pengaturan',
         children: [
+            { id: 'settings.general', label: 'Pengaturan Umum' },
             { id: 'settings.profile', label: 'Profil Toko' },
-            { id: 'settings.printer', label: 'Printer' },
+            { id: 'settings.subscription', label: 'Paket & Langganan' },
+            { id: 'settings.fees', label: 'Biaya, Pajak & Komisi' },
+            { id: 'settings.printer', label: 'Printer & Struk' },
             { id: 'settings.loyalty', label: 'Loyalty Point' },
-            { id: 'settings.users', label: 'Manajemen User (Admin)' },
-            { id: 'sales.target', label: 'Target Penjualan' } // App.jsx uses sales.target
+            { id: 'settings.telegram', label: 'Notifikasi Telegram' },
+            { id: 'settings.sales_performance', label: 'Target Penjualan' },
+            { id: 'settings.security', label: 'Keamanan / PIN' },
+            { id: 'settings.users', label: 'Manajemen Hak Akses' },
+            { id: 'sales.target', label: 'Target Sales' }
         ]
     }
 ];
@@ -138,52 +155,66 @@ export const ROLE_PRESETS = {
         'dashboard.view',
         'pos.access',
         'transactions.view', 'transactions.detail',
-        'products.read', 'categories.read', 'customers.read', 'suppliers.read'
+        'products.read', 'categories.read', 'customers.read', 'suppliers.read',
+        'clinic.pets.read', 'clinic.medical_records.read'
     ],
     sales: [
         'dashboard.view', 'dashboard.operational',
         'pos.access',
         'transactions.view', 'transactions.detail',
         'products.read', 'categories.read', 'customers.read', 'customers.create', 'suppliers.read',
-        'reports.view', 'reports.performance'
+        'reports.view', 'reports.performance',
+        'settings.profile', 'settings.printer'
     ],
     admin: [
-        // ALL permissions included
         'dashboard.view', 'dashboard.operational', 'dashboard.financials', 'dashboard.stock',
         'transactions.view', 'transactions.detail', 'transactions.print', 'transactions.refund',
         'pos.access', 'pos.custom_price', 'pos.discount', 'pos.open_price',
-
-        // Granular Master Data
-        'products.read', 'products.create', 'products.update', 'products.delete', 'products.stock', 'products.import_export', 'products.purchase_orders', 'products.stock_opname',
+        'products.read', 'products.create', 'products.update', 'products.delete', 'products.stock', 'products.import_export', 'products.purchase_orders', 'products.stock_opname', 'products.promotions',
         'categories.read', 'categories.create', 'categories.update', 'categories.delete',
         'customers.read', 'customers.create', 'customers.update', 'customers.delete',
         'suppliers.read', 'suppliers.create', 'suppliers.update', 'suppliers.delete',
-
         'finance.cash_flow',
-        'reports.view', 'reports.profit_loss', 'reports.sales_items', 'reports.sales_categories', 'reports.inventory_value', 'reports.shifts', 'reports.performance', 'reports.forecast', 'reports.expiry', 'reports.defecta', 'reports.patient_history', 'reports.customer_profiling', 'reports.pet_hotel_fee', 'reports.top_selling', 'reports.loyalty',
+        'reports.view', 'reports.profit_loss', 'reports.sales_items', 'reports.sales_categories', 'reports.inventory_value', 'reports.shifts', 'reports.performance', 'reports.forecast', 'reports.expiry', 'reports.defecta', 'reports.patient_history', 'reports.tuslah', 'reports.customer_profiling', 'reports.pet_hotel_fee', 'reports.top_selling', 'reports.loyalty', 'reports.doctor_commissions',
         'smart_insights.bundling', 'smart_insights.forecast', 'smart_insights.segmentation', 'smart_insights.analysis',
         'rental.access',
         'others.staff', 'others.login_history',
-        'settings.profile', 'settings.printer', 'settings.loyalty', 'settings.users', 'sales.target'
+        'settings.general', 'settings.profile', 'settings.subscription', 'settings.fees', 'settings.printer', 'settings.loyalty', 'settings.telegram', 'settings.sales_performance', 'settings.security', 'settings.users', 'sales.target',
+        'clinic.pets.read', 'clinic.pets.create', 'clinic.medical_records.read', 'clinic.medical_records.create', 'clinic.bookings', 'clinic.rooms', 'clinic.services'
+    ],
+    dokter: [
+        'dashboard.view', 'dashboard.operational',
+        'pos.access',
+        'transactions.view', 'transactions.detail',
+        'products.read', 'categories.read', 'customers.read', 'customers.create',
+        'reports.view', 'reports.patient_history', 'reports.performance', 'reports.doctor_commissions',
+        'clinic.pets.read', 'clinic.medical_records.read', 'clinic.medical_records.create', 'clinic.services',
+        'settings.profile', 'settings.printer'
+    ],
+    pramedic: [
+        'dashboard.view',
+        'pos.access',
+        'transactions.view', 'transactions.detail',
+        'products.read', 'categories.read', 'customers.read', 'customers.create',
+        'reports.view', 'reports.patient_history',
+        'clinic.pets.read', 'clinic.medical_records.read', 'clinic.medical_records.create', 'clinic.services',
+        'settings.profile', 'settings.printer'
+    ],
+    groomer: [
+        'dashboard.view',
+        'pos.access',
+        'transactions.view', 'transactions.detail',
+        'products.read', 'categories.read', 'customers.read',
+        'clinic.pets.read', 'clinic.bookings',
+        'settings.profile', 'settings.printer'
     ]
 };
 
 // Helper function to normalize and ensure complete permissions
 export const normalizePermissions = (permissions) => {
-    // If no permissions array (legacy user), return based on role hardcoding (backward compatibility)
-    // But ideally, we should migrate them or just return what they have.
-    // This function is mainly used when loading the profile to ensure shape.
-
     if (!permissions || permissions.length === 0) {
-        // Fallback for legacy users without permissions array
-        return {}; // Return empty to let the UI logic handle "role" based fallbacks if needed, 
-        // OR we can return the defaults here based on a "role" argument if we had it.
-        // But this function signature only takes 'permissions'.
-        // So we rely on the component logical layers.
+        return {}; 
     }
-
-    // For the UI, we just need the array.
-    // For "checkPermission", we flatten.
     return permissions;
 };
 

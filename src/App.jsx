@@ -12,6 +12,13 @@ import LockScreen from './components/LockScreen';
 import { Toaster } from './components/ui/toaster';
 
 // Lazy Load Pages
+const Pets = lazy(() => import('./pages/Pets'));
+const PetProfile = lazy(() => import('./pages/PetProfile'));
+const PetDashboard = lazy(() => import('./pages/PetDashboard'));
+const PetBookings = lazy(() => import('./pages/PetBookings'));
+const PetRooms = lazy(() => import('./pages/PetRooms'));
+const PetServices = lazy(() => import('./pages/PetServices'));
+const MedicalRecords = lazy(() => import('./pages/MedicalRecords'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
@@ -46,6 +53,7 @@ const SalesAnalysis = React.lazy(() => import('./pages/smart-insights/SalesAnaly
 // Customer & Staff
 const Customers = lazy(() => import('./pages/Customers'));
 const Staff = lazy(() => import('./pages/Staff'));
+const StaffForm = lazy(() => import('./pages/StaffForm'));
 const LoginHistory = lazy(() => import('./pages/LoginHistory'));
 
 // Settings
@@ -79,6 +87,8 @@ const ExpiryReport = lazy(() => import('./pages/reports/ExpiryReport'));
 const TuslahReport = lazy(() => import('./pages/reports/TuslahReport'));
 const DefectaReport = lazy(() => import('./pages/DefectaReport'));
 const PatientHistory = lazy(() => import('./pages/reports/PatientHistory'));
+const DoctorCommissionReport = lazy(() => import('./pages/reports/DoctorCommissionReport'));
+const PetHotelDashboard = lazy(() => import('./pages/PetHotelDashboard'));
 
 // Sales & Finance
 const SalesTarget = lazy(() => import('./pages/sales/SalesTarget'));
@@ -437,17 +447,17 @@ const App = () => {
                     </Route>
                     {/* Promotions */}
                     <Route path="/promotions" element={
-                      <PrivateRoute feature="products.read">
+                      <PrivateRoute feature="products.promotions">
                         <PromotionsList />
                       </PrivateRoute>
                     } />
                     <Route path="/promotions/new" element={
-                      <PrivateRoute feature="products.read">
+                      <PrivateRoute feature="products.promotions">
                         <PromotionForm />
                       </PrivateRoute>
                     } />
                     <Route path="/promotions/edit/:id" element={
-                      <PrivateRoute feature="products.read">
+                      <PrivateRoute feature="products.promotions">
                         <PromotionForm />
                       </PrivateRoute>
                     } />
@@ -459,6 +469,57 @@ const App = () => {
                     <Route path="/staff" element={
                       <PrivateRoute feature="others.staff">
                         <Staff />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/staff/add" element={
+                      <PrivateRoute feature="others.staff">
+                        <StaffForm />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/staff/edit/:id" element={
+                      <PrivateRoute feature="others.staff">
+                        <StaffForm />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/pets" element={
+                      <PrivateRoute feature="clinic.pets.read" checkFeature="pet_hotel">
+                        <Pets />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/pet-profile/:id" element={
+                      <PrivateRoute feature="clinic.pets.read" checkFeature="pet_hotel">
+                        <PetProfile />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/pet-dashboard" element={
+                      <PrivateRoute feature="dashboard" checkFeature="pet_hotel">
+                        <PetDashboard />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/pet-bookings" element={
+                      <PrivateRoute feature="clinic.bookings" checkFeature="pet_hotel">
+                        <PetBookings />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/pet-hotel" element={
+                      <PrivateRoute feature="clinic.rooms" checkFeature="pet_hotel">
+                        <PetHotelDashboard />
+                      </PrivateRoute>
+                    } />
+
+                    <Route path="/pet-rooms" element={
+                      <PrivateRoute feature="clinic.rooms" checkFeature="pet_hotel">
+                        <PetRooms />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/pet-services" element={
+                      <PrivateRoute feature="clinic.services" checkFeature="pet_hotel">
+                        <PetServices />
+                      </PrivateRoute>
+                    } />
+                    <Route path="/medical-records" element={
+                      <PrivateRoute feature="clinic.medical_records.read" checkFeature="pet_hotel">
+                        <MedicalRecords />
                       </PrivateRoute>
                     } />
                     <Route path="/login-history" element={
@@ -597,6 +658,11 @@ const App = () => {
                       <Route path="patient-history" element={
                         <PrivateRoute feature="reports.patient_history" checkFeature="prescriptions">
                           <PatientHistory />
+                        </PrivateRoute>
+                      } />
+                      <Route path="doctor-commissions" element={
+                        <PrivateRoute feature="reports.doctor_commissions" checkFeature="pet_hotel">
+                          <DoctorCommissionReport />
                         </PrivateRoute>
                       } />
                     </Route>

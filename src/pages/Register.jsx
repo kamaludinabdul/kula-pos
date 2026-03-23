@@ -17,7 +17,7 @@ const BUSINESS_TYPES = [
     { id: 'pharmacy', label: 'Apotek', description: 'Obat & Alat Kesehatan', icon: Pill, color: 'emerald' },
     { id: 'laundry', label: 'Laundry', description: 'Coming Soon', icon: Shirt, color: 'cyan', disabled: true },
     { id: 'rental', label: 'Rental', description: 'Coming Soon', icon: Timer, color: 'violet', disabled: true },
-    { id: 'pet_clinic', label: 'Klinik Hewan', description: 'Coming Soon', icon: PawPrint, color: 'amber', disabled: true },
+    { id: 'pet_clinic', label: 'Pet Shop', description: 'Pet Shop & Klinik Hewan', icon: PawPrint, color: 'amber' },
 ];
 
 
@@ -36,6 +36,8 @@ const Register = () => {
     const [error, setError] = useState('');
     const [loadingState, setLoadingState] = useState(false);
     const [captchaToken, setCaptchaToken] = useState(null);
+    const [captchaError, setCaptchaError] = useState('');
+    const [captchaRetryKey, setCaptchaRetryKey] = useState(0);
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [confirmationEmail, setConfirmationEmail] = useState('');
     const { signup, user, loading } = useAuth();
@@ -68,6 +70,27 @@ const Register = () => {
         setFormData({ ...formData, [e.target.id]: e.target.value });
     };
 
+    const handleCaptchaError = (errorCode) => {
+        setCaptchaToken(null);
+        let errorMsg = 'Gagal memuat CAPTCHA.';
+        
+        if (!window.isSecureContext) {
+            errorMsg = 'Koneksi tidak aman (Bukan HTTPS). Keamanan Cloudflare memerlukan koneksi HTTPS agar berfungsi.';
+        } else if (errorCode === '600010') {
+            errorMsg = `Masalah Konfigurasi (Error 600010): Domain ini kemungkinan belum terdaftar di dashboard Cloudflare Turnstile, atau Site Key tidak cocok.`;
+        } else if (errorCode) {
+            errorMsg = `Verifikasi Keamanan Gagal (Kode: ${errorCode}). Kemungkinan karena masalah koneksi atau konfigurasi.`;
+        }
+        
+        setCaptchaError(errorMsg);
+    };
+
+    const handleCaptchaRetry = () => {
+        setCaptchaError('');
+        setCaptchaToken(null);
+        setCaptchaRetryKey(prev => prev + 1);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -91,9 +114,9 @@ const Register = () => {
             setLoadingState(false);
             return;
         }
-
         try {
-            // Check if email already exists in profiles (staff or owner)
+            // 1. Uniqueness check
+            console.log("[Register] [CHECKPOINT 1] Performing uniqueness check for:", formData.email);
             const { data: checkData, error: checkError } = await supabase
                 .rpc('check_staff_conflict', {
                     p_email: formData.email,
@@ -101,43 +124,61 @@ const Register = () => {
                 });
 
             if (checkError) {
-                console.error("Uniqueness check failed:", checkError);
+                console.error("[Register] [CHECKPOINT 1 FAIL] Uniqueness check RPC failed:", checkError);
+                // If it's a 500, we want to know
+                if (checkError.status === 500 || checkError.code === '500') {
+                    setError(`Terjadi kesalahan server saat pengecekan email (RPC 500). Detail: ${checkError.message || 'No message'}`);
+                    setLoadingState(false);
+                    return;
+                }
             } else if (checkData && (checkData.status === 'conflict' || checkData.status === 'same_store')) {
+                console.log("[Register] [CHECKPOINT 1 CONFLICT] Conflict found:", checkData);
                 setError(`Email ini sudah terdaftar sebagai ${checkData.current_role} di ${checkData.current_store_name || 'toko lain'}. Silakan gunakan email lain.`);
                 setLoadingState(false);
                 return;
             }
 
+            // 2. Auth Sign Up
+            console.log("[Register] [CHECKPOINT 2] Proceeding to signUp for store:", formData.storeName, "Business Type:", formData.businessType);
             const result = await signup(
                 formData.email,
                 formData.password,
-                formData.ownerName,
+                formData.ownerName, 
                 formData.storeName,
                 formData.businessType,
                 captchaToken // Pass CAPTCHA token to signup
             );
 
+            console.log("[Register] [CHECKPOINT 3] signup result received:", result);
+
             if (result.success) {
+                console.log("[Register] [CHECKPOINT 4] Success! Redirecting or showing confirmation...");
                 if (result.requiresConfirmation) {
-                    // Show email confirmation screen
                     setConfirmationEmail(formData.email);
                     setShowConfirmation(true);
                 } else {
                     navigate('/dashboard');
                 }
             } else {
-                setError(result.message);
-                // Reset CAPTCHA on error
-                setCaptchaToken(null);
-                if (turnstileRef.current?.reset) {
-                    turnstileRef.current.reset();
+                console.error("[Register] [CHECKPOINT 3 FAIL] signup failed with message:", result.message);
+                
+                // CRITICAL: Interpret 500 error specifically for the user
+                if (result.message?.includes('500') || result.message?.toLowerCase().includes('internal server error')) {
+                    setError('Terjadi Kesalahan Server Internal (500). Ini kemungkinan besar disebabkan oleh kegagalan Trigger Database atau Server SMTP Supabase.');
+                } else {
+                    setError(result.message);
                 }
+                setCaptchaToken(null);
+                if (turnstileRef.current?.reset) turnstileRef.current.reset();
             }
 
         } catch (err) {
-            console.error("Registration Error:", err);
-            setError('Gagal mendaftar. ' + (err.message || 'Silakan coba lagi.'));
+            console.error("[Register] [CHECKPOINT ERROR] handleSubmit unexpected error:", err);
+            // Deep dive into error object
+            const errorMsg = err.message || JSON.stringify(err);
+            setError('Gagal mendaftar. ' + errorMsg);
             setCaptchaToken(null);
+            setCaptchaRetryKey(prev => prev + 1);
         } finally {
             setLoadingState(false);
         }
@@ -350,15 +391,37 @@ const Register = () => {
                         )}
 
                         {/* Cloudflare Turnstile CAPTCHA */}
-                        <TurnstileWidget
-                            ref={turnstileRef}
-                            onVerify={(token) => setCaptchaToken(token)}
-                            onError={() => {
-                                setCaptchaToken(null);
-                                setError('Verifikasi CAPTCHA gagal. Silakan coba lagi.');
-                            }}
-                            onExpire={() => setCaptchaToken(null)}
-                        />
+                        <div className="flex flex-col items-center py-2 space-y-2">
+                            <TurnstileWidget
+                                key={captchaRetryKey}
+                                ref={turnstileRef}
+                                onVerify={(token) => {
+                                    setCaptchaToken(token);
+                                    setCaptchaError('');
+                                }}
+                                onError={handleCaptchaError}
+                                onExpire={() => {
+                                    setCaptchaToken(null);
+                                    setCaptchaError('Sesi CAPTCHA berakhir. Silakan verifikasi ulang.');
+                                }}
+                            />
+                            {captchaError && (
+                                <div className="flex flex-col items-center space-y-2">
+                                    <Button 
+                                        type="button" 
+                                        variant="outline" 
+                                        size="sm" 
+                                        onClick={handleCaptchaRetry}
+                                        className="text-xs h-8"
+                                    >
+                                        Coba Lagi (Retry)
+                                    </Button>
+                                    <p className="text-[10px] text-muted-foreground text-center max-w-[250px]">
+                                        Jika terus gagal, pastikan domain diizinkan di Cloudflare, atau gunakan <b>Emergency Bypass Key</b> di .env.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
 
                         <Button className="w-full bg-indigo-600 hover:bg-indigo-700 mt-6" type="submit" disabled={loadingState || !allCriteriaMet || (isCaptchaEnabled && !captchaToken)}>
                             {loadingState ? (

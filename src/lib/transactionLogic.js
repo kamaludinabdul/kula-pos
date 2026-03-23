@@ -38,8 +38,13 @@ export const constructTransactionData = ({
         multiplier: item.multiplier || 1,
         discount: item.discount || 0,
         total: (item.price - (item.discount || 0)) * item.qty,
-        buy_price: item.buy_price, // Important for profit calc
-        note: item.note
+        buy_price: item.buy_price || item.buyPrice || 0, // Important for profit calc
+        note: item.note,
+        doctorId: item.doctorId || null,
+        doctorFeeType: item.doctorFeeType || null,
+        doctorFeeValue: item.doctorFeeValue || 0,
+        doctorCommissionAmount: item.doctorCommissionAmount || 0,
+        recordId: item.recordId || null
     }));
 
     return {

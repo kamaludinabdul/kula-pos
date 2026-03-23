@@ -14,39 +14,61 @@ serve(async (req) => {
     }
 
     try {
-        // 1. Create Supabase Client (Admin context for auth check, though we trust the JWT from invoke)
-        // Actually we need the Service Role key to create users with confirmed email
+        console.log("Create-user function invoked with method:", req.method);
+        const authHeader = req.headers.get('Authorization');
+        
+        // 1. Create Supabase Client
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+        const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+        
+        console.log("Supabase URL:", supabaseUrl);
+        
         const supabaseClient = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-            { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+            supabaseUrl,
+            supabaseAnonKey,
+            { global: { headers: authHeader ? { Authorization: authHeader } : {} } }
         )
 
         // 2. Verify Caller (Authentication)
+        if (!authHeader) {
+            console.error("Missing Authorization header");
+            return new Response(JSON.stringify({ error: 'Unauthorized: Missing session' }), {
+                status: 200, // Return 200 to see the message in frontend
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            })
+        }
+
         const {
             data: { user },
             error: userError,
         } = await supabaseClient.auth.getUser()
 
         if (userError || !user) {
-            return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-                status: 401,
+            console.error("Auth getUser failed:", userError);
+            return new Response(JSON.stringify({ error: `Unauthorized: ${userError?.message || 'No user session'}` }), {
+                status: 200, 
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             })
         }
 
         // 3. Verify Role (Authorization) - Only Owner/Admin/SuperAdmin can create users
-        // We check the user's role in the public.profiles table or metadata
-        const { data: profile } = await supabaseClient
+        const { data: profile, error: profileError } = await supabaseClient
             .from('profiles')
             .select('role')
             .eq('id', user.id)
             .single();
 
+        if (profileError) {
+            return new Response(JSON.stringify({ error: `Forbidden: Profile error - ${profileError.message}` }), {
+                status: 200,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            })
+        }
+
         const allowedRoles = ['owner', 'admin', 'super_admin'];
         if (!profile || !allowedRoles.includes(profile.role)) {
-            return new Response(JSON.stringify({ error: 'Forbidden: Insufficient permissions' }), {
-                status: 403,
+            return new Response(JSON.stringify({ error: `Forbidden: Insufficient permissions (Role: ${profile?.role || 'none'})` }), {
+                status: 200,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             })
         }
@@ -54,9 +76,11 @@ serve(async (req) => {
         // 4. Parse Request Body
         const { email, password, name, role, store_id, permissions } = await req.json()
 
+        console.log("Edge Function processing user creation for email:", email, "Password length:", password?.length);
+
         if (!email || !password) {
             return new Response(JSON.stringify({ error: 'Email and password are required' }), {
-                status: 400,
+                status: 200, // Return 200 to allow SDK to read the body easily
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             })
         }
@@ -80,7 +104,10 @@ serve(async (req) => {
         })
 
         if (createError) {
-            throw createError
+            return new Response(JSON.stringify({ error: createError.message }), {
+                status: 200, // Return 200 so frontend can read data.error
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            })
         }
 
         return new Response(
@@ -97,7 +124,7 @@ serve(async (req) => {
     } catch (error) {
         return new Response(JSON.stringify({ error: error.message }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400,
+            status: 200, // Return 200 for debugging
         })
     }
 })

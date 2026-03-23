@@ -495,7 +495,7 @@ const Stores = () => {
                                             <SelectItem value="pharmacy">Apotek / Klinik</SelectItem>
                                             <SelectItem value="laundry">Laundry</SelectItem>
                                             <SelectItem value="rental">Rental / Penyewaan</SelectItem>
-                                            <SelectItem value="pet_clinic">Klinik Hewan (Coming Soon)</SelectItem>
+                                            <SelectItem value="pet_clinic">Pet Shop & Klinik Hewan</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>

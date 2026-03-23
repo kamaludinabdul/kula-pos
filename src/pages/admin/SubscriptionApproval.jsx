@@ -20,6 +20,7 @@ const SubscriptionApproval = () => {
 
     // Rejection Dialog State
     const [isRejectOpen, setIsRejectOpen] = useState(false);
+    const [isApproveOpen, setIsApproveOpen] = useState(false);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [rejectReason, setRejectReason] = useState("");
 
@@ -64,10 +65,15 @@ const SubscriptionApproval = () => {
         fetchInvoices();
     }, []);
 
-    const handleApprove = async (invoice) => {
-        const ownerName = invoice.stores?.owner?.name || invoice.stores?.name;
-        if (!confirm(`Setujui langganan untuk OWNER: ${ownerName} (Paket ${invoice.plan_id.toUpperCase()})?`)) return;
+    const handleApprove = (invoice) => {
+        setSelectedInvoice(invoice);
+        setIsApproveOpen(true);
+    };
 
+    const handleConfirmApprove = async () => {
+        if (!selectedInvoice) return;
+        const invoice = selectedInvoice;
+        
         setProcessingId(invoice.id);
         try {
             const { data, error } = await supabase.rpc('approve_subscription_invoice', {
@@ -86,6 +92,7 @@ const SubscriptionApproval = () => {
             // Refresh list
             fetchInvoices();
 
+            setIsApproveOpen(false);
         } catch (error) {
             console.error("Approval Error:", error);
             toast({
@@ -350,6 +357,59 @@ const SubscriptionApproval = () => {
                             disabled={!rejectReason.trim() || processingId === selectedInvoice?.id}
                         >
                             {processingId === selectedInvoice?.id ? "Memproses..." : "Tolak Permintaan"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Approval Confirmation Dialog */}
+            <Dialog open={isApproveOpen} onOpenChange={setIsApproveOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="text-green-600 flex items-center gap-2">
+                            <CheckCircle className="h-5 w-5" />
+                            Konfirmasi Approval
+                        </DialogTitle>
+                        <DialogDescription>
+                            Pastikan Anda sudah memverifikasi bukti pembayaran sebelum menyetujui.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="bg-slate-50 p-4 rounded-lg border space-y-2 text-sm">
+                        <div className="flex justify-between">
+                            <span className="text-slate-500">Owner:</span>
+                            <span className="font-bold">{selectedInvoice?.stores?.owner?.name || selectedInvoice?.stores?.name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-slate-500">Toko:</span>
+                            <span className="font-bold">{selectedInvoice?.stores?.name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-slate-500">Paket:</span>
+                            <span className="font-bold uppercase text-indigo-600">{selectedInvoice?.plan_id}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-slate-500">Durasi:</span>
+                            <span className="font-bold">{selectedInvoice?.duration_months} Bulan</span>
+                        </div>
+                        <div className="flex justify-between pt-2 border-t">
+                            <span className="text-slate-500">Total Bayar:</span>
+                            <span className="font-bold text-lg">{selectedInvoice ? formatCurrency(selectedInvoice.amount) : '-'}</span>
+                        </div>
+                    </div>
+
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button variant="outline" onClick={() => setIsApproveOpen(false)}>Batal</Button>
+                        <Button
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={handleConfirmApprove}
+                            disabled={processingId === selectedInvoice?.id}
+                        >
+                            {processingId === selectedInvoice?.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                "Ya, Setujui Sekarang"
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

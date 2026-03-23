@@ -3,7 +3,7 @@ export const BUSINESS_TYPES = {
         id: 'general',
         label: 'Toko',
         features: ['pos', 'inventory', 'finance', 'reports', 'customers'],
-        productFields: ['name', 'category', 'sku', 'barcode', 'sell_price', 'buy_price', 'stock', 'min_stock'],
+        productFields: ['name', 'category', 'sku', 'barcode', 'sell_price', 'buy_price', 'stock', 'min_stock', 'units'],
         terminology: { customer: 'Pelanggan', product: 'Barang', sale: 'Penjualan', generalCustomer: 'Pelanggan Umum' },
         settings: { showRental: false, showPetHotel: false }
     },
@@ -41,10 +41,10 @@ export const BUSINESS_TYPES = {
     },
     pet_clinic: {
         id: 'pet_clinic',
-        label: 'Klinik Hewan',
+        label: 'Pet Shop & Klinik',
         features: ['pos', 'inventory', 'finance', 'reports', 'customers', 'pet_hotel'],
         productFields: ['name', 'category', 'sku', 'barcode', 'sell_price', 'buy_price', 'stock', 'min_stock'],
-        terminology: { customer: 'Pet Owner', product: 'Layanan/Produk', sale: 'Transkasi', generalCustomer: 'Umum' },
+        terminology: { customer: 'Pet Owner', product: 'Layanan/Produk', sale: 'Transaksi', generalCustomer: 'Umum' },
         settings: { showRental: false, showPetHotel: true }
     }
 };

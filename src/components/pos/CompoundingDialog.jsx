@@ -77,8 +77,6 @@ const CompoundingDialog = ({ isOpen, onClose, products, onAddToCart }) => {
                 qty: i.qty,
                 unit: i.unit
             })),
-            // For stock deduction logic on frontend/UI if needed
-            isUnlimited: true,
             unit: 'Paket'
         };
 

@@ -239,6 +239,63 @@ export const usePOS = () => {
         });
     }, []);
 
+    // Load Medical Record into Cart
+    const loadMedicalRecord = useCallback((record, customer = null) => {
+        if (!record) return;
+
+        if (customer) {
+            setSelectedCustomer(customer);
+        }
+
+        const newItems = [];
+
+        // Add Services
+        if (record.services && Array.isArray(record.services)) {
+            record.services.forEach(s => {
+                const sid = s.id || s.service_id;
+                const product = products.find(p => p.id === sid);
+                if (product) {
+                    newItems.push({
+                        ...product,
+                        qty: 1,
+                        recordId: record.id,
+                        doctorId: record.doctor_id || null, // Attribute to record's doctor
+                        patientName: record.pets?.name || record.pet_name || ''
+                    });
+                }
+            });
+        }
+
+        // Add Prescriptions
+        if (record.prescriptions && Array.isArray(record.prescriptions)) {
+            record.prescriptions.forEach(p => {
+                const pid = p.id || p.product_id;
+                const product = products.find(prod => prod.id === pid);
+                if (product) {
+                    newItems.push({
+                        ...product,
+                        qty: parseFloat(p.duration || p.quantity) || 1, // 'duration' is used for quantity in dialog
+                        price: p.price || product.price,
+                        recordId: record.id,
+                        aturanPakai: p.dosage || p.instructions, // 'dosage' is used for instructions in dialog
+                        doctorId: record.doctor_id || null, // Attribute to record's doctor
+                        patientName: record.pets?.name || record.pet_name || ''
+                    });
+                }
+            });
+        }
+
+        if (newItems.length > 0) {
+            setCart(prev => {
+                // Avoid duplicates if already loaded for this record
+                const filteredNew = newItems.filter(newItem =>
+                    !prev.some(existing => existing.recordId === record.id && existing.id === newItem.id)
+                );
+                return [...prev, ...filteredNew];
+            });
+        }
+    }, [products]);
+
     // --- Search & Filter ---
 
     const filteredProducts = useMemo(() => {
@@ -328,6 +385,32 @@ export const usePOS = () => {
             storeTaxType
         );
 
+        // 5. Calculate Doctor Commissions
+        const doctorCommissions = cart.reduce((acc, item) => {
+            if (!item.doctorId) return acc;
+
+            let itemCommission = 0;
+            const itemPrice = item.price || 0;
+            const feeType = item.doctorFeeType;
+            const feeValue = parseFloat(item.doctorFeeValue) || 0;
+
+            if (feeType === 'percentage') {
+                itemCommission = (itemPrice * feeValue) / 100;
+            } else if (feeType === 'fixed') {
+                itemCommission = feeValue;
+            }
+
+            const totalItemCommission = itemCommission * item.qty;
+
+            // Group by doctor if needed, but for totals we just need the total
+            acc.total += totalItemCommission;
+            
+            // We also need to attach the CALCULATED amount to each item for the RPC
+            // But we shouldn't mutate 'cart' here. We'll do it in the mappedItems if needed.
+            // Actually, we'll store it in the totals for now.
+            return acc;
+        }, { total: 0 });
+
         return {
             rawTotal: result.subtotal, // cartLogic returns 'subtotal' as the sum of items
             subtotal: result.taxBase, // This aligns with "after discount"
@@ -335,7 +418,8 @@ export const usePOS = () => {
             serviceCharge: result.serviceCharge,
             discountAmount: result.discountAmount,
             tuslahFee: prescriptionData.tuslahFee,
-            finalTotal: result.finalTotal + (parseFloat(prescriptionData.tuslahFee) || 0)
+            finalTotal: result.finalTotal + (parseFloat(prescriptionData.tuslahFee) || 0),
+            doctorCommissionTotal: doctorCommissions.total
         };
 
     }, [cart, currentStore, discountType, discountValue, appliedPromoId, activePromotions, prescriptionData]);
@@ -433,6 +517,7 @@ export const usePOS = () => {
         updateQty,
         updateCartItem,
         updateItemUnit,
-        clearCart
+        clearCart,
+        loadMedicalRecord
     };
 };

@@ -217,11 +217,13 @@ const PromotionForm = () => {
                             </div>
                         </div>
 
-                        {/* Bundle Specific Selection */}
-                        {formData.type === 'bundle' && (
+                        {/* Product Selection for all types */}
+                        {(formData.type === 'bundle' || formData.type === 'percentage' || formData.type === 'fixed') && (
                             <div className="space-y-4 border p-4 rounded-md bg-slate-50">
                                 <div className="flex justify-between items-center">
-                                    <Label>Pilih Produk untuk Dibundling</Label>
+                                    <Label>
+                                        {formData.type === 'bundle' ? 'Pilih Produk untuk Dibundling' : 'Pilih Produk Spesifik (Opsional)'}
+                                    </Label>
                                     <div className="relative w-1/2">
                                         <Search className="absolute left-2 top-2.5 h-3 w-3 text-muted-foreground" />
                                         <Input
@@ -257,8 +259,7 @@ const PromotionForm = () => {
                                     )}
                                 </div>
 
-                                {/* Selected Items List */}
-                                {formData.target_ids.length > 0 && (
+                                {formData.target_ids.length > 0 ? (
                                     <div className="space-y-2 pt-2">
                                         <Label className="text-xs text-muted-foreground">Produk Terpilih ({formData.target_ids.length})</Label>
                                         <div className="flex flex-wrap gap-2">
@@ -280,7 +281,9 @@ const PromotionForm = () => {
                                             })}
                                         </div>
                                     </div>
-                                )}
+                                ) : (formData.type !== 'bundle' && (
+                                    <p className="text-[10px] text-muted-foreground italic">Kosongkan untuk menerapkan ke seluruh transaksi.</p>
+                                ))}
 
                                 {bundleItems.length > 0 && (
                                     <div className="flex flex-col gap-2 border-t pt-4">

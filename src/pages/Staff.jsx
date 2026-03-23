@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Users, Plus, Edit2, Trash2, Shield, User, Circle, History, Eye, EyeOff, MoreVertical } from 'lucide-react';
 import { supabase } from '../supabase';
 import { useData } from '../context/DataContext';
@@ -16,7 +17,7 @@ import UpgradeAlert from '../components/UpgradeAlert';
 import Pagination from '../components/Pagination';
 import AlertDialog from '../components/AlertDialog';
 import ConfirmDialog from '../components/ConfirmDialog';
-import { PERMISSION_SCHEMA, getPermissionsForRole, ROLE_PRESETS } from '../utils/permissions';
+import { PERMISSION_SCHEMA, ROLE_PRESETS } from '../utils/permissions';
 import { ChevronDown, ChevronRight, Check } from 'lucide-react';
 import {
     DropdownMenu,
@@ -26,17 +27,13 @@ import {
 } from "../components/ui/dropdown-menu";
 
 const Staff = () => {
-    const { user, updateStaffPassword } = useAuth();
-    const { activeStoreId, addUser } = useData();
+    const navigate = useNavigate();
+    const { user } = useAuth();
+    const { activeStoreId } = useData();
     const [staffList, setStaffList] = useState([]);
     const [activeShifts, setActiveShifts] = useState([]);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [currentStaff, setCurrentStaff] = useState({ name: '', email: '', role: 'staff', pin: '', photo: '' });
-    const [permissions, setPermissions] = useState([]);
-    const [showPermissions, setShowPermissions] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
     const [showUpgradeAlert, setShowUpgradeAlert] = useState(false);
-    const [upgradeDebugInfo, setUpgradeDebugInfo] = useState(null);
+    const [upgradeDebugInfo] = useState(null);
 
     // Dialog States
     const [isAlertOpen, setIsAlertOpen] = useState(false);
@@ -51,7 +48,6 @@ const Staff = () => {
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [historyPage, setHistoryPage] = useState(1);
     const historyItemsPerPage = 5;
-    const [showPassword, setShowPassword] = useState(false);
 
     useEffect(() => {
         if (!activeStoreId) {
@@ -191,40 +187,11 @@ const Staff = () => {
     };
 
     const handleAddStaff = () => {
-        setCurrentStaff({ name: '', email: '', role: 'staff', password: '', photo: '', petCareAccess: false });
-        // Set default permissions for new staff based on 'staff' role
-        setPermissions(getPermissionsForRole('staff'));
-        setIsEditing(false);
-        setShowPassword(false);
-        setShowPermissions(false); // Collapse by default
-        setIsModalOpen(true);
+        navigate('/staff/add');
     };
 
     const handleEditStaff = (staff) => {
-        // If staff has pin but no password (legacy), use pin as password
-        const staffData = {
-            ...staff,
-            password: staff.password || staff.pin || '',
-            petCareAccess: staff.petCareAccess || false
-        };
-
-        // Clean up email for display (if dummy)
-        if (staffData.email && staffData.email.endsWith('@kula.id')) {
-            staffData.email = staffData.email.split('@')[0];
-        }
-
-        setCurrentStaff(staffData);
-        // Load existing permissions OR fallback to defaults if empty (legacy)
-        if (staff.permissions && staff.permissions.length > 0) {
-            setPermissions(staff.permissions);
-        } else {
-            setPermissions(getPermissionsForRole(staff.role));
-        }
-
-        setIsEditing(true);
-        setShowPassword(false);
-        setShowPermissions(false);
-        setIsModalOpen(true);
+        navigate(`/staff/edit/${staff.id}`);
     };
 
     const handleForceLogout = (staff) => {
@@ -290,165 +257,7 @@ const Staff = () => {
         }
     };
 
-    const handlePhotoChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setCurrentStaff(prev => ({ ...prev, photo: reader.result }));
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    /**
-     * Registers a new user in Supabase Auth using a temporary client.
-     * This avoids logging out the current admin.
-     */
-    const registerUserToSupabase = async (email, password, name, role, storeId) => {
-        try {
-            console.log("Calling create-user edge function...");
-            const { data, error } = await supabase.functions.invoke('create-user', {
-                body: {
-                    email,
-                    password,
-                    name: name || 'Staff Member',
-                    role: role || 'staff',
-                    store_id: storeId,
-                    permissions: permissions // Sending current permissions state
-                }
-            });
-
-            if (error) throw error;
-            if (data.error) throw new Error(data.error);
-
-            return { success: true, user: data.user };
-        } catch (error) {
-            console.error("Auto-registration failed:", error);
-
-            // Nice error message for duplicates
-            if (error.message && (error.message.includes('already registered') || error.message.includes('unique'))) {
-                return { success: false, error: "Email/Username sudah terdaftar. Gunakan yang lain." };
-            }
-
-            return { success: false, error: error.message };
-        }
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        console.log("DEBUG: handleSubmit called");
-        console.log("DEBUG: activeStoreId", activeStoreId);
-        console.log("DEBUG: currentStaff", currentStaff);
-        console.log("DEBUG: isEditing", isEditing);
-
-        if (!activeStoreId) {
-            showAlert("Error", "Terjadi kesalahan: Tidak ada toko yang aktif.");
-            return;
-        }
-
-        try {
-            let finalEmail = currentStaff.email;
-            // Auto-generate email from username if needed
-            if (finalEmail && !finalEmail.includes('@')) {
-                finalEmail = `${finalEmail.replace(/\s+/g, '')}@kula.id`;
-            }
-
-            // VALIDATION: Password wajib untuk staff baru
-            if (!isEditing) {
-                if (!currentStaff.password || currentStaff.password.length < 6) {
-                    showAlert("Validasi Gagal", "Password/PIN wajib diisi untuk staff baru (minimal 6 karakter).");
-                    return;
-                }
-            }
-
-            if (isEditing) {
-                // NOTE: Retroactive registration (converting manual staff to auth user) is disabled
-                // because we cannot force the Auth UUID to match the existing Profile UUID from client-side.
-                // Doing so causes FK violations or Duplicate Key errors.
-                // For now, we only update the local profile. To enable login, user must recreate staff.
-
-                /* 
-                // DISABLED: 
-                if (currentStaff.password && currentStaff.password.length >= 6) {
-                    const regResult = await registerUserToSupabase(finalEmail, currentStaff.password, currentStaff.name, currentStaff.role, activeStoreId);
-                    // ... error handling ...
-                } 
-                */
-
-                const { error } = await supabase
-                    .from('profiles')
-                    .update({
-                        name: currentStaff.name,
-                        email: finalEmail || '',
-                        role: currentStaff.role,
-                        password: currentStaff.password,
-                        pin: currentStaff.password,
-                        photo: currentStaff.photo || '',
-                        pet_care_access: currentStaff.petCareAccess || false,
-                        permissions: permissions // Save granular permissions
-                    })
-                    .eq('id', currentStaff.id);
-
-                if (error) throw error;
-
-                // Update Real Password...
-                if (currentStaff.password && currentStaff.password.length >= 6) {
-                    const pwdResult = await updateStaffPassword(currentStaff.id, currentStaff.password);
-                    if (!pwdResult.success) {
-                        showAlert("Peringatan", "Data tersimpan TAPI password gagal diubah: " + pwdResult.message);
-                        return;
-                    }
-                }
-            } else {
-                // 1. Auto-Register in Supabase Auth (If password provided)
-                let authId = null;
-                if (currentStaff.password && currentStaff.password.length >= 6) {
-                    const regResult = await registerUserToSupabase(finalEmail, currentStaff.password, currentStaff.name, currentStaff.role, activeStoreId);
-                    if (regResult.success) {
-                        if (regResult.user) authId = regResult.user.id;
-                    } else {
-                        // Warn but proceed? Or block? 
-                        // Let's block to force consistent data
-                        showAlert("Gagal Registrasi Akun", "Gagal mendaftarkan akun login: " + regResult.error);
-                        return;
-                    }
-                }
-
-                const result = await addUser({
-                    id: authId, // Use the real Auth ID if available!
-                    name: currentStaff.name,
-                    email: finalEmail,
-                    role: currentStaff.role,
-                    password: currentStaff.password,
-                    pin: currentStaff.password, // Keep pin synced for backward compatibility
-                    photo: currentStaff.photo || '',
-                    pet_care_access: currentStaff.petCareAccess || false,
-                    store_id: activeStoreId,
-                    permissions: permissions // Save granular permissions
-                });
-
-                if (!result.success) {
-                    if (result.isLimitError) {
-                        setUpgradeDebugInfo(result.debugInfo);
-                        setIsModalOpen(false); // Close the form modal
-                        setShowUpgradeAlert(true); // Show upgrade alert
-                    } else {
-                        showAlert("Gagal", result.error || "Gagal menambahkan staff.");
-                    }
-                    return;
-                }
-            }
-            setIsModalOpen(false);
-            showAlert(
-                "Berhasil",
-                isEditing ? "Data staff berhasil diperbarui!" : "Staff baru berhasil ditambahkan!"
-            );
-        } catch (error) {
-            console.error("Error saving staff:", error);
-            showAlert("Gagal", "Gagal menyimpan data staff.");
-        }
-    };
+    // handlePhotoChange, registerUserToSupabase, and handleSubmit are now in StaffForm.jsx
 
     // Pagination Logic for History
     const indexOfLastHistory = historyPage * historyItemsPerPage;
@@ -518,11 +327,20 @@ const Staff = () => {
                                                         staff.role === 'owner' ? 'indigo-subtle' :
                                                             staff.role === 'admin' ? 'info-subtle' :
                                                                 staff.role === 'sales' ? 'warning-subtle' :
-                                                                    'neutral-subtle'
+                                                                    staff.role === 'dokter' ? 'primary-subtle' :
+                                                                        staff.role === 'pramedic' ? 'teal-subtle' :
+                                                                            staff.role === 'groomer' ? 'rose-subtle' :
+                                                                                'neutral-subtle'
                                                     }
                                                     className="font-bold border-none uppercase text-[10px]"
                                                 >
-                                                    {staff.role === 'owner' ? 'Owner' : staff.role === 'admin' ? 'Admin' : staff.role === 'sales' ? 'Sales' : 'Kasir'}
+                                                    {staff.role === 'owner' ? 'Owner' : 
+                                                     staff.role === 'admin' ? 'Admin' : 
+                                                     staff.role === 'sales' ? 'Sales' : 
+                                                     staff.role === 'dokter' ? 'Dokter' : 
+                                                     staff.role === 'pramedic' ? 'Pramedic' : 
+                                                     staff.role === 'groomer' ? 'Groomer' : 
+                                                     'Kasir'}
                                                 </Badge>
                                             </TableCell>
                                             <TableCell>
@@ -637,11 +455,20 @@ const Staff = () => {
                                             staff.role === 'owner' ? 'indigo-subtle' :
                                                 staff.role === 'admin' ? 'info-subtle' :
                                                     staff.role === 'sales' ? 'warning-subtle' :
-                                                        'neutral-subtle'
+                                                        staff.role === 'dokter' ? 'primary-subtle' :
+                                                            staff.role === 'pramedic' ? 'teal-subtle' :
+                                                                staff.role === 'groomer' ? 'rose-subtle' :
+                                                                    'neutral-subtle'
                                         }
                                         className="font-bold border-none uppercase text-[10px]"
                                     >
-                                        {staff.role === 'owner' ? 'Owner' : staff.role === 'admin' ? 'Admin' : staff.role === 'sales' ? 'Sales' : 'Kasir'}
+                                        {staff.role === 'owner' ? 'Owner' : 
+                                         staff.role === 'admin' ? 'Admin' : 
+                                         staff.role === 'sales' ? 'Sales' : 
+                                         staff.role === 'dokter' ? 'Dokter' : 
+                                         staff.role === 'pramedic' ? 'Pramedic' : 
+                                         staff.role === 'groomer' ? 'Groomer' : 
+                                         'Kasir'}
                                     </Badge>
                                     <Badge
                                         variant={status === 'login' ? 'success-subtle' : 'neutral-subtle'}
@@ -656,223 +483,7 @@ const Staff = () => {
                 )}
             </div>
 
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{isEditing ? 'Edit Staff' : 'Tambah Staff Baru'}</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit} className="flex flex-col max-h-[calc(95vh-120px)]">
-                        <div className="flex-1 overflow-y-auto space-y-4 pr-2 py-1">
-                            <div className="space-y-2">
-                                <Label htmlFor="staffName">Nama Lengkap</Label>
-                                <Input
-                                    id="staffName"
-                                    type="text"
-                                    value={currentStaff.name}
-                                    onChange={(e) => setCurrentStaff({ ...currentStaff, name: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="staffEmail">Username / Email (Login ID)</Label>
-                                <Input
-                                    id="staffEmail"
-                                    type="text"
-                                    value={currentStaff.email || ''}
-                                    onChange={(e) => setCurrentStaff({ ...currentStaff, email: e.target.value })}
-                                    placeholder="Contoh: 'kasir1' atau 'kasir1@email.com'"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    Tips: Gunakan username saja (misal: <span className="font-semibold">budi</span>) untuk login instan tanpa verifikasi email.
-                                </p>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="staffPassword">Password / PIN Login {isEditing ? '(Opsional)' : <span className="text-red-500">*</span>}</Label>
-                                <div className="relative">
-                                    <Input
-                                        id="staffPassword"
-                                        type={showPassword ? "text" : "password"}
-                                        value={currentStaff.password || ''}
-                                        onChange={(e) => setCurrentStaff({ ...currentStaff, password: e.target.value })}
-                                        placeholder={isEditing ? "(Biarkan kosong jika tidak diubah)" : "Minimal 6 karakter"}
-                                        required={!isEditing}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                    >
-                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="staffPhoto">Foto Profil</Label>
-                                <div className="flex items-center gap-4">
-                                    <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center overflow-hidden border">
-                                        {currentStaff.photo ? (
-                                            <img src={currentStaff.photo} alt="Preview" className="h-full w-full object-cover" />
-                                        ) : (
-                                            <User className="h-8 w-8 text-muted-foreground" />
-                                        )}
-                                    </div>
-                                    <Input
-                                        id="staffPhoto"
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handlePhotoChange}
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="staffRole">Role / Peran</Label>
-                                <Select
-                                    value={currentStaff.role}
-                                    onValueChange={(value) => {
-                                        setCurrentStaff({ ...currentStaff, role: value });
-                                        // Auto-update permissions when role changes (if user hasn't explicitly customized yet? 
-                                        // Or just overwrite? UX decision: Overwrite to helpful defaults is safer.)
-                                        setPermissions(getPermissionsForRole(value));
-                                    }}
-                                >
-                                    <SelectTrigger id="staffRole">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="staff">Kasir</SelectItem>
-                                        <SelectItem value="sales">Sales</SelectItem>
-                                        <SelectItem value="admin">Administrator</SelectItem>
-                                        {(user?.role === 'super_admin' || user?.role === 'owner') && (
-                                            <SelectItem value="owner">Owner (Pemilik)</SelectItem>
-                                        )}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* --- PERMISSION EDITOR --- */}
-                            <div className="border rounded-md p-3 bg-slate-50">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPermissions(!showPermissions)}
-                                    className="flex items-center justify-between w-full text-sm font-medium text-slate-700"
-                                >
-                                    <span>Kelola Hak Akses (Advanced)</span>
-                                    {showPermissions ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                                </button>
-
-                                {showPermissions && (
-                                    <div className="mt-3 space-y-4 max-h-[300px] overflow-y-auto pr-2">
-                                        <div className="flex justify-between mb-2">
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="text-xs h-6"
-                                                    onClick={() => {
-                                                        const allIds = PERMISSION_SCHEMA.flatMap(g => g.children.map(c => c.id));
-                                                        setPermissions(allIds);
-                                                    }}
-                                                >
-                                                    Pilih Semua
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="text-xs h-6"
-                                                    onClick={() => setPermissions([])}
-                                                >
-                                                    Hapus Semua
-                                                </Button>
-                                            </div>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-xs h-6 text-muted-foreground"
-                                                onClick={() => setPermissions(getPermissionsForRole(currentStaff.role))}
-                                            >
-                                                Reset ke Default Role
-                                            </Button>
-                                        </div>
-                                        {PERMISSION_SCHEMA.map((group) => {
-                                            const groupChildrenIds = group.children.map(c => c.id);
-                                            const isAllChecked = groupChildrenIds.every(id => permissions.includes(id));
-                                            const isIndeterminate = groupChildrenIds.some(id => permissions.includes(id)) && !isAllChecked;
-
-                                            const toggleGroup = () => {
-                                                if (isAllChecked) {
-                                                    // Uncheck all
-                                                    setPermissions(prev => prev.filter(p => !groupChildrenIds.includes(p)));
-                                                } else {
-                                                    // Check all (merge unique)
-                                                    setPermissions(prev => [...new Set([...prev, ...groupChildrenIds])]);
-                                                }
-                                            };
-
-                                            return (
-                                                <div key={group.id} className="space-y-2">
-                                                    <div className="flex items-center gap-2 bg-white p-2 rounded border shadow-sm">
-                                                        <input
-                                                            type="checkbox"
-                                                            className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
-                                                            checked={isAllChecked}
-                                                            ref={input => {
-                                                                if (input) input.indeterminate = isIndeterminate;
-                                                            }}
-                                                            onChange={toggleGroup}
-                                                        />
-                                                        <span className="font-semibold text-sm">{group.label}</span>
-                                                    </div>
-                                                    <div className="ml-6 space-y-1">
-                                                        {group.children.map(child => (
-                                                            <label key={child.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-slate-100 p-1 rounded">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5"
-                                                                    checked={permissions.includes(child.id)}
-                                                                    onChange={(e) => {
-                                                                        if (e.target.checked) {
-                                                                            setPermissions(prev => [...prev, child.id]);
-                                                                        } else {
-                                                                            setPermissions(prev => prev.filter(p => p !== child.id));
-                                                                        }
-                                                                    }}
-                                                                />
-                                                                <span className="text-slate-600">{child.label}</span>
-                                                            </label>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="flex items-center space-x-2 pt-2">
-                                <input
-                                    type="checkbox"
-                                    id="petCareAccess"
-                                    checked={currentStaff.petCareAccess}
-                                    onChange={(e) => setCurrentStaff({ ...currentStaff, petCareAccess: e.target.checked })}
-                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                />
-                                <Label htmlFor="petCareAccess" className="font-medium cursor-pointer">
-                                    Berikan Akses ke Aplikasi Pet Care
-                                </Label>
-                            </div>
-                        </div>
-                        <DialogFooter className="pt-4 border-t mt-4">
-                            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
-                                Batal
-                            </Button>
-                            <Button type="submit">Simpan</Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog >
+            {/* Staff Dialog is now replaced by /staff/add and /staff/edit/:id pages */}
 
             <Dialog open={isHistoryModalOpen} onOpenChange={setIsHistoryModalOpen}>
                 <DialogContent className="max-w-3xl">
@@ -947,7 +558,7 @@ const Staff = () => {
                 title="Batas Staff Tercapai"
                 description={
                     upgradeDebugInfo
-                        ? `Plan: ${upgradeDebugInfo.plan} | Limit: ${upgradeDebugInfo.limit} | Terpakai: ${upgradeDebugInfo.currentCount}. Upgrade untuk menambah slot.`
+                        ? `Plan: ${upgradeDebugInfo?.plan || 'Unknown'} | Limit: ${upgradeDebugInfo?.limit || 'Unknown'} | Terpakai: ${upgradeDebugInfo?.currentCount || 'Unknown'}. Upgrade untuk menambah slot.`
                         : "DEBUG: SYSTEM ERROR - PLAN NOT DETECTED. (Code Updated)"
                 }
                 benefits={[

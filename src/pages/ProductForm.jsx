@@ -58,7 +58,9 @@ const ProductForm = () => {
         isWholesale: false, // New Wholesale Flag
         overtime_hourly_penalty: 0,
         overtime_trigger_hours: 1,
-        pricingTiers: [] // [{ duration: 3, price: 10000 }]
+        pricingTiers: [], // [{ duration: 3, price: 10000 }]
+        doctorFeeType: 'fixed',
+        doctorFeeValue: 0
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,6 +68,12 @@ const ProductForm = () => {
     const [alertData, setAlertData] = useState({ title: '', message: '', onConfirm: null });
     const [isScannerOpen, setIsScannerOpen] = useState(false);
     const hasLoadedRef = React.useRef(false); // Prevent re-loading on realtime updates
+
+    // Use refs to hold latest products/categories so the main effect doesn't re-run on realtime updates
+    const productsRef = React.useRef(products);
+    const categoriesRef = React.useRef(categories);
+    useEffect(() => { productsRef.current = products; }, [products]);
+    useEffect(() => { categoriesRef.current = categories; }, [categories]);
 
     // Reset when navigating to a different product
     useEffect(() => {
@@ -109,7 +117,7 @@ const ProductForm = () => {
             if (hasLoadedRef.current) return;
 
             // 1. Try to find in global context first
-            let product = products.find(p => String(p.id) === String(id));
+            let product = productsRef.current.find(p => String(p.id) === String(id));
 
             // 2. If not found, fetch from API
             if (!product) {
@@ -124,8 +132,8 @@ const ProductForm = () => {
                     if (data) {
                         // Resolve category name from ID using global categories context
                         let categoryNames = [];
-                        if (data.category_id && categories.length > 0) {
-                            const foundCat = categories.find(c => c.id === data.category_id);
+                        if (data.category_id && categoriesRef.current.length > 0) {
+                            const foundCat = categoriesRef.current.find(c => c.id === data.category_id);
                             if (foundCat) {
                                 // handles both object with name property or simple string if context varies
                                 const name = typeof foundCat.name === 'object' && foundCat.name?.name ? foundCat.name.name : foundCat.name;
@@ -150,7 +158,9 @@ const ProductForm = () => {
                             isWholesale: data.is_wholesale || false,
                             overtime_hourly_penalty: data.overtime_hourly_penalty || 0,
                             overtime_trigger_hours: data.overtime_trigger_hours || 0,
-                            pricingTiers: data.pricing_tiers || []
+                            pricingTiers: data.pricing_tiers || [],
+                            doctorFeeType: data.doctor_fee_type || 'fixed',
+                            doctorFeeValue: data.doctor_fee_value || 0
                         };
                     }
                 } catch (err) {
@@ -200,13 +210,15 @@ const ProductForm = () => {
                     isWholesale: product.isWholesale || product.is_wholesale || false,
                     overtime_hourly_penalty: product.overtime_hourly_penalty || product.overtime_hourly_penalty || 0,
                     overtime_trigger_hours: product.overtime_trigger_hours || product.overtime_trigger_hours || 0,
-                    pricingTiers: product.pricingTiers || product.pricing_tiers || []
+                    pricingTiers: product.pricingTiers || product.pricing_tiers || [],
+                    doctorFeeType: product.doctorFeeType || product.doctor_fee_type || 'fixed',
+                    doctorFeeValue: product.doctorFeeValue || product.doctor_fee_value || 0
                 });
             }
         };
 
         loadProductData();
-    }, [isEditMode, id, products, categories]);
+    }, [isEditMode, id]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -369,7 +381,9 @@ const ProductForm = () => {
             isWholesale: formData.isWholesale,
             overtime_hourly_penalty: Number(formData.overtime_hourly_penalty || 0),
             overtime_trigger_hours: Number(formData.overtime_trigger_hours || 0),
-            pricingTiers: formData.pricingTiers.map(t => ({ duration: Number(t.duration), price: Number(t.price) })).filter(t => t.duration > 0 && t.price >= 0)
+            pricingTiers: formData.pricingTiers.map(t => ({ duration: Number(t.duration), price: Number(t.price) })).filter(t => t.duration > 0 && t.price >= 0),
+            doctor_fee_type: formData.doctorFeeType,
+            doctor_fee_value: Number(formData.doctorFeeValue)
         };
 
         try {
@@ -795,6 +809,43 @@ const ProductForm = () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                    {/* Doctor Fee Section */}
+                                    <div className="md:col-span-2 p-3 bg-indigo-50 rounded-lg space-y-3 border border-indigo-100">
+                                        <Label className="text-indigo-700 font-semibold flex items-center gap-2">
+                                            Bagi Hasil Klinik
+                                        </Label>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="doctorFeeType">Tipe Fee</Label>
+                                                <Select 
+                                                    value={formData.doctorFeeType} 
+                                                    onValueChange={(val) => handleSelectChange('doctorFeeType', val)}
+                                                >
+                                                    <SelectTrigger id="doctorFeeType" className="bg-white">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="fixed">Nominal (Rp)</SelectItem>
+                                                        <SelectItem value="percentage">Persentase (%)</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="doctorFeeValue">Nilai Fee</Label>
+                                                <Input
+                                                    id="doctorFeeValue"
+                                                    name="doctorFeeValue"
+                                                    type="number"
+                                                    value={formData.doctorFeeValue}
+                                                    onChange={handleChange}
+                                                    min="0"
+                                                    className="bg-white"
+                                                    placeholder="0"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
 
                                 {/* Bundling / Paket Section */}
                                 <div className="space-y-4 pt-4 border-t">

@@ -8,7 +8,8 @@ import {
     Printer,
     Download,
     Loader2,
-    Calendar
+    Calendar,
+    Sparkles
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { format } from 'date-fns';

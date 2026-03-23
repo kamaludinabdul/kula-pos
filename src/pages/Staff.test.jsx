@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import Staff from './Staff';
+import StaffForm from './StaffForm';
 import { supabase } from '../supabase';
 
 // --- Mocks ---
 
 // Mock Hooks
 const mockAddUser = vi.fn();
-const mockShowAlert = vi.fn();
+const mockToast = vi.fn();
 
 vi.mock('../context/DataContext', async () => {
     const actual = await vi.importActual('../context/DataContext');
@@ -19,7 +19,6 @@ vi.mock('../context/DataContext', async () => {
             addUser: mockAddUser,
             deleteUser: vi.fn(),
             stats: {}, // Mock default stats
-            showAlert: mockShowAlert,
         }),
     };
 });
@@ -28,6 +27,7 @@ vi.mock('../context/AuthContext', () => ({
     useAuth: () => ({
         user: { id: 'owner-1', role: 'owner', name: 'Test Owner' },
         checkPermission: () => true, // Allow everything
+        updateStaffPassword: vi.fn().mockResolvedValue({ success: true }),
     }),
 }));
 
@@ -59,27 +59,29 @@ vi.mock('../utils/supabaseHelper', () => ({
 
 vi.mock('react-router-dom', () => ({
     useNavigate: () => vi.fn(),
-    useLocation: () => ({ pathname: '/staff' }),
+    useLocation: () => ({ pathname: '/staff/add' }),
+    useParams: () => ({ id: undefined }), // Mock for "Add" mode
 }));
 
-// Mock Components
-vi.mock('../components/Sidebar', () => ({ default: () => <div data-testid="sidebar" /> }));
-vi.mock('../components/Navbar', () => ({ default: () => <div data-testid="navbar" /> }));
+// Mock Toast
+vi.mock('../components/ui/use-toast', () => ({
+    useToast: () => ({
+        toast: mockToast
+    })
+}));
 
-describe('Staff Page - Create New Staff', () => {
+describe('StaffForm - Create New Staff', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         window.alert = vi.fn();
     });
 
-    it('should show validation error when password is empty for new staff', () => {
-        render(<Staff />);
+    it('should show validation error when password is empty for new staff', async () => {
+        render(<StaffForm />);
 
-        // 1. Open Modal
-        const addButton = screen.getByText(/Tambah Staff/i);
-        fireEvent.click(addButton);
+        // No need to click "Tambah Staff", we are already on the form page in the test
 
-        // 2. Fill Form (Name, Username, but NO Password)
+        // 1. Fill Form (Name, Username, but NO Password)
         const nameInput = screen.getByLabelText(/Nama Lengkap/i);
         fireEvent.change(nameInput, { target: { value: 'New Staff' } });
 
@@ -87,20 +89,23 @@ describe('Staff Page - Create New Staff', () => {
         fireEvent.change(usernameInput, { target: { value: 'newstaff' } });
 
         // Password input should exist
-        const passwordInput = screen.getByLabelText(/Password \/ PIN Login/i);
+        const passwordInput = screen.getByLabelText(/Password \/ PIN/i);
         expect(passwordInput).toBeInTheDocument();
 
-        // 3. Click Simpan
-        const submitButton = screen.getByRole('button', { name: /Simpan/i });
-        fireEvent.click(submitButton);
+        // 2. Click Simpan
+        const form = screen.getByRole('button', { name: /Simpan Data Staff/i }).closest('form');
+        fireEvent.submit(form);
 
-        // 4. Assert: addUser should NOT be called
+        // 3. Assert: addUser should NOT be called
         expect(mockAddUser).not.toHaveBeenCalled();
 
-        // Check if alert was called
-        // If Staff.jsx uses showAlert from useData (which I mocked), we can check it.
-        // If it uses local logic -> alert, then mockShowAlert might not be called.
-        // But the constraint "password required" is the key.
+        // Check if toast was called with validation error
+        await vi.waitFor(() => {
+            expect(mockToast).toHaveBeenCalledWith(expect.objectContaining({
+                title: "Validasi Gagal",
+                description: "Password minimal 6 karakter."
+            }));
+        });
     });
 
     it('should call addUser when password is valid (>= 6 chars)', async () => {
@@ -113,15 +118,12 @@ describe('Staff Page - Create New Staff', () => {
             error: null
         });
 
-        render(<Staff />);
+        render(<StaffForm />);
 
-        // 1. Open Modal
-        fireEvent.click(screen.getByText(/Tambah Staff/i));
-
-        // 2. Fill Form
+        // 1. Fill Form
         const nameInput = screen.getByLabelText(/Nama Lengkap/i);
         const usernameInput = screen.getByLabelText(/Username \/ Email/i);
-        const passwordInput = screen.getByLabelText(/Password \/ PIN Login/i);
+        const passwordInput = screen.getByLabelText(/Password \/ PIN/i);
 
         fireEvent.change(nameInput, { target: { value: 'Valid Staff' } });
         fireEvent.change(usernameInput, { target: { value: 'validstaff' } });
@@ -130,14 +132,11 @@ describe('Staff Page - Create New Staff', () => {
         // Verify input values
         expect(passwordInput.value).toBe('123456');
 
-        // 3. Click Simpan
-        const submitBtn = screen.getByRole('button', { name: /Simpan/i });
-        // Try submitting the form directly if click fails to trigger
-        // fireEvent.submit(submitBtn.closest('form')); 
-        // But click should work.
-        fireEvent.click(submitBtn);
+        // 2. Click Simpan
+        const form = screen.getByRole('button', { name: /Simpan Data Staff/i }).closest('form');
+        fireEvent.submit(form);
 
-        // 4. Trace calls
+        // 3. Trace calls
         // Verify invoke called
         await vi.waitFor(() => {
             expect(supabase.functions.invoke).toHaveBeenCalled();

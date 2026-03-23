@@ -6,7 +6,8 @@ import {
   ChevronDown, ChevronRight, Receipt, Store, Printer, UserCog, Layers, Shield, Percent,
   Gift, Sparkles, PanelLeftClose, PanelLeftOpen, Crown, ClipboardCheck, History, TrendingUp,
   Clock, TrendingDown, Send, Cloud, FileText, Copy, DollarSign, BrainCircuit, Lightbulb,
-  Key, BadgePercent, Factory, Ticket, Lock, Gamepad2, CheckCircle, Building2, Wallet, UserCircle, AlertTriangle, Activity
+  Key, BadgePercent, Factory, Ticket, Lock, Gamepad2, CheckCircle, Building2, Wallet, UserCircle, AlertTriangle, Activity, Dog,
+  Home, Scissors, Stethoscope, Calendar
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -22,7 +23,16 @@ const NAV_ITEMS = [
   { icon: Receipt, label: 'Transaksi', path: '/transactions', feature: 'transactions' },
   { icon: ShoppingCart, label: 'Kasir (POS)', path: '/pos', feature: 'pos' },
   { icon: Gamepad2, label: 'Rental', path: '/rental', feature: 'rental', permission: 'pos', requiredPlan: 'pro', checkFeature: 'rental_timer', checkSetting: 'enableRental' },
-  { icon: Ticket, label: 'Promosi', path: '/promotions', feature: 'products.read' },
+  { icon: Ticket, label: 'Promosi', path: '/promotions', feature: 'products.promotions' },
+];
+
+const CLINIC_ITEMS = [
+  { icon: LayoutDashboard, label: 'Dashboard Pet', path: '/pet-dashboard', feature: 'dashboard.view', checkFeature: 'pet_hotel' },
+  { icon: Calendar, label: 'Booking', path: '/pet-bookings', feature: 'clinic.bookings', checkFeature: 'pet_hotel' },
+  { icon: Dog, label: 'Data Hewan', path: '/pets', feature: 'clinic.pets.read', checkFeature: 'pet_hotel' },
+  { icon: Stethoscope, label: 'Rekam Medis', path: '/medical-records', feature: 'clinic.medical_records.read', checkFeature: 'pet_hotel' },
+  { icon: Home, label: 'Hotel Hewan', path: '/pet-hotel', feature: 'clinic.rooms', checkFeature: 'pet_hotel' },
+  { icon: Scissors, label: 'Item Layanan', path: '/pet-services', feature: 'clinic.pets.read', checkFeature: 'pet_hotel' },
 ];
 
 const DATABASE_ITEMS = [
@@ -30,7 +40,7 @@ const DATABASE_ITEMS = [
   { icon: Layers, label: 'Kategori', path: '/categories', feature: 'categories.read' },
   { icon: Factory, label: 'Supplier', path: '/suppliers', feature: 'suppliers.read' },
   { icon: FileText, label: 'Purchase Order', path: '/purchase-orders', feature: 'products.purchase_orders' },
-  { icon: AlertTriangle, label: 'Defecta', path: '/defecta', feature: 'reports.defecta', checkFeature: 'prescriptions' },
+  { icon: AlertTriangle, label: 'Defecta', path: '/reports/defecta', feature: 'reports.defecta', checkFeature: 'prescriptions' },
   { icon: Database, label: 'Stok', path: '/stock-management', feature: 'products.stock' },
   { icon: ClipboardCheck, label: 'Stock Opname', path: '/stock-opname', feature: 'products.stock_opname', requiredPlan: 'pro' },
   { icon: Users, label: 'Pelanggan', path: '/customers', feature: 'customers.read', requiredPlan: 'pro' },
@@ -68,8 +78,9 @@ const REPORTS_ITEMS = [
   { path: '/reports/customer-profiling', icon: UserCircle, label: 'Profil Pelanggan', feature: 'reports.customer_profiling', requiredPlan: 'pro' },
   { path: '/reports/expiry', icon: AlertTriangle, label: 'Laporan Kedaluwarsa', feature: 'reports.expiry', checkSetting: 'enableExpiryTracking' },
   { path: '/reports/tuslah', icon: Activity, label: 'Laporan Tuslah', feature: 'reports.tuslah', checkFeature: 'prescriptions' },
-  { path: '/defecta', icon: AlertTriangle, label: 'Laporan Defecta', feature: 'reports.defecta', checkFeature: 'prescriptions' },
+  { path: '/reports/defecta', icon: AlertTriangle, label: 'Laporan Defecta', feature: 'reports.defecta', checkFeature: 'prescriptions' },
   { path: '/reports/patient-history', icon: History, label: 'Riwayat Obat Pasien', feature: 'reports.patient_history', checkFeature: 'prescriptions' },
+  { path: '/reports/doctor-commissions', icon: Wallet, label: 'Bagi Hasil Klinik', feature: 'reports.doctor_commissions', checkFeature: 'pet_hotel' },
 ];
 
 const FINANCE_ITEMS = [
@@ -94,11 +105,11 @@ const NavItem = ({ item, isActive, onClick, className, isExpanded, isLocked }) =
   <NavLink
     to={isLocked ? '#' : item.path}
     className={({ isActive: linkActive }) => cn(
-      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full text-left relative group",
+      "flex items-center gap-3 px-3 py-2 rounded-l-none rounded-r-lg text-sm font-medium transition-all w-full text-left relative group border-l-4 border-transparent mb-0.5",
       (isActive || linkActive) && !isLocked
-        ? "bg-primary/10 text-primary hover:bg-primary/20"
-        : "text-muted-foreground hover:bg-muted hover:text-foreground",
-      !isExpanded && "justify-center px-0",
+        ? "bg-primary/10 text-primary border-primary font-bold shadow-sm"
+        : "text-muted-foreground hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300/50",
+      !isExpanded && "justify-center px-0 border-l-0 rounded-lg",
       className
     )}
     onClick={(e) => {
@@ -135,6 +146,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
   const location = useLocation();
   const [isDatabaseOpen, setIsDatabaseOpen] = useState(false);
   const [isSalesOpen, setIsSalesOpen] = useState(false);
+  const [isClinicOpen, setIsClinicOpen] = useState(true);
   const [isReportsOpen, setIsReportsOpen] = useState(true);
   const [isSmartStrategyOpen, setIsSmartStrategyOpen] = useState(true);
 
@@ -195,11 +207,13 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
   }, [hasPermission, user?.role, user?.plan, currentStore, hasFeature]);
 
   const visibleDatabaseItems = useMemo(() => DATABASE_ITEMS.filter(isItemVisible), [isItemVisible]);
+  const visibleClinicItems = useMemo(() => CLINIC_ITEMS.filter(isItemVisible), [isItemVisible]);
   const visibleSalesItems = useMemo(() => SALES_ITEMS.filter(isItemVisible), [isItemVisible]);
   const visibleReportsItems = useMemo(() => REPORTS_ITEMS.filter(isItemVisible), [isItemVisible]);
   const visibleSettingsItems = useMemo(() => SETTINGS_ITEMS.filter(isItemVisible), [isItemVisible]);
 
   const isDatabaseActive = visibleDatabaseItems.some(item => location.pathname.startsWith(item.path));
+  const isClinicActive = visibleClinicItems.some(item => location.pathname.startsWith(item.path));
   const isSalesActive = visibleSalesItems.some(item => location.pathname.startsWith(item.path));
   const isReportsActive = visibleReportsItems.some(item => location.pathname.startsWith(item.path));
   const isSettingsActive = visibleSettingsItems.some(item => location.pathname.startsWith(item.path));
@@ -209,6 +223,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
   if (location.pathname !== prevPath) {
     setPrevPath(location.pathname);
     if (isDatabaseActive && !isDatabaseOpen) setIsDatabaseOpen(true);
+    if (isClinicActive && !isClinicOpen) setIsClinicOpen(true);
     if (isSalesActive && !isSalesOpen) setIsSalesOpen(true);
     if (isReportsActive && !isReportsOpen) setIsReportsOpen(true);
     if (isSettingsActive && !isSettingsOpen) setIsSettingsOpen(true);
@@ -352,6 +367,42 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
             return renderNavItem(item);
           })}
 
+          {/* Clinic Menu Group (Pet Shop & Klinik) */}
+          {visibleClinicItems.length > 0 && hasFeature('pet_hotel') && (
+            <div className="space-y-1">
+              {isExpanded ? (
+                <>
+                  <button
+                    className={cn(
+                      "flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-all mt-2 first:mt-0",
+                      isClinicActive 
+                        ? "bg-slate-100/80 text-slate-800 shadow-inner" 
+                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                    )}
+                    onClick={() => setIsClinicOpen(!isClinicOpen)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Activity size={20} className="shrink-0" />
+                      <span>Layanan Klinik</span>
+                    </div>
+                    {isClinicOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  </button>
+
+                  {isClinicOpen && (
+                    <div className="pl-9 space-y-1 mt-1">
+                      {visibleClinicItems.map(renderNavItem)}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="h-px bg-slate-200 my-2 mx-2"></div>
+                  {renderNavItem(visibleClinicItems[0])}
+                </>
+              )}
+            </div>
+          )}
+
 
 
           {/* Databases Menu Group */}
@@ -361,8 +412,10 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
                 <>
                   <button
                     className={cn(
-                      "flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                      isDatabaseActive ? "text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      "flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-all mt-4",
+                      isDatabaseActive 
+                        ? "bg-slate-100/80 text-slate-800 shadow-inner" 
+                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
                     )}
                     onClick={() => setIsDatabaseOpen(!isDatabaseOpen)}
                   >
@@ -395,8 +448,10 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
                 <>
                   <button
                     className={cn(
-                      "flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                      isSalesActive ? "text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      "flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-all mt-4",
+                      isSalesActive 
+                        ? "bg-slate-100/80 text-slate-800 shadow-inner" 
+                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
                     )}
                     onClick={() => setIsSalesOpen(!isSalesOpen)}
                   >
@@ -429,8 +484,10 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
                 <>
                   <button
                     className={cn(
-                      "flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                      isReportsActive ? "text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      "flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-all mt-4",
+                      isReportsActive 
+                        ? "bg-slate-100/80 text-slate-800 shadow-inner" 
+                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
                     )}
                     onClick={() => setIsReportsOpen(!isReportsOpen)}
                   >
@@ -473,8 +530,10 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
                 <>
                   <button
                     className={cn(
-                      "flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                      SMART_STRATEGY_ITEMS.some(item => location.pathname.startsWith(item.path)) ? "text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      "flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-all mt-4",
+                      SMART_STRATEGY_ITEMS.some(item => location.pathname.startsWith(item.path)) 
+                        ? "bg-slate-100/80 text-slate-800 shadow-inner" 
+                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
                     )}
                     onClick={() => setIsSmartStrategyOpen(!isSmartStrategyOpen)}
                   >
@@ -516,8 +575,10 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
                 <>
                   <button
                     className={cn(
-                      "flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                      isSettingsActive ? "text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      "flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-all mt-4",
+                      isSettingsActive 
+                        ? "bg-slate-100/80 text-slate-800 shadow-inner" 
+                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
                     )}
                     onClick={() => setIsSettingsOpen(!isSettingsOpen)}
                   >

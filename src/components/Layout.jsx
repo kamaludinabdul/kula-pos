@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from 
 import { Button } from "./ui/button";
 
 import ErrorBoundary from './ErrorBoundary';
+import BugReportFAB from './BugReportFAB';
 
 const Layout = () => {
     const location = useLocation();
@@ -67,6 +68,9 @@ const Layout = () => {
                     <Outlet />
                 </ErrorBoundary>
             </main>
+
+            {/* Bug Report FAB */}
+            <BugReportFAB />
         </div>
     );
 };

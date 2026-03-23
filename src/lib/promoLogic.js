@@ -51,26 +51,45 @@ export const calculateActivePromotions = (promotions, cart, rawTotal, products =
                 });
             }
         }
-        // 2. Percentage on Total Transaction
-        else if (promo.type === 'percentage' && (!promo.targetType || promo.targetType === 'transaction')) {
-            if (rawTotal >= (Number(promo.minPurchase) || 0)) {
+        // 2. Percentage on Total Transaction or Specific Products
+        else if (promo.type === 'percentage') {
+            const targetIds = promo.targetIds || [];
+            const applicableItems = targetIds.length > 0 
+                ? cart.filter(item => targetIds.includes(item.id))
+                : cart;
+            
+            const applicableTotal = applicableItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const minPurchase = Number(promo.minPurchase) || 0;
+
+            if (applicableItems.length > 0 && applicableTotal >= minPurchase) {
                 isApplicable = true;
                 const pValue = Number(promo.value !== undefined ? promo.value : promo.discountValue) || 0;
-                potentialDiscount = rawTotal * (pValue / 100);
+                potentialDiscount = applicableTotal * (pValue / 100);
+            } else if (targetIds.length > 0) {
+                missingItems = targetIds.filter(id => !cart.some(item => item.id === id));
             }
         }
-        // 3. Fixed Amount on Total
-        else if (promo.type === 'fixed' && (!promo.targetType || promo.targetType === 'transaction')) {
+        // 3. Fixed Amount on Total or Specific Products
+        else if (promo.type === 'fixed') {
+            const targetIds = promo.targetIds || [];
+            const applicableItems = targetIds.length > 0 
+                ? cart.filter(item => targetIds.includes(item.id))
+                : cart;
+            
+            const applicableTotal = applicableItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
             const minPurchase = Number(promo.minPurchase) || 0;
             const promoValue = Number(promo.value !== undefined ? promo.value : promo.discountValue) || 0;
-            if (rawTotal >= minPurchase) {
+
+            if (applicableItems.length > 0 && applicableTotal >= minPurchase) {
                 isApplicable = true;
                 if (promo.allowMultiples && minPurchase > 0) {
-                    const multiplier = Math.floor(rawTotal / minPurchase);
+                    const multiplier = Math.floor(applicableTotal / minPurchase);
                     potentialDiscount = promoValue * multiplier;
                 } else {
                     potentialDiscount = promoValue;
                 }
+            } else if (targetIds.length > 0) {
+                missingItems = targetIds.filter(id => !cart.some(item => item.id === id));
             }
         }
 

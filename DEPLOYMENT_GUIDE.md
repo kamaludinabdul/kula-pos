@@ -178,17 +178,39 @@ Sebelum melakukan deployment, pastikan kode aman dengan menjalankan test berikut
 
 ---
 
-## Fase 7: Emergency Dashboard Fix (Data Angka 0)
-
-Jika dashboard Anda menampilkan angka 0 meskipun ada transaksi, jalankan script ini:
-
-**File:** `scripts/fix-dashboard-stats-final.sql`
-- Memperluas filter status transaksi (`completed`, `success`, `paid`).
-- Memperbaiki bug "Stok Habis" dan "Stok Menipis" yang tampil 0.
-- Mendukung Store ID berformat NanoID maupun UUID.
-
 ```
 ☐ Jalankan: scripts/fix-dashboard-stats-final.sql
+```
+
+---
+
+## Fase 8: Pet Shop & Doctor Commissions (MARET 2026)
+
+Fase ini menambahkan fitur Klinik Hewan, Penitipan, Grooming, serta sistem Komisi Dokter.
+
+### 8.1 Consolidated Sync Script
+**File:** `sql/migrations/production_sync_march_2026.sql`
+- Membuat tabel `pets`, `pet_bookings`, `medical_records`, dll.
+- Menambahkan kolom `doctor_fee` ke produk & jasa.
+- Memperbaiki Error 500 saat registrasi toko pet shop.
+- Auto RM Number untuk pasien baru.
+- **Bonus**: Re-sinkronisasi Laporan Shift (Anti-Double Sales).
+
+```
+☐ Jalankan: sql/migrations/production_sync_march_2026.sql
+```
+
+---
+
+## Fase 9: Error Reporting System
+
+### 9.1 Edge Function Deployment
+**File:** `supabase/functions/send-bug-report-email/index.ts`
+- Gunakan Supabase CLI untuk deploy fungsi pengirim email bug.
+
+```bash
+npx supabase functions deploy send-bug-report-email
+npx supabase secrets set RESEND_API_KEY="[YOUR_KEY]"
 ```
 
 ---
@@ -211,6 +233,8 @@ Jika dashboard Anda menampilkan angka 0 meskipun ada transaksi, jalankan script 
 ☐ fix_registration_trigger.sql (New)
 ☐ create_check_conflict_rpc.sql (New)
 ☐ fix-dashboard-stats-final.sql ⭐ (EMERGENCY FIX - Dashboard 0)
+☐ production_sync_march_2026.sql ⭐ (Pet Shop & Commissions)
+☐ Deploy Edge Function: send-bug-report-email
 ☐ npm run build
 ☐ Deploy ke hosting
 ```
