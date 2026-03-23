@@ -8,6 +8,23 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        "version": "0.26.0",
+        "date": "2026-03-23",
+        "type": "minor",
+        "title": "Feature Release",
+        "changes": [
+            "**Pet Clinic Module (Major)**: Rilis penuh sistem manajemen terintegrasi mencakup Profil Hewan peliharaan, Rekam Medis Elektronik (EMR), Layanan Klinik, Booking Peliharaan, dan Rawat Inap (Pet Hotel).",
+            "**Apotek & Farmasi (Major)**: Dukungan kasir dengan spesialisasi Input Dokumen Resep (Aturan Pakai, Nama Pasien, Dokter Peresep) dan fitur Pembuatan Obat Racikan (Compounding) secara real-time.",
+            "**Cetak Etiket Khusus**: Dukungan pencetakan struk khusus Etiket/Kopi Resep Obat yang terpisah dari Nota Standar POS menggunakan Printer Thermal.",
+            "**Sistem Komisi Lintas Peran**: Otomatisasi pembagian hasil (Profit Sharing) terperinci bagi 4 layer jabatan: Dokter Hewan, Groomer, Paramedis, dan Kasir transaksi. Semua direkap otomatis pada laporan komisi per periode waktu tertentu.",
+            "**Satuan Berjenjang (Multi-Unit)**: Fitur konversi multi-stok otomatis (misal: Sak -> Dus -> Renceng -> Pcs) telah disuper-charge dan kini dialihkan aksesnya agar juga bisa dinikmati oleh jenis langganan Toko Umum (Non-Farmasi).",
+            "**Stabilitas Stok**: Perhitungan bahan baku dasar obat racikan yang lebih presisi (mengurangi bug redundensi pada kalkulasi *isUnlimited* false).",
+            "**Keamanan Skema SQL**: Master Skrip deployment sentralistik (`production_master_v3_COMPLETE`) telah dibonding (konsolidasi) 2 skema terbesar antara Apotek dan Pet Klinik untuk peresmiaan peluncuran zero-downtime.",
+            "**Filter Reporting Komisi**: Memperbaiki bug kritis *case-sensitivity* (`this_month` ke `thisMonth`) yang sebelumnya merusak query awal laporan komisi sehingga data terlihat kosong saat halaman dibuka.",
+            "**Akses Ilegal**: Melakukan standardisasi kembali terhadap *Row Level Security* (RLS) serta Gate Izin (*Permissions*) khusus parameter `clinic.*` di semua submenu yang belum dilindungi perisai."
+        ]
+    },
+    {
         "version": "0.25.3",
         "date": "2026-03-15",
         "type": "patch",
