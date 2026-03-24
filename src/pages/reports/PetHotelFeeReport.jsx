@@ -165,25 +165,46 @@ const PetHotelFeeReport = () => {
                 const checkOutDate = format(parseISO(rental.date), 'yyyy-MM-dd');
 
                 // Find total days paid from items (Hotel category)
-                const hotelItem = (rental.items || []).find(item => 
-                    item.category === 'Hotel' || 
+                const hotelItem = (rental.items || []).find(item =>
+                    item.category === 'Hotel' ||
                     item.name?.toLowerCase().includes('hotel') ||
                     item.category === 'Kamar'
                 );
                 const totalDaysPaid = hotelItem?.qty || hotelItem?.quantity || 1;
                 const totalBudget = totalDaysPaid * baseFeePerDay;
 
+                // ALL calendar days are processed (including check-out day's pagi shift
+                // because staff still feeds & checks the pet that morning)
                 const daysInRental = eachDayOfInterval({
                     start: parseISO(checkInDate),
                     end: parseISO(checkOutDate)
                 });
 
-                // First pass: collect all valid employee-shift slots across the interval
-                const eligibleSlots = [];
+                // Determine which shift the pet arrived at, based on check-in hour.
+                // Shift order: pagi (morning) < sore (afternoon) < malam/full (evening/all-day)
+                // On check-in day: skip shifts that are EARLIER than the arrival shift.
+                const SHIFT_ORDER = { pagi: 0, sore: 1, malam: 2, full: 3 };
+                let checkInShiftRank = 0; // default: pagi (include all)
+                if (startTimeIso) {
+                    const checkInHour = new Date(startTimeIso).getHours();
+                    if (checkInHour >= 18) {
+                        checkInShiftRank = SHIFT_ORDER.malam;
+                    } else if (checkInHour >= 12) {
+                        checkInShiftRank = SHIFT_ORDER.sore;
+                    } else {
+                        checkInShiftRank = SHIFT_ORDER.pagi;
+                    }
+                }
+
+                // Pass 1: Collect all shifts grouped by employee across ALL calendar days
+                // Budget is split ONCE per unique employee, then distributed to their shifts
+                const employeeShiftsMap = {}; // { employeeName: [{ label, isWeekend }] }
+
                 for (const day of daysInRental) {
                     const dayStr = format(day, 'yyyy-MM-dd');
                     const dayMonth = format(day, 'yyyy-MM');
                     const dayOfWeek = String(getDay(day));
+                    const isCheckInDay = dayStr === checkInDate;
 
                     const dayMonthSchedule = schedules[dayMonth] || {};
                     const isOldFormat = Object.keys(dayMonthSchedule).some(k => !isNaN(k) && k.length === 1);
@@ -197,37 +218,53 @@ const PetHotelFeeReport = () => {
                         shiftsForDay = overrides[dayStr] || template[dayOfWeek] || [];
                     }
 
+                    const isWeekendDay = dayOfWeek === '0' || dayOfWeek === '6';
+
                     for (const shift of shiftsForDay) {
-                        if (shift.name) {
-                            eligibleSlots.push({
-                                day,
-                                shiftName: shift.name,
-                                label: `${format(day, 'dd/MM')} - ${shift.shift || 'pagi'}`,
-                                isWeekend: dayOfWeek === '0' || dayOfWeek === '6'
-                            });
+                        if (!shift.name) continue;
+
+                        // On check-in day: skip shifts that started before the pet arrived
+                        if (isCheckInDay) {
+                            const shiftRank = SHIFT_ORDER[shift.shift?.toLowerCase()] ?? 0;
+                            if (shiftRank < checkInShiftRank) continue;
                         }
+
+                        if (!employeeShiftsMap[shift.name]) {
+                            employeeShiftsMap[shift.name] = [];
+                        }
+                        employeeShiftsMap[shift.name].push({
+                            label: `${format(day, 'dd/MM')} - ${shift.shift || 'pagi'}`,
+                            isWeekend: isWeekendDay
+                        });
                     }
                 }
 
-                if (eligibleSlots.length === 0) continue;
+                const uniqueEmployees = Object.keys(employeeShiftsMap);
+                if (uniqueEmployees.length === 0) continue;
 
-                // Second pass: Calculate fee per slot and generate records
-                const feePerSlot = totalBudget / eligibleSlots.length;
+                // Pass 2: Per-employee budget = totalBudget / unique employees.
+                // Each employee's budget is then split equally across their total shifts.
+                // This ensures total payout = QTY × baseFeePerDay regardless of schedule complexity.
+                const perEmployeeBudget = totalBudget / uniqueEmployees.length;
 
-                for (const slot of eligibleSlots) {
-                    const key = `${rental.id}_${slot.shiftName}_${slot.label}`;
-                    if (processedSet.has(key)) continue;
+                for (const [employeeName, slots] of Object.entries(employeeShiftsMap)) {
+                    const feePerSlot = perEmployeeBudget / slots.length;
 
-                    newFeeRecords.push({
-                        store_id: activeStoreId,
-                        transaction_id: rental.id,
-                        employee_id: '00000000-0000-0000-0000-000000000000',
-                        employee_name: slot.shiftName,
-                        fee_amount: feePerSlot,
-                        fee_date: checkOutDate, // Tetap gunakan checkoutDate sebagai tgl pelaporan
-                        shift_label: slot.label,
-                        is_weekend: slot.isWeekend
-                    });
+                    for (const slot of slots) {
+                        const key = `${rental.id}_${employeeName}_${slot.label}`;
+                        if (processedSet.has(key)) continue;
+
+                        newFeeRecords.push({
+                            store_id: activeStoreId,
+                            transaction_id: rental.id,
+                            employee_id: '00000000-0000-0000-0000-000000000000',
+                            employee_name: employeeName,
+                            fee_amount: feePerSlot,
+                            fee_date: checkOutDate,
+                            shift_label: slot.label,
+                            is_weekend: slot.isWeekend
+                        });
+                    }
                 }
             }
 
