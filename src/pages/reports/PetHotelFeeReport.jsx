@@ -108,10 +108,31 @@ const PetHotelFeeReport = () => {
                 .select('id, date, rental_session_id, items, payment_details')
                 .eq('store_id', activeStoreId)
                 .eq('type', 'rental')
+                .is('voided_at', null)
                 .gte('date', `${startDate}T00:00:00Z`)
                 .lte('date', `${endDate}T23:59:59Z`);
 
             if (rentError) throw rentError;
+
+            // 1.5 AUTO-CLEANUP: Fetch voided transactions and delete their fees
+            const { data: voidedTxs } = await supabase
+                .from('transactions')
+                .select('id')
+                .eq('store_id', activeStoreId)
+                .not('voided_at', 'is', null)
+                .gte('date', `${startDate}T00:00:00Z`)
+                .lte('date', `${endDate}T23:59:59Z`);
+
+            if (voidedTxs && voidedTxs.length > 0) {
+                const voidedIds = voidedTxs.map(v => String(v.id));
+                const { error: cleanupError } = await supabase
+                    .from('employee_fees')
+                    .delete()
+                    .in('transaction_id', voidedIds)
+                    .eq('store_id', activeStoreId);
+                
+                if (cleanupError) console.error("Error cleaning up voided fees:", cleanupError);
+            }
 
             if (!rentals || rentals.length === 0) {
                 toast({ title: "Info", description: "Tidak ada transaksi rental di bulan ini." });
@@ -122,7 +143,7 @@ const PetHotelFeeReport = () => {
             // 2. Fetch existing fees to avoid duplicates
             const { data: existingFees, error: extError } = await supabase
                 .from('employee_fees')
-                .select('transaction_id, fee_date, employee_name')
+                .select('transaction_id, fee_date, employee_name, shift_label')
                 .eq('store_id', activeStoreId)
                 .gte('fee_date', startDate)
                 .lte('fee_date', endDate);
@@ -130,7 +151,7 @@ const PetHotelFeeReport = () => {
             if (extError) throw extError;
 
             const processedSet = new Set(
-                (existingFees || []).map(f => `${f.transaction_id}_${f.fee_date}_${f.employee_name}`)
+                (existingFees || []).map(f => `${f.transaction_id}_${f.employee_name}_${f.shift_label}`)
             );
 
             // 3. Calculate fees using MONTHLY schedule template
@@ -143,20 +164,28 @@ const PetHotelFeeReport = () => {
                     : format(parseISO(rental.date), 'yyyy-MM-dd');
                 const checkOutDate = format(parseISO(rental.date), 'yyyy-MM-dd');
 
+                // Find total days paid from items (Hotel category)
+                const hotelItem = (rental.items || []).find(item => 
+                    item.category === 'Hotel' || 
+                    item.name?.toLowerCase().includes('hotel') ||
+                    item.category === 'Kamar'
+                );
+                const totalDaysPaid = hotelItem?.qty || hotelItem?.quantity || 1;
+                const totalBudget = totalDaysPaid * baseFeePerDay;
+
                 const daysInRental = eachDayOfInterval({
                     start: parseISO(checkInDate),
                     end: parseISO(checkOutDate)
                 });
 
+                // First pass: collect all valid employee-shift slots across the interval
+                const eligibleSlots = [];
                 for (const day of daysInRental) {
                     const dayStr = format(day, 'yyyy-MM-dd');
                     const dayMonth = format(day, 'yyyy-MM');
-                    const dayOfWeek = String(getDay(day)); // 0=Sun, 1=Mon...6=Sat
+                    const dayOfWeek = String(getDay(day));
 
-                    // Lookup the schedule for the month this specific day falls in
                     const dayMonthSchedule = schedules[dayMonth] || {};
-
-                    // NEW: Hybrid lookup (Backward Compatible)
                     const isOldFormat = Object.keys(dayMonthSchedule).some(k => !isNaN(k) && k.length === 1);
                     let shiftsForDay = [];
 
@@ -168,29 +197,37 @@ const PetHotelFeeReport = () => {
                         shiftsForDay = overrides[dayStr] || template[dayOfWeek] || [];
                     }
 
-                    if (shiftsForDay.length === 0) continue;
-
-                    const feePerPerson = baseFeePerDay / shiftsForDay.length;
-                    const isWeekendDay = dayOfWeek === '0' || dayOfWeek === '6';
-
                     for (const shift of shiftsForDay) {
-                        if (!shift.name) continue;
-
-                        const checkoutDateStr = checkOutDate;
-                        const key = `${rental.id}_${dayStr}_${shift.name}`;
-                        if (processedSet.has(key)) continue;
-
-                        newFeeRecords.push({
-                            store_id: activeStoreId,
-                            transaction_id: rental.id,
-                            employee_id: '00000000-0000-0000-0000-000000000000',
-                            employee_name: shift.name,
-                            fee_amount: feePerPerson,
-                            fee_date: checkoutDateStr, // Tetap gunakan checkoutDate sebagai tgl pelaporan
-                            shift_label: `${format(day, 'dd/MM')} - ${shift.shift || 'pagi'}`, // Tampilkan tgl inap di label
-                            is_weekend: isWeekendDay
-                        });
+                        if (shift.name) {
+                            eligibleSlots.push({
+                                day,
+                                shiftName: shift.name,
+                                label: `${format(day, 'dd/MM')} - ${shift.shift || 'pagi'}`,
+                                isWeekend: dayOfWeek === '0' || dayOfWeek === '6'
+                            });
+                        }
                     }
+                }
+
+                if (eligibleSlots.length === 0) continue;
+
+                // Second pass: Calculate fee per slot and generate records
+                const feePerSlot = totalBudget / eligibleSlots.length;
+
+                for (const slot of eligibleSlots) {
+                    const key = `${rental.id}_${slot.shiftName}_${slot.label}`;
+                    if (processedSet.has(key)) continue;
+
+                    newFeeRecords.push({
+                        store_id: activeStoreId,
+                        transaction_id: rental.id,
+                        employee_id: '00000000-0000-0000-0000-000000000000',
+                        employee_name: slot.shiftName,
+                        fee_amount: feePerSlot,
+                        fee_date: checkOutDate, // Tetap gunakan checkoutDate sebagai tgl pelaporan
+                        shift_label: slot.label,
+                        is_weekend: slot.isWeekend
+                    });
                 }
             }
 

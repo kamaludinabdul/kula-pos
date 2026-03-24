@@ -8,6 +8,19 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        "version": "0.26.1",
+        "date": "2026-03-24",
+        "type": "patch",
+        "title": "Bug Fixes & Stability",
+        "changes": [
+            "**Pet Hotel Fee Logic**: Memperbaiki perhitungan budget fee agar sesuai dengan durasi menginap yang dibayar pelanggan (QTY), bukan berdasarkan jumlah tanggal kalender yang disentuh.",
+            "**Duplicate Prevention**: Memperbarui mekanisme deteksi duplikasi fee menggunakan `shift_label` yang lebih presisi untuk mencegah record ganda.",
+            "**Staff Management**: Memperbaiki bug pada form Edit Staff yang tampil kosong akibat kendala jaringan atau kegagalan SDK Supabase (fallback REST API).",
+            "**Data Integrity**: Implementasi otomatisasi pembersihan record fee untuk transaksi yang dibatalkan (void).",
+            "**UI Consistency**: Menyamakan gaya visual grup navigasi di sidebar untuk meningkatkan konsistensi UI."
+        ]
+    },
+    {
         "version": "0.26.0",
         "date": "2026-03-23",
         "type": "minor",

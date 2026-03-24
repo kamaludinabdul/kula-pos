@@ -61,7 +61,7 @@ const SETTINGS_ITEMS = [
   { label: 'Notifikasi Telegram', path: '/settings/telegram', icon: Send, requiredPlan: 'pro', feature: 'settings.telegram' },
   { label: 'Keamanan', path: '/settings/security', icon: Lock, feature: 'settings.access' },
   { label: 'Hak Akses', path: '/settings/access', icon: Shield, feature: 'settings.access' },
-  { label: 'Fee Pet Hotel', path: '/settings/pet-hotel-fee', icon: Wallet, feature: 'settings.fees', requiredPlan: 'enterprise', checkFeature: 'pet_hotel' },
+  { label: 'Fee Pet Hotel', path: '/settings/pet-hotel-fee', icon: Wallet, feature: 'settings.fees', requiredPlan: 'pro', checkFeature: 'pet_hotel', checkSetting: 'pet_care_enabled' },
 ];
 
 const REPORTS_ITEMS = [
@@ -74,7 +74,7 @@ const REPORTS_ITEMS = [
   { path: '/reports/expenses', icon: TrendingDown, label: 'Pengeluaran', feature: 'reports.expenses' },
   { path: '/reports/loyalty-points', icon: Gift, label: 'Laporan Poin', feature: 'reports.loyalty', requiredPlan: 'pro' },
   { path: '/reports/sales-performance', icon: TrendingUp, label: 'Laporan Target & Performa', feature: 'reports.performance', checkSetting: 'enableSalesPerformance', requiredPlan: 'pro' },
-  { path: '/reports/pet-hotel-fee', icon: Wallet, label: 'Fee Pet Hotel', feature: 'reports.pet_hotel_fee', requiredPlan: 'enterprise', checkFeature: 'pet_hotel' },
+  { path: '/reports/pet-hotel-fee', icon: Wallet, label: 'Fee Pet Hotel', feature: 'reports.pet_hotel_fee', requiredPlan: 'pro', checkFeature: 'pet_hotel', checkSetting: 'pet_care_enabled' },
   { path: '/reports/customer-profiling', icon: UserCircle, label: 'Profil Pelanggan', feature: 'reports.customer_profiling', requiredPlan: 'pro' },
   { path: '/reports/expiry', icon: AlertTriangle, label: 'Laporan Kedaluwarsa', feature: 'reports.expiry', checkSetting: 'enableExpiryTracking' },
   { path: '/reports/tuslah', icon: Activity, label: 'Laporan Tuslah', feature: 'reports.tuslah', checkFeature: 'prescriptions' },
@@ -256,6 +256,14 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
     );
   };
 
+  const getNavGroupClass = (isActive) => cn(
+    "flex items-center justify-between w-full px-3 py-2 rounded-l-none rounded-r-lg text-sm font-medium transition-all text-left relative group border-l-4 border-transparent mb-0.5 mt-2",
+    isActive
+      ? "bg-primary/10 text-primary border-primary font-bold shadow-sm"
+      : "text-muted-foreground hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300/50",
+    !isExpanded && "justify-center px-0 border-l-0 rounded-lg"
+  );
+
   return (
     <>
       <aside className={cn(
@@ -373,12 +381,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
               {isExpanded ? (
                 <>
                   <button
-                    className={cn(
-                      "flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-all mt-2 first:mt-0",
-                      isClinicActive 
-                        ? "bg-slate-100/80 text-slate-800 shadow-inner" 
-                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                    )}
+                    className={getNavGroupClass(isClinicActive)}
                     onClick={() => setIsClinicOpen(!isClinicOpen)}
                   >
                     <div className="flex items-center gap-3">
@@ -411,12 +414,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
               {isExpanded ? (
                 <>
                   <button
-                    className={cn(
-                      "flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-all mt-4",
-                      isDatabaseActive 
-                        ? "bg-slate-100/80 text-slate-800 shadow-inner" 
-                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                    )}
+                    className={getNavGroupClass(isDatabaseActive)}
                     onClick={() => setIsDatabaseOpen(!isDatabaseOpen)}
                   >
                     <div className="flex items-center gap-3">
@@ -447,12 +445,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
               {isExpanded ? (
                 <>
                   <button
-                    className={cn(
-                      "flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-all mt-4",
-                      isSalesActive 
-                        ? "bg-slate-100/80 text-slate-800 shadow-inner" 
-                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                    )}
+                    className={getNavGroupClass(isSalesActive)}
                     onClick={() => setIsSalesOpen(!isSalesOpen)}
                   >
                     <div className="flex items-center gap-3">
@@ -483,12 +476,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
               {isExpanded ? (
                 <>
                   <button
-                    className={cn(
-                      "flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-all mt-4",
-                      isReportsActive 
-                        ? "bg-slate-100/80 text-slate-800 shadow-inner" 
-                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                    )}
+                    className={getNavGroupClass(isReportsActive)}
                     onClick={() => setIsReportsOpen(!isReportsOpen)}
                   >
                     <div className="flex items-center gap-3">
@@ -529,12 +517,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
               {isExpanded ? (
                 <>
                   <button
-                    className={cn(
-                      "flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-all mt-4",
-                      SMART_STRATEGY_ITEMS.some(item => location.pathname.startsWith(item.path)) 
-                        ? "bg-slate-100/80 text-slate-800 shadow-inner" 
-                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                    )}
+                    className={getNavGroupClass(SMART_STRATEGY_ITEMS.some(item => location.pathname.startsWith(item.path)))}
                     onClick={() => setIsSmartStrategyOpen(!isSmartStrategyOpen)}
                   >
                     <div className="flex items-center gap-3">
@@ -574,12 +557,7 @@ const Sidebar = ({ isExpanded, setIsExpanded, isDrawer = false }) => {
               {isExpanded ? (
                 <>
                   <button
-                    className={cn(
-                      "flex items-center justify-between w-full px-3 py-2.5 rounded-lg text-sm font-bold transition-all mt-4",
-                      isSettingsActive 
-                        ? "bg-slate-100/80 text-slate-800 shadow-inner" 
-                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                    )}
+                    className={getNavGroupClass(isSettingsActive)}
                     onClick={() => setIsSettingsOpen(!isSettingsOpen)}
                   >
                     <div className="flex items-center gap-3">

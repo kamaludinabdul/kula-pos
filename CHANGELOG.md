@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.26.1] - 2026-03-24
+### Fixed
+- **Pet Hotel Fee Logic**: Memperbaiki perhitungan budget fee agar sesuai dengan durasi menginap yang dibayar pelanggan (QTY), bukan berdasarkan jumlah tanggal kalender yang disentuh.
+- **Duplicate Prevention**: Memperbarui mekanisme deteksi duplikasi fee menggunakan `shift_label` yang lebih presisi untuk mencegah record ganda.
+- **Staff Management**: Memperbaiki bug pada form Edit Staff yang tampil kosong akibat kendala jaringan atau kegagalan SDK Supabase (fallback REST API).
+- **Data Integrity**: Implementasi otomatisasi pembersihan record fee untuk transaksi yang dibatalkan (void).
+- **UI Consistency**: Menyamakan gaya visual grup navigasi di sidebar untuk meningkatkan konsisntensi UI.
+
 ## [0.26.0] - 2026-03-23
 
 ### Added

@@ -106,7 +106,8 @@ const Stores = () => {
         telegramChatId: '',
         plan: 'free',
         duration: 1, // Default 1 month
-        enableSalesPerformance: false
+        enableSalesPerformance: false,
+        petCareEnabled: false
     });
 
     const [newUser, setNewUser] = useState({
@@ -142,6 +143,7 @@ const Stores = () => {
                 plan: store.plan || 'free',
                 duration: 1, // Reset selection or maybe calculate remaining? For now reset to simple choice
                 enableSalesPerformance: store.enableSalesPerformance || false,
+                petCareEnabled: store.pet_care_enabled || false,
                 businessType: store.business_type || 'general'
             });
         } else {
@@ -156,6 +158,7 @@ const Stores = () => {
                 plan: 'free',
                 duration: 1,
                 enableSalesPerformance: false,
+                petCareEnabled: false,
                 businessType: 'general'
             });
         }
@@ -175,6 +178,7 @@ const Stores = () => {
             telegramBotToken: storeFormData.telegramBotToken,
             telegramChatId: storeFormData.telegramChatId,
             enableSalesPerformance: storeFormData.enableSalesPerformance || false,
+            pet_care_enabled: storeFormData.petCareEnabled || false,
             business_type: storeFormData.businessType || 'general'
         };
 
@@ -577,6 +581,19 @@ const Stores = () => {
                                 placeholder="-100..."
                             />
                         </div>
+
+                        {user?.role === 'super_admin' && (
+                            <div className="flex items-center justify-between p-3 border rounded-lg bg-orange-50 mt-4">
+                                <div className="space-y-0.5">
+                                    <Label className="text-sm font-semibold text-orange-900">Pet Hotel Fee (Legacy)</Label>
+                                    <p className="text-xs text-orange-700">Aktifkan laporan fee & shift bagi toko existing (non-klinik) yang memakai Rental.</p>
+                                </div>
+                                <Switch
+                                    checked={storeFormData.petCareEnabled || false}
+                                    onCheckedChange={(checked) => setStoreFormData({ ...storeFormData, petCareEnabled: checked })}
+                                />
+                            </div>
+                        )}
 
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setIsStoreModalOpen(false)}>

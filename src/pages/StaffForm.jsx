@@ -43,7 +43,9 @@ const StaffForm = () => {
         try {
             const data = await safeSupabaseQuery({
                 tableName: 'profiles',
-                queryBuilder: (q) => q.eq('id', id).eq('store_id', activeStoreId).single()
+                queryBuilder: (q) => q.eq('id', id).eq('store_id', activeStoreId).single(),
+                fallbackParams: `?id=eq.${id}&store_id=eq.${activeStoreId}`,
+                processFn: (res) => Array.isArray(res) ? res[0] : res
             });
             
             if (data) {

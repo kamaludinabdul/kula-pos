@@ -184,7 +184,7 @@ CREATE TABLE IF NOT EXISTS public.employee_fees (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   store_id UUID NOT NULL REFERENCES public.stores(id) ON DELETE CASCADE,
   transaction_id TEXT, 
-  employee_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  employee_id UUID, -- Removed FK to profiles because pet hotel staff don't have login accounts
   employee_name TEXT NOT NULL,
   fee_amount NUMERIC NOT NULL DEFAULT 0,
   fee_date DATE NOT NULL,

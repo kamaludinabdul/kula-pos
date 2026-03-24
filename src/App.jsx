@@ -565,7 +565,7 @@ const App = () => {
                       <Route path="sales-performance" element={<SalesPerformanceSettings />} />
                       <Route path="security" element={<SecuritySettings />} />
                       <Route path="pet-hotel-fee" element={
-                        <PrivateRoute feature="settings.fees" checkFeature="pet_hotel">
+                        <PrivateRoute feature="settings.fees" checkFeature="pet_hotel" checkSetting="pet_care_enabled">
                           <PetHotelFeeSettings />
                         </PrivateRoute>
                       } />
@@ -631,7 +631,7 @@ const App = () => {
                         </PrivateRoute>
                       } />
                       <Route path="pet-hotel-fee" element={
-                        <PrivateRoute feature="reports.pet_hotel_fee" checkFeature="pet_hotel">
+                        <PrivateRoute feature="reports.pet_hotel_fee" checkFeature="pet_hotel" checkSetting="pet_care_enabled">
                           <PetHotelFeeReport />
                         </PrivateRoute>
                       } />
