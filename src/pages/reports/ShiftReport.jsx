@@ -92,7 +92,60 @@ const ShiftReport = () => {
             const { data, error } = await queryBuilder;
             if (error) throw error;
 
-            setShifts(data || []);
+            // BULLETPROOF: Recalculate shift totals from transactions (ground truth)
+            // This prevents displaying doubled values from the shifts table
+            const shiftIds = (data || []).map(s => s.id);
+            let recalculated = data || [];
+
+            if (shiftIds.length > 0) {
+                const { data: txData } = await supabase
+                    .from('transactions')
+                    .select('shift_id, total, payment_method, status, discount, payment_details')
+                    .in('shift_id', shiftIds)
+                    .eq('status', 'completed');
+
+                if (txData && txData.length > 0) {
+                    // Group transactions by shift_id and sum
+                    const txSummary = {};
+                    for (const tx of txData) {
+                        if (!txSummary[tx.shift_id]) {
+                            txSummary[tx.shift_id] = { totalSales: 0, totalCash: 0, totalNonCash: 0, totalDiscount: 0 };
+                        }
+                        const s = txSummary[tx.shift_id];
+                        s.totalSales += Number(tx.total || 0);
+                        s.totalDiscount += Number(tx.discount || 0);
+
+                        if (tx.payment_method === 'cash') {
+                            s.totalCash += Number(tx.total || 0);
+                        } else if (tx.payment_method === 'split') {
+                            const pd = tx.payment_details || {};
+                            if (pd.method1 === 'cash') s.totalCash += Number(pd.amount1 || 0);
+                            else s.totalNonCash += Number(pd.amount1 || 0);
+                            if (pd.method2 === 'cash') s.totalCash += Number(pd.amount2 || 0);
+                            else s.totalNonCash += Number(pd.amount2 || 0);
+                        } else {
+                            s.totalNonCash += Number(tx.total || 0);
+                        }
+                    }
+
+                    // Override shift totals with recalculated values
+                    recalculated = (data || []).map(shift => {
+                        const real = txSummary[shift.id];
+                        if (real) {
+                            return {
+                                ...shift,
+                                total_sales: real.totalSales,
+                                total_cash_sales: real.totalCash,
+                                total_non_cash_sales: real.totalNonCash,
+                                total_discount: real.totalDiscount
+                            };
+                        }
+                        return shift;
+                    });
+                }
+            }
+
+            setShifts(recalculated);
         } catch (error) {
             console.error("Error fetching shifts:", error);
         } finally {
