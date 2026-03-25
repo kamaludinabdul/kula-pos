@@ -8,16 +8,36 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        "version": "0.26.2",
+        "date": "2026-03-25",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.26.2"
+        ]
+    },
+    {
+        "version": "0.26.2",
+        "date": "2026-03-25",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Pet Hotel Fee Logic**: Mengubah total perhitungan budget fee agar murni memakai acuan tagihan \"QTY Hari\" pada POS dengan sistem ekstraksi cerdas, bukan membengkak karena selisih masa inap fisik.",
+            "**Pet Hotel Fee Logic**: Mengubah sistem \"Pembagian Rata Per Orang\" menjadi \"Sistem Bobot\" proporsional. Staff yang bertugas penuh pagi-sore kini menerima nominal 2x lipat dibanding yang shift parsial pada total kaldera transaksi yang sama.",
+            "**Rental Transaction Flow**: Kini Kasir bisa menambahkan/mengganti Pelanggan langsung di dalam sesi Rental yang sedang berjalan (*In Use*), memudahkan pengikatan profil member atau tamu Walk-in on the fly."
+        ]
+    },
+    {
         "version": "0.26.1",
         "date": "2026-03-24",
         "type": "patch",
-        "title": "Bug Fixes & Stability",
+        "title": "Patch Release",
         "changes": [
             "**Pet Hotel Fee Logic**: Memperbaiki perhitungan budget fee agar sesuai dengan durasi menginap yang dibayar pelanggan (QTY), bukan berdasarkan jumlah tanggal kalender yang disentuh.",
             "**Duplicate Prevention**: Memperbarui mekanisme deteksi duplikasi fee menggunakan `shift_label` yang lebih presisi untuk mencegah record ganda.",
             "**Staff Management**: Memperbaiki bug pada form Edit Staff yang tampil kosong akibat kendala jaringan atau kegagalan SDK Supabase (fallback REST API).",
             "**Data Integrity**: Implementasi otomatisasi pembersihan record fee untuk transaksi yang dibatalkan (void).",
-            "**UI Consistency**: Menyamakan gaya visual grup navigasi di sidebar untuk meningkatkan konsistensi UI."
+            "**UI Consistency**: Menyamakan gaya visual grup navigasi di sidebar untuk meningkatkan konsisntensi UI."
         ]
     },
     {

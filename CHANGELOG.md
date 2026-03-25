@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.26.2] - 2026-03-25
+### Changed
+- Bumped version to 0.26.2
+
+## [0.26.2] - 2026-03-25
+### Changed
+- **Pet Hotel Fee Logic**: Mengubah total perhitungan budget fee agar murni memakai acuan tagihan "QTY Hari" pada POS dengan sistem ekstraksi cerdas, bukan membengkak karena selisih masa inap fisik.
+- **Pet Hotel Fee Logic**: Mengubah sistem "Pembagian Rata Per Orang" menjadi "Sistem Bobot" proporsional. Staff yang bertugas penuh pagi-sore kini menerima nominal 2x lipat dibanding yang shift parsial pada total kaldera transaksi yang sama.
+
+### Added
+- **Rental Transaction Flow**: Kini Kasir bisa menambahkan/mengganti Pelanggan langsung di dalam sesi Rental yang sedang berjalan (*In Use*), memudahkan pengikatan profil member atau tamu Walk-in on the fly.
+
 ## [0.26.1] - 2026-03-24
 ### Fixed
 - **Pet Hotel Fee Logic**: Memperbaiki perhitungan budget fee agar sesuai dengan durasi menginap yang dibayar pelanggan (QTY), bukan berdasarkan jumlah tanggal kalender yang disentuh.

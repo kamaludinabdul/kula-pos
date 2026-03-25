@@ -75,7 +75,7 @@ const calculateBestPrice = (durationData, product) => {
 };
 
 // --- KOMPONEN KARTU UNIT ---
-const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onViewDetails, currentStore, onAddTime, onAutoConvert }) => {
+const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onViewDetails, currentStore, onAddTime, onAutoConvert, onEditCustomer }) => {
     const [elapsed, setElapsed] = useState(0);
     const [timeLeft, setTimeLeft] = useState(0);
 
@@ -210,12 +210,19 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
                             <LinkIcon className="w-3 h-3" />
                             {product?.name || 'Tarif tidak ditemukan'}
                         </p>
-                        {session?.customer_name && session.customer_name !== 'Guest' && (
-                            <div className={`flex items-center gap-1 mt-1 text-xs font-medium px-1.5 py-0.5 rounded w-fit ${session.customer_id ? 'text-indigo-600 bg-indigo-50 border border-indigo-100' : 'text-slate-600 bg-slate-100 border border-slate-200'
-                                }`}>
-                                <User className={`w-3 h-3 ${session.customer_id ? 'fill-current' : 'opacity-50'}`} />
-                                <span className="truncate max-w-[100px]">{session.customer_name}</span>
-                                {!session.customer_id && <span className="text-[10px] opacity-70 ml-1">(Guest)</span>}
+                        {/* Always show customer area for active session */}
+                        {session && (
+                            <div className={`flex items-center justify-between gap-1 mt-1 text-xs px-1.5 py-0.5 rounded w-fit group transition-colors ${session.customer_id ? 'text-indigo-600 bg-indigo-50 border border-indigo-100' : (session?.customer_name && session.customer_name !== 'Guest' ? 'text-slate-600 bg-slate-100 border border-slate-200' : 'text-slate-400 border border-dashed border-slate-200 hover:bg-slate-50 cursor-pointer')}`}
+                                 onClick={() => { if (!session.customer_name || session.customer_name === 'Guest') onEditCustomer(session); }}
+                            >
+                                <div className="flex items-center gap-1 font-medium">
+                                    <User className={`w-3 h-3 ${session.customer_id ? 'fill-current' : 'opacity-50'}`} />
+                                    <span className="truncate max-w-[100px]">{!session.customer_name || session.customer_name === 'Guest' ? 'Tambah Pelanggan' : session.customer_name}</span>
+                                    {session.customer_name && session.customer_name !== 'Guest' && !session.customer_id && <span className="text-[10px] opacity-70 ml-1">(Guest)</span>}
+                                </div>
+                                <Button variant="ghost" size="icon" className="h-4 w-4 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity ml-2" onClick={(e) => { e.stopPropagation(); onEditCustomer(session); }}>
+                                    <Edit2 className="w-2 h-2 text-indigo-700" />
+                                </Button>
                             </div>
                         )}
                         {session?.notes && (
@@ -1114,6 +1121,10 @@ const RentalDashboard = () => {
     const [isAddTimeOpen, setIsAddTimeOpen] = useState(false);
     const [addTimeSession, setAddTimeSession] = useState(null);
 
+    // Edit Customer State
+    const [isEditCustomerOpen, setIsEditCustomerOpen] = useState(false);
+    const [editCustomerSession, setEditCustomerSession] = useState(null);
+
     // Printer
     const [printerStatus, setPrinterStatus] = useState({ connected: false, name: null });
 
@@ -1497,6 +1508,47 @@ const RentalDashboard = () => {
             setIsAddTimeOpen(false);
             setAddTimeSession(null);
             setIsLoadingUnits(false);
+        }
+    };
+
+    const handleEditCustomerClick = (session) => {
+        setEditCustomerSession(session);
+        setCustomerName(session.customer_name === 'Guest' ? '' : (session.customer_name || ''));
+        const customerObj = customers.find(c => c.id === session.customer_id);
+        setSelectedCustomer(customerObj || null);
+        setIsEditCustomerOpen(true);
+    };
+
+    const handleSaveCustomer = async () => {
+        if (!editCustomerSession) return;
+        
+        const finalCustomerName = selectedCustomer ? selectedCustomer.name : (customerName || 'Guest');
+        const finalCustomerId = selectedCustomer ? selectedCustomer.id : null;
+
+        try {
+            const { error } = await supabase
+                .from('rental_sessions')
+                .update({
+                    customer_name: finalCustomerName,
+                    customer_id: finalCustomerId
+                })
+                .eq('id', editCustomerSession.id);
+
+            if (error) throw error;
+
+            setSessions(prev => ({
+                ...prev,
+                [editCustomerSession.unit_id]: {
+                    ...prev[editCustomerSession.unit_id],
+                    customer_name: finalCustomerName,
+                    customer_id: finalCustomerId
+                }
+            }));
+
+            toast({ title: "Berhasil", description: "Data Pelanggan diperbarui" });
+            setIsEditCustomerOpen(false);
+        } catch (error) {
+            toast({ title: "Gagal Update", description: error.message, variant: "destructive" });
         }
     };
 
@@ -1893,6 +1945,7 @@ const RentalDashboard = () => {
                                 onOrder={handleOrderClick}
                                 onRemoveItem={handleRemoveItem}
                                 onAutoConvert={handleAutoConvert}
+                                onEditCustomer={handleEditCustomerClick}
                                 currentStore={currentStore}
                                 onViewDetails={(s) => {
                                     setDetailSession(s); // Keep track of WHICH session is open
@@ -2127,6 +2180,82 @@ const RentalDashboard = () => {
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsStartOpen(false)}>Batal</Button>
                         <Button onClick={confirmStart}>Mulai Timer</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit Customer Dialog */}
+            <Dialog open={isEditCustomerOpen} onOpenChange={setIsEditCustomerOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Ubah Pelanggan</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                        <div className="space-y-2">
+                            <Label>Nama Pelanggan / Nomor HP</Label>
+                            <div className="relative">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    autoFocus
+                                    placeholder="Cari member atau ketik nama tamu..."
+                                    className="pl-9"
+                                    value={customerName}
+                                    onChange={(e) => {
+                                        setCustomerName(e.target.value);
+                                        setSelectedCustomer(null);
+                                    }}
+                                />
+                            </div>
+                            
+                            {/* Autocomplete Dropdown */}
+                            {customerName && !selectedCustomer && (
+                                <div className="mt-1 border rounded-md shadow-sm bg-white overflow-hidden max-h-48 overflow-y-auto">
+                                    {(customers || [])
+                                        .filter(c => c.name.toLowerCase().includes(customerName.toLowerCase()) || c.phone?.includes(customerName))
+                                        .slice(0, 5)
+                                        .map(customer => (
+                                            <div
+                                                key={customer.id}
+                                                className="px-3 py-2 border-b last:border-0 hover:bg-slate-50 cursor-pointer flex items-center gap-2"
+                                                onClick={() => {
+                                                    setCustomerName(customer.name);
+                                                    setSelectedCustomer(customer);
+                                                }}
+                                            >
+                                                <User className="h-4 w-4 text-slate-400" />
+                                                <div>
+                                                    <div className="font-medium text-slate-900 text-sm">{customer.name}</div>
+                                                    <div className="text-xs text-muted-foreground">{customer.phone}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    <div className="px-3 py-2 text-xs text-muted-foreground bg-slate-50 italic">
+                                        Tekan Enter atau Simpan untuk menggunakan nama "{customerName}" sebagai Tamu.
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {selectedCustomer && (
+                                <div className="mt-2 p-3 bg-indigo-50 border border-indigo-100 rounded-md flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-8 w-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700">
+                                            <User size={16} />
+                                        </div>
+                                        <div>
+                                            <div className="text-sm font-medium text-indigo-900">{selectedCustomer.name}</div>
+                                            <div className="text-xs text-indigo-700">{selectedCustomer.phone}</div>
+                                        </div>
+                                    </div>
+                                    <Button variant="ghost" size="sm" onClick={() => { setSelectedCustomer(null); setCustomerName(''); }} className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-100 h-8">
+                                        Ganti
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEditCustomerOpen(false)}>Batal</Button>
+                        <Button onClick={handleSaveCustomer}>Simpan</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
