@@ -33,6 +33,7 @@ const InventoryValue = () => {
         let potentialRevenue = 0; // Potensi Pendapatan (Sell Price * Stock)
 
         products.forEach(p => {
+            if (p.isUnlimited || p.is_unlimited) return;
             const stock = parseInt(p.stock || 0);
             const buyPrice = parseInt(p.buyPrice || 0);
             const sellPrice = parseInt(p.sellPrice || p.price || 0);
@@ -51,7 +52,7 @@ const InventoryValue = () => {
 
     const handleExport = () => {
         const dataToExport = products
-            .filter(p => p.stock > 0)
+            .filter(p => p.stock > 0 && !p.isUnlimited && !p.is_unlimited)
             .sort((a, b) => (b.stock * b.buyPrice) - (a.stock * a.buyPrice))
             .map(p => {
                 const stock = parseInt(p.stock || 0);
@@ -146,7 +147,7 @@ const InventoryValue = () => {
                                     </TableRow>
                                 ) : (
                                     products
-                                        .filter(p => p.stock > 0)
+                                        .filter(p => p.stock > 0 && !p.isUnlimited && !p.is_unlimited)
                                         .sort((a, b) => (b.stock * b.buyPrice) - (a.stock * a.buyPrice))
                                         .map((p) => {
                                             const stock = parseInt(p.stock || 0);
@@ -179,7 +180,7 @@ const InventoryValue = () => {
                     <div className="text-center py-12 text-muted-foreground bg-white rounded-xl border">Tidak ada data.</div>
                 ) : (
                     products
-                        .filter(p => p.stock > 0)
+                        .filter(p => p.stock > 0 && !p.isUnlimited && !p.is_unlimited)
                         .sort((a, b) => (b.stock * b.buyPrice) - (a.stock * a.buyPrice))
                         .map((p) => {
                             const stock = parseInt(p.stock || 0);

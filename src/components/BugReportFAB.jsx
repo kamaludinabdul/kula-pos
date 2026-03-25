@@ -9,7 +9,7 @@ const BugReportFAB = () => {
         <>
             <button
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-6 right-6 z-50 h-12 w-12 rounded-full bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200 flex items-center justify-center group"
+                className="fixed bottom-24 right-6 z-50 h-12 w-12 rounded-full bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-200 flex items-center justify-center group"
                 title="Laporkan Masalah"
                 aria-label="Laporkan Masalah"
             >

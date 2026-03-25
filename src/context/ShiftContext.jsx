@@ -274,7 +274,14 @@ export const ShiftProvider = ({ children }) => {
                 status: 'closed',
                 cash_difference: cashDifference,
                 non_cash_difference: nonCashDifference,
-                notes: notes
+                notes: notes,
+                
+                // BULLETPROOF FIX: Overwrite possibly doubled shift totals
+                // with the exact mathematical sum from transactions table
+                total_sales: shiftData.totalSales,
+                total_cash_sales: shiftData.totalCashSales,
+                total_non_cash_sales: shiftData.totalNonCashSales,
+                total_discount: shiftData.totalDiscount
             };
 
             const { error } = await supabase
