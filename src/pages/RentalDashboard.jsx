@@ -200,36 +200,36 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
     return (
         <Card className={`relative transition-all min-h-[400px] flex flex-col ${session ? cardBgColor : 'hover:border-indigo-500 bg-white'}`}>
             <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                    <div>
-                        <CardTitle className="text-lg font-bold flex items-center gap-2">
-                            <MonitorPlay className="w-5 h-5 text-slate-500" />
-                            {unit.name}
+                <div className="flex justify-between items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                        <CardTitle className="text-lg font-bold flex items-center gap-2 truncate">
+                            <MonitorPlay className="w-5 h-5 text-slate-500 shrink-0" />
+                            <span className="truncate">{unit.name}</span>
                         </CardTitle>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                            <LinkIcon className="w-3 h-3" />
-                            {product?.name || 'Tarif tidak ditemukan'}
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1 truncate">
+                            <LinkIcon className="w-3 h-3 shrink-0" />
+                            <span className="truncate">{product?.name || 'Tarif tidak ditemukan'}</span>
                         </p>
                         {/* Always show customer area for active session */}
                         {session && (
-                            <div className={`flex items-center justify-between gap-1 mt-1 text-xs px-1.5 py-0.5 rounded w-fit group transition-colors ${session.customer_id ? 'text-indigo-600 bg-indigo-50 border border-indigo-100' : (session?.customer_name && session.customer_name !== 'Guest' ? 'text-slate-600 bg-slate-100 border border-slate-200' : 'text-slate-400 border border-dashed border-slate-200 hover:bg-slate-50 cursor-pointer')}`}
+                            <div className={`flex items-center justify-between gap-1 mt-1 text-xs px-2 py-1 rounded w-full group transition-colors ${session.customer_id ? 'text-indigo-600 bg-indigo-50 border border-indigo-100' : (session?.customer_name && session.customer_name !== 'Guest' ? 'text-slate-600 bg-slate-100 border border-slate-200' : 'text-slate-400 border border-dashed border-slate-200 hover:bg-slate-50 cursor-pointer')}`}
                                  onClick={() => { if (!session.customer_name || session.customer_name === 'Guest') onEditCustomer(session); }}
                             >
-                                <div className="flex items-center gap-1 font-medium">
-                                    <User className={`w-3 h-3 ${session.customer_id ? 'fill-current' : 'opacity-50'}`} />
-                                    <span className="truncate max-w-[100px]">{!session.customer_name || session.customer_name === 'Guest' ? 'Tambah Pelanggan' : session.customer_name}</span>
-                                    {session.customer_name && session.customer_name !== 'Guest' && !session.customer_id && <span className="text-[10px] opacity-70 ml-1">(Guest)</span>}
+                                <div className="flex items-center gap-1.5 font-medium min-w-0 flex-1">
+                                    <User className={`w-3.5 h-3.5 shrink-0 ${session.customer_id ? 'fill-current' : 'opacity-50'}`} />
+                                    <span className="truncate">{!session.customer_name || session.customer_name === 'Guest' ? 'Tambah Pelanggan' : session.customer_name}</span>
+                                    {session.customer_name && session.customer_name !== 'Guest' && !session.customer_id && <span className="text-[10px] opacity-70 ml-1 shrink-0">(Guest)</span>}
                                 </div>
-                                <Button variant="ghost" size="icon" className="h-4 w-4 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity ml-2" onClick={(e) => { e.stopPropagation(); onEditCustomer(session); }}>
-                                    <Edit2 className="w-2 h-2 text-indigo-700" />
+                                <Button variant="ghost" size="icon" className="h-4 w-4 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity ml-1" onClick={(e) => { e.stopPropagation(); onEditCustomer(session); }}>
+                                    <Edit2 className="w-3 h-3 text-indigo-700" />
                                 </Button>
                             </div>
                         )}
                         {session?.notes && (
-                            <div className="flex items-start justify-between gap-1 mt-1 text-[11px] text-slate-500 bg-amber-50/50 border border-amber-100/50 px-1.5 py-0.5 rounded leading-tight">
-                                <div className="flex items-start gap-1">
+                            <div className="flex items-start justify-between gap-1 mt-1 text-[11px] text-slate-500 bg-amber-50/50 border border-amber-100/50 px-1.5 py-0.5 rounded leading-tight max-w-full">
+                                <div className="flex items-start gap-1 min-w-0">
                                     <StickyNote className="w-3 h-3 mt-0.5 shrink-0 text-amber-600" />
-                                    <span className="line-clamp-2 italic">{session.notes}</span>
+                                    <span className="truncate italic">{session.notes}</span>
                                 </div>
                                 <Button variant="ghost" size="icon" className="h-4 w-4 shrink-0 hover:bg-amber-100" onClick={(e) => { e.stopPropagation(); onViewDetails(session); }}>
                                     <Edit2 className="w-2 h-2 text-amber-700" />
@@ -237,12 +237,12 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
                             </div>
                         )}
                         {session?.billing_mode === 'fixed' && (
-                            <Badge variant="outline" className="mt-1 bg-white border-indigo-200 text-indigo-700 text-[10px] h-5">
-                                Paket {session.target_duration} {product?.pricingType === 'daily' ? 'Hari' : 'Jam'}
+                            <Badge variant="outline" className="mt-1 bg-white border-indigo-200 text-indigo-700 text-[10px] h-5 max-w-full truncate block w-fit">
+                                Paket {session.target_duration} {product?.pricingType === 'daily' ? 'Hari' : (product?.pricingType === 'minutely' ? 'Menit' : 'Jam')}
                             </Badge>
                         )}
                     </div>
-                    <Badge variant={session ? "destructive" : "success"} className={`whitespace-nowrap shrink-0 ${session ? (isOvertime ? "bg-red-700 animate-pulse" : (isGracePeriod ? "bg-amber-600 animate-pulse" : "bg-indigo-600")) : "bg-green-600"}`}>
+                    <Badge variant={session ? "destructive" : "success"} className={`whitespace-nowrap shrink-0 text-[10px] px-1.5 py-0.5 ${session ? (isOvertime ? "bg-red-700 animate-pulse" : (isGracePeriod ? "bg-amber-600 animate-pulse" : "bg-indigo-600")) : "bg-green-600"}`}>
                         {session ? (isOvertime ? "WAKTU HABIS" : (isGracePeriod ? "MASA TOLERANSI" : "In Use")) : "Available"}
                     </Badge>
                 </div>
@@ -278,8 +278,8 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
 
                             <div className="flex flex-col gap-2 text-sm bg-white/60 p-3 rounded border border-indigo-100/50 shadow-sm">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-muted-foreground">Sewa {session.billing_mode === 'fixed' ? `(Paket ${session.target_duration} ${product?.pricingType === 'daily' ? 'Hari' : 'Jam'})` : `(${durationInHours} ${product?.pricingType === 'minutely' ? 'Menit' : 'Jam'})`}:</span>
-                                    <span className="font-semibold text-slate-700">Rp {currentBill.toLocaleString('id-ID')}</span>
+                                    <span className="text-muted-foreground truncate mr-2">Sewa {session.billing_mode === 'fixed' ? `(Paket ${session.target_duration} ${product?.pricingType === 'daily' ? 'Hari' : (product?.pricingType === 'minutely' ? 'Menit' : 'Jam')})` : `(${durationInHours} ${product?.pricingType === 'minutely' ? 'Menit' : 'Jam'})`}:</span>
+                                    <span className="font-semibold text-slate-700 shrink-0">Rp {currentBill.toLocaleString('id-ID')}</span>
                                 </div>
 
                                 {isOvertime && (
@@ -294,7 +294,7 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
 
                                 <div className="flex justify-between items-center border-t border-slate-100 pt-2 mt-1">
                                     <span className="text-muted-foreground">F&B Total:</span>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 shrink-0">
                                         <span className="font-semibold text-slate-700">Rp {totalOrder.toLocaleString('id-ID')}</span>
                                         <Button
                                             variant="secondary"
@@ -309,7 +309,7 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
                                 </div>
                                 <div className="flex justify-between items-center border-t pt-2 mt-1 border-dashed border-slate-300">
                                     <span className="font-bold text-slate-800">Total Tagihan:</span>
-                                    <span className="font-bold text-indigo-700 text-lg">Rp {(currentBill + overtimeBill + totalOrder).toLocaleString('id-ID')}</span>
+                                    <span className="font-bold text-indigo-700 text-lg shrink-0">Rp {(currentBill + overtimeBill + totalOrder).toLocaleString('id-ID')}</span>
                                 </div>
                             </div>
                         </>
@@ -324,22 +324,20 @@ const RentalUnitCard = ({ unit, product, session, onStart, onStop, onOrder, onVi
                     )}
                 </div>
             </CardContent>
-            <CardFooter className="pt-2 gap-2">
+            <CardFooter className="pt-2 flex flex-row gap-2">
                 {session ? (
                     <>
-                        <Button variant="outline" size="sm" className="flex-1 bg-white hover:bg-slate-50" onClick={() => onOrder(session)}>
-                            <Coffee className="w-4 h-4 mr-1" />
-                            Menu
+                        <Button variant="outline" size="icon" className="shrink-0 bg-white hover:bg-slate-50" onClick={() => onOrder(session)} title="Menu F&B">
+                            <Coffee className="w-4 h-4" />
                         </Button>
-                        {session.billing_mode === 'fixed' && !isOvertime && (
-                            <Button variant="outline" size="sm" className="flex-1 text-indigo-700 border-indigo-200 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800" onClick={() => onAddTime(session)}>
-                                <Clock className="w-4 h-4 mr-1" />
-                                + Waktu
+                        {session.billing_mode === 'fixed' && (
+                            <Button variant="outline" size="icon" className="shrink-0 text-indigo-700 border-indigo-200 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-800" onClick={() => onAddTime(session)} title="Tambah Waktu">
+                                <Clock className="w-4 h-4" />
                             </Button>
                         )}
-                        <Button variant={isOvertime ? "destructive" : (isGracePeriod ? "default" : "secondary")} size="sm" className={`flex-1 ${(!isOvertime && !isGracePeriod) && "bg-slate-200 hover:bg-slate-300 text-slate-800"} ${isGracePeriod && "bg-amber-600 hover:bg-amber-700 text-white"}`} onClick={() => onStop(session)}>
-                            <Square className="w-4 h-4 mr-1" />
-                            Stop
+                        <Button variant={isOvertime ? "destructive" : (isGracePeriod ? "default" : "secondary")} className={`flex-1 min-w-0 ${(!isOvertime && !isGracePeriod) && "bg-slate-200 hover:bg-slate-300 text-slate-800"} ${isGracePeriod && "bg-amber-600 hover:bg-amber-700 text-white"}`} onClick={() => onStop(session)}>
+                            <Square className="w-4 h-4 mr-2 shrink-0" />
+                            <span className="truncate">Selesai / Stop</span>
                         </Button>
                     </>
                 ) : (

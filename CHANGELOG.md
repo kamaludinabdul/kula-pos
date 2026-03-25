@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.26.3] - 2026-03-25
+### Changed
+- Bumped version to 0.26.3
+
+## [0.26.3] - 2026-03-25
+### Changed
+- **Pet Hotel Automation**: Menjadikan perhitungan dan pencatatan komisi (*Fee*) Pet Hotel berjalan seketika (*real-time*) di latar belakang sesaat setelah transaksi rental sukses dibayar (Checkout POS), menghilangkan kebutuhan sinkronisasi manual harian.
+
+### Fixed
+- **Rental Dashboard UI**: Memperbaiki kontainer nama pelanggan agar tampil utuh (*w-full*) tanpa terpotong di layar sempit.
+- **Rental Pricing Format**: Memperbaiki label durasi sewa yang tertulis 'Jam' (hardcoded) menjadi dinamis mendukung format 'Menit'.
+
+### Added
+- **Unit Testing**: Menambahkan 5 skenario _Unit Test_ komprehensif menggunakan Vitest untuk mengukur presisi kalkulator Fee Pet Hotel (penjagaan bobot pagi/sore 0.5, shift penuh 1.0, anti-duplikat, dan penyesuaian jam check-in).
+
 ## [0.26.2] - 2026-03-25
 ### Changed
 - Bumped version to 0.26.2

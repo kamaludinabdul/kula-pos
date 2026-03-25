@@ -712,6 +712,21 @@ const POS = () => {
 
             setLastTransaction({ ...transactionData, id: result.id });
             setPaymentSuccess(true);
+            
+            // --- AUTO GENERATE PET HOTEL FEE ---
+            if (transactionData.type === 'rental') {
+                import('../utils/petHotelFeeGenerator.js').then(module => {
+                    module.generateFeeForTransaction({ ...transactionData, id: result.id }, currentStore, supabase)
+                        .then(res => {
+                            if (res.success) {
+                                console.log(`[POS] Auto-generated ${res.count} fee records for transaction ${result.id}`);
+                            } else if (res.message) {
+                                console.log(`[POS] Fee generation skipped: ${res.message}`);
+                            }
+                        })
+                        .catch(err => console.error("[POS] Auto fee generation error:", err));
+                }).catch(err => console.error("Failed to load petHotelFeeGenerator", err));
+            }
             // refreshTransactions(); // Removed to prevent UI freeze (Optimistic updates handle this)
         } else {
             showAlert('Gagal', `Transaksi gagal: ${result?.error || 'Unknown error'}`);

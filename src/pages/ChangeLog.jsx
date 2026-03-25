@@ -8,6 +8,27 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        "version": "0.26.3",
+        "date": "2026-03-25",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.26.3"
+        ]
+    },
+    {
+        "version": "0.26.3",
+        "date": "2026-03-25",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Pet Hotel Automation**: Menjadikan perhitungan dan pencatatan komisi (*Fee*) Pet Hotel berjalan seketika (*real-time*) di latar belakang sesaat setelah transaksi rental sukses dibayar (Checkout POS), menghilangkan kebutuhan sinkronisasi manual harian.",
+            "**Rental Dashboard UI**: Memperbaiki kontainer nama pelanggan agar tampil utuh (*w-full*) tanpa terpotong di layar sempit.",
+            "**Rental Pricing Format**: Memperbaiki label durasi sewa yang tertulis 'Jam' (hardcoded) menjadi dinamis mendukung format 'Menit'.",
+            "**Unit Testing**: Menambahkan 5 skenario _Unit Test_ komprehensif menggunakan Vitest untuk mengukur presisi kalkulator Fee Pet Hotel (penjagaan bobot pagi/sore 0.5, shift penuh 1.0, anti-duplikat, dan penyesuaian jam check-in)."
+        ]
+    },
+    {
         "version": "0.26.2",
         "date": "2026-03-25",
         "type": "patch",
