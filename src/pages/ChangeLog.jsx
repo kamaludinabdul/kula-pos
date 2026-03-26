@@ -8,6 +8,16 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        "version": "0.26.5",
+        "date": "2026-03-26",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**AI Smart Insight**: Laporan tutup shift Telegram kini lebih pintar dengan perbandingan data historis (kemarin, minggu lalu, bulan lalu) dan analisis kondisi cuaca lokal untuk evaluasi performa yang lebih akurat.",
+            "Bumped version to 0.26.5"
+        ]
+    },
+    {
         "version": "0.26.4",
         "date": "2026-03-26",
         "type": "patch",

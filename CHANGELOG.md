@@ -1,3 +1,8 @@
+## [0.26.5] - 2026-03-26
+### Added
+- **AI Smart Insight**: Laporan tutup shift Telegram kini lebih pintar dengan perbandingan data historis (kemarin, minggu lalu, bulan lalu) dan analisis kondisi cuaca lokal untuk evaluasi performa yang lebih akurat.
+- Bumped version to 0.26.5
+
 ## [0.26.4] - 2026-03-26
 ### Fixed
 - **Shift Report**: Memperbaiki masalah perhitungan ganda (*double-counting*) pada total penjualan, tunai, dan non-tunai di tabel shift. Sistem kini menimpa nilai agregat dengan data riil dari tabel transaksi saat penutupan shift untuk akurasi 100%.

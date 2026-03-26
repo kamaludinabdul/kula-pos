@@ -309,11 +309,64 @@ export const ShiftProvider = ({ children }) => {
                 if (notes) msg += `📝 Catatan: ${notes}\n`;
 
                 try {
-                    const aiInsight = await getShiftClosingInsight({
-                        initial_cash: shiftData.initial_cash,
-                        totalSales: shiftData.totalSales,
-                        transactions: shiftData.transactions
-                    }, currentStore?.geminiApiKey || user?.settings?.gemini_api_key);
+                    // Fetch comparative data
+                    const today = new Date();
+                    const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+                    const lastWeek = new Date(today); lastWeek.setDate(today.getDate() - 7);
+                    const lastMonth = new Date(today); lastMonth.setMonth(today.getMonth() - 1);
+
+                    const fetchDailyTotal = async (date) => {
+                        const start = new Date(date); start.setHours(0, 0, 0, 0);
+                        const end = new Date(date); end.setHours(23, 59, 59, 999);
+                        const result = await safeSupabaseRpc({
+                            rpcName: 'get_profit_loss_report',
+                            params: {
+                                p_store_id: activeStoreId,
+                                p_start_date: start.toISOString(),
+                                p_end_date: end.toISOString()
+                            }
+                        });
+                        return result?.total_sales || 0;
+                    };
+
+                    const [yesterdaySales, lastWeekSales, lastMonthSales] = await Promise.all([
+                        fetchDailyTotal(yesterday),
+                        fetchDailyTotal(lastWeek),
+                        fetchDailyTotal(lastMonth)
+                    ]);
+
+                    // Fetch today's weather if location exists
+                    let weatherData = null;
+                    if (currentStore?.latitude && currentStore?.longitude) {
+                        try {
+                            const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${currentStore.latitude}&longitude=${currentStore.longitude}&daily=temperature_2m_max,precipitation_sum&timezone=auto&forecast_days=1`;
+                            const weatherRes = await fetch(weatherUrl);
+                            const weatherJson = await weatherRes.json();
+                            if (weatherJson.daily) {
+                                weatherData = {
+                                    tempMax: weatherJson.daily.temperature_2m_max[0],
+                                    rain: weatherJson.daily.precipitation_sum[0]
+                                };
+                            }
+                        } catch (wErr) {
+                            console.warn("Failed to fetch weather for insight:", wErr);
+                        }
+                    }
+
+                    const aiInsight = await getShiftClosingInsight(
+                        {
+                            initial_cash: shiftData.initial_cash,
+                            totalSales: shiftData.totalSales,
+                            transactions: shiftData.transactions
+                        },
+                        {
+                            yesterday: yesterdaySales,
+                            lastWeekSameDay: lastWeekSales,
+                            lastMonthSameDate: lastMonthSales
+                        },
+                        weatherData,
+                        currentStore?.geminiApiKey || user?.settings?.gemini_api_key
+                    );
 
                     if (aiInsight) {
                         msg += `\n🤖 <b>AI Insight:</b>\n<i>${aiInsight}</i>\n`;

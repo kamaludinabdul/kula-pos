@@ -314,25 +314,51 @@ _Gagal menghasilkan insight AI._`;
 };
 
 /**
- * Generates an AI-powered brief insight for a closed shift.
+ * Generates an AI-powered brief insight for a closed shift with historical context.
  * @param {Object} shiftData - The summarized shift data.
+ * @param {Object} [comparativeData] - Historical sales for yesterday, last week, etc.
+ * @param {Object} [weatherData] - Weather info for today.
  * @param {string} [customApiKey] - Custom Gemini API key.
  * @returns {Promise<string>} Short AI insight text.
  */
-export const getShiftClosingInsight = async (shiftData, customApiKey = null) => {
+export const getShiftClosingInsight = async (shiftData, comparativeData = null, weatherData = null, customApiKey = null) => {
     const genAI = getGenAIInstance(customApiKey);
     if (!genAI) return null;
 
     try {
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-        const prompt = `
-            Berikan analisis singkat (maksimal 20 kata) untuk performa shift kasir ini untuk dikirim ke Telegram Owner:
-            - Modal Awal: Rp ${shiftData.initial_cash || 0}
-            - Total Pendapatan: Rp ${shiftData.totalSales || 0}
-            - Jumlah Transaksi: ${shiftData.transactions || 0}
+        let prompt = `
+            Anda adalah analis bisnis pintar untuk aplikasi POS. Berikan evaluasi performa shift kasir saat ini (maks 30 kata) untuk dikirim ke Telegram Owner.
+            
+            Data Shift Sekarang:
+            - Pendapatan: Rp ${shiftData.totalSales?.toLocaleString() || 0}
+            - Transaksi: ${shiftData.transactions || 0}
+        `;
 
-            Fokus pada apresiasi ringan jika performa bagus, atau penyemangat jika biasa saja. Tanpa hashtag.
+        if (comparativeData) {
+            prompt += `
+            Data Pembanding (Total Penjualan):
+            - Kemarin: Rp ${comparativeData.yesterday?.toLocaleString() || 0}
+            - Hari yang sama minggu lalu: Rp ${comparativeData.lastWeekSameDay?.toLocaleString() || 0}
+            - Tanggal yang sama bulan lalu: Rp ${comparativeData.lastMonthSameDate?.toLocaleString() || 0}
+            `;
+        }
+
+        if (weatherData) {
+            const weatherDesc = weatherData.rain > 0 ? `Hujan (${weatherData.rain}mm)` : weatherData.tempMax > 32 ? 'Panas Terik' : 'Cerah/Berawan';
+            prompt += `
+            Kondisi Cuaca Hari Ini: ${weatherDesc}.
+            `;
+        }
+
+        prompt += `
+            Instruksi:
+            1. Bandingkan performa hari ini dengan data historis.
+            2. Jika cuaca berpengaruh (misal: hujan bikin sepi), sebutkan.
+            3. Berikan evaluasi: APRESIASI (jika naik signifikan), NORMAL (jika stabil), atau EVALUASI (jika turun signifikan & ada saran perbaikan).
+            4. Gunakan bahasa Indonesia yang santai tapi profesional.
+            5. JANGAN gunakan hashtag atau Markdown tebal berlebih.
         `;
 
         const result = await model.generateContent(prompt);
