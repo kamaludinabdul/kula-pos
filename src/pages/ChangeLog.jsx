@@ -8,6 +8,39 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
+        "version": "0.26.8",
+        "date": "2026-03-27",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "Bumped version to 0.26.8"
+        ]
+    },
+    {
+        "version": "0.26.8",
+        "date": "2026-03-28",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Laporan Shift (Crash Fix)**: Memperbaiki `TypeError: Cannot read properties of null (reading 'toLocaleString')` yang terjadi saat membuka halaman Laporan Shift dengan shift yang masih aktif. Pengecekan sebelumnya menggunakan `!== undefined`, sehingga nilai `null` dari database (Uang Akhir belum tersedia di shift aktif) tidak tertangkap dan menyebabkan crash. Sekarang menggunakan `!= null` yang lebih ketat.",
+            "**Layout Card Info Penjualan**: Mengembalikan tata letak grid Info Cards di halaman Penjualan ke format 4-kolom (`xl:grid-cols-4`) yang mencegah teks terpotong di layar lebar. Menambahkan `data-testid=\"summary-cards-container\"` pada container grid untuk memudahkan testing.",
+            "**Default Tanggal Halaman Penjualan**: Mengembalikan default tanggal halaman Penjualan ke \"Hari Ini\" (sesuai aslinya), sementara halaman-halaman Laporan lainnya tetap default ke \"Bulan Ini\" untuk konsistensi.",
+            "**Unit Tests — Regression Guard (8 file baru, +40 test cases)**:",
+            "**Layout Regression Guard**: Test case `[LAYOUT REGRESSION GUARD]` ditambahkan ke `Transactions.test.jsx` — secara otomatis gagal jika grid Info Cards berubah dari `xl:grid-cols-4` ke nilai lain, mencegah regresi layout terulang."
+        ]
+    },
+    {
+        "version": "0.26.7",
+        "date": "2026-03-27",
+        "type": "patch",
+        "title": "Patch Release",
+        "changes": [
+            "**Sinkronisasi Fee Pet Hotel**: Memperbaiki bug di mana fee karyawan lama (yang menggunakan batas maksimal 3 shift) tidak terhapus saat melakukan sinkronisasi ulang. Proses rilis ini kini secara otomatis menghapus rekaman biaya sistem dan menghitungnya kembali menggunakan batas 2 shift per daftar masuk per hari.",
+            "**Ringkasan Laporan Transaksi**: Merestrukturisasi pengambilan data statistik \"Card\" total untuk menggunakan query pada tingkat klien dan bebas batas dibandingkan metode RPC sebelumnya. Hal ini memastikan \"Total Penjualan\", \"Pendapatan Barang/\"Jasa\", dll dapat memfilter angka *real-time* dari tipe stok, metode pembayaran, status, dan rentang tanggal untuk histori pembelian di atas batas default Supabase (1000 baris).",
+            "Mengupdate tata letak Antarmuka Filter Transaksi agar lebih nyaman digunakan."
+        ]
+    },
+    {
         "version": "0.26.6",
         "date": "2026-03-27",
         "type": "patch",

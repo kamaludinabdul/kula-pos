@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Search, ArrowUpDown, Trophy, Calendar, Settings2, History, Loader2, RefreshCw } from 'lucide-react';
-import { getDateRange, cn } from '../../lib/utils';
+import { cn } from '../../lib/utils';
 import PointAdjustmentDialog from '../../components/PointAdjustmentDialog';
 import PointHistoryDialog from '../../components/PointHistoryDialog';
 import { SmartDatePicker } from '../../components/SmartDatePicker';
@@ -20,8 +20,11 @@ const LoyaltyPointsReport = () => {
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
     const [datePickerDate, setDatePickerDate] = useState(() => {
-        const { startDate, endDate } = getDateRange('today');
-        return { from: startDate, to: endDate };
+        const today = new Date();
+        return {
+            from: new Date(today.getFullYear(), today.getMonth(), 1),
+            to: new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999)
+        };
     });
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: 'points', direction: 'desc' });

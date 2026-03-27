@@ -137,7 +137,7 @@ const ShiftDetailsDialog = ({ isOpen, onClose, shift }) => {
                                                     <TableCell>{m.category}</TableCell>
                                                     <TableCell>{m.reason}</TableCell>
                                                     <TableCell className={`text-right font-medium ${m.type === 'in' ? 'text-green-600' : 'text-red-600'}`}>
-                                                        {m.type === 'in' ? '+' : '-'} Rp {m.amount.toLocaleString()}
+                                                        {m.type === 'in' ? '+' : '-'} Rp {(m.amount || 0).toLocaleString()}
                                                     </TableCell>
                                                 </TableRow>
                                             ))
@@ -175,10 +175,10 @@ const ShiftDetailsDialog = ({ isOpen, onClose, shift }) => {
                                                     <TableCell className="font-mono text-xs">#{t.id.slice(-6)}</TableCell>
                                                     <TableCell className="capitalize text-xs">{t.payment_method}</TableCell>
                                                     <TableCell className="text-right text-xs text-red-500">
-                                                        {t.discount > 0 ? `-Rp ${t.discount.toLocaleString()}` : '-'}
+                                                        {t.discount > 0 ? `-Rp ${(t.discount || 0).toLocaleString()}` : '-'}
                                                     </TableCell>
                                                     <TableCell className={`text-right ${t.status === 'cancelled' ? 'line-through text-muted-foreground' : ''}`}>
-                                                        Rp {t.total.toLocaleString()}
+                                                        Rp {(t.total || 0).toLocaleString()}
                                                     </TableCell>
                                                     <TableCell className="text-right">
                                                         {t.status === 'cancelled' ? (

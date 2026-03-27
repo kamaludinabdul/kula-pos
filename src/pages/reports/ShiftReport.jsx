@@ -33,9 +33,12 @@ const ShiftReport = () => {
     const [shifts, setShifts] = useState([]);
     const [loading, setLoading] = useState(true);
     // Initialize with current month
-    const [datePickerDate, setDatePickerDate] = useState({
-        from: new Date(new Date().setHours(0, 0, 0, 0)),
-        to: new Date()
+    const [datePickerDate, setDatePickerDate] = useState(() => {
+        const today = new Date();
+        return {
+            from: new Date(today.getFullYear(), today.getMonth(), 1),
+            to: new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999)
+        };
     });
     const { terminateShift } = useShift();
     const { user } = useAuth();
@@ -283,12 +286,12 @@ const ShiftReport = () => {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="font-bold">
-                                                {shift.final_cash !== undefined
+                                                {shift.final_cash != null
                                                     ? `Rp ${shift.final_cash.toLocaleString()}`
                                                     : '-'}
                                             </TableCell>
                                             <TableCell>
-                                                {shift.cash_difference !== undefined ? (
+                                                {shift.cash_difference != null ? (
                                                     <span className={shift.cash_difference < 0 ? 'text-red-500 font-bold' : 'text-green-500 font-bold'}>
                                                         {shift.cash_difference < 0 ? '-' : '+'} Rp {Math.abs(shift.cash_difference).toLocaleString()}
                                                     </span>
@@ -375,7 +378,7 @@ const ShiftReport = () => {
                                     <div className="text-right">
                                         <p className="text-[10px] text-slate-500">Selisih Kas</p>
                                         <p className={`text-sm font-bold ${shift.cash_difference < 0 ? 'text-red-500' : 'text-green-600'}`}>
-                                            {shift.cash_difference !== undefined ? `${shift.cash_difference < 0 ? '-' : '+'} Rp ${Math.abs(shift.cash_difference).toLocaleString()}` : '-'}
+                                            {shift.cash_difference != null ? `${shift.cash_difference < 0 ? '-' : '+'} Rp ${Math.abs(shift.cash_difference).toLocaleString()}` : '-'}
                                         </p>
                                     </div>
                                     <div>

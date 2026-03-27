@@ -15,8 +15,11 @@ const ItemSales = () => {
     const { currentStore } = useData(); // Removed transactions, products
     // Initial state: Today
     const [datePickerDate, setDatePickerDate] = useState(() => {
-        const { startDate, endDate } = getDateRange('today');
-        return { from: startDate, to: endDate };
+        const today = new Date();
+        return {
+            from: new Date(today.getFullYear(), today.getMonth(), 1),
+            to: new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999)
+        };
     });
 
     const [fetchedTransactions, setFetchedTransactions] = useState([]);

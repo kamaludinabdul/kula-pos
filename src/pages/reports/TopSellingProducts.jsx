@@ -20,9 +20,12 @@ const TopSellingProducts = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     // Initialize with current month
-    const [datePickerDate, setDatePickerDate] = useState({
-        from: new Date(new Date().setHours(0, 0, 0, 0)),
-        to: new Date()
+    const [datePickerDate, setDatePickerDate] = useState(() => {
+        const today = new Date();
+        return {
+            from: new Date(today.getFullYear(), today.getMonth(), 1),
+            to: new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999)
+        };
     });
     const [sortBy, setSortBy] = useState('quantity'); // 'quantity' or 'revenue'
 

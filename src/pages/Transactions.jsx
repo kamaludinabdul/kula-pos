@@ -57,9 +57,12 @@ const Transactions = () => {
     const [statusFilter, setStatusFilter] = useState('all'); // all, completed, void
     const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
     const [stockTypeFilter, setStockTypeFilter] = useState('all'); // all, Barang, Jasa
-    const [datePickerDate, setDatePickerDate] = useState({
-        from: new Date(new Date().setHours(0, 0, 0, 0)),
-        to: new Date()
+    const [datePickerDate, setDatePickerDate] = useState(() => {
+        const today = new Date();
+        return {
+            from: new Date(today.setHours(0, 0, 0, 0)),
+            to: new Date()
+        };
     });
 
     // -- UI State --
@@ -670,8 +673,7 @@ const Transactions = () => {
 
 
             {/* Summary Cards */}
-            {/* Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4">
+            <div data-testid="summary-cards-container" className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-4 gap-3 sm:gap-4">
                 <InfoCard
                     title="Total Pendapatan"
                     value={summaryStats.loading ? "..." : `Rp ${summaryStats.revenue.toLocaleString()}`}

@@ -1,3 +1,30 @@
+## [0.26.8] - 2026-03-27
+### Changed
+- Bumped version to 0.26.8
+
+## [0.26.8] - 2026-03-28
+### Fixed
+- **Laporan Shift (Crash Fix)**: Memperbaiki `TypeError: Cannot read properties of null (reading 'toLocaleString')` yang terjadi saat membuka halaman Laporan Shift dengan shift yang masih aktif. Pengecekan sebelumnya menggunakan `!== undefined`, sehingga nilai `null` dari database (Uang Akhir belum tersedia di shift aktif) tidak tertangkap dan menyebabkan crash. Sekarang menggunakan `!= null` yang lebih ketat.
+- **Layout Card Info Penjualan**: Mengembalikan tata letak grid Info Cards di halaman Penjualan ke format 4-kolom (`xl:grid-cols-4`) yang mencegah teks terpotong di layar lebar. Menambahkan `data-testid="summary-cards-container"` pada container grid untuk memudahkan testing.
+- **Default Tanggal Halaman Penjualan**: Mengembalikan default tanggal halaman Penjualan ke "Hari Ini" (sesuai aslinya), sementara halaman-halaman Laporan lainnya tetap default ke "Bulan Ini" untuk konsistensi.
+
+### Added
+- **Unit Tests — Regression Guard (8 file baru, +40 test cases)**:
+  - `ShiftReport.test.jsx`: Guard eksplisit agar crash `null.toLocaleString()` pada shift aktif tidak pernah lolos ke production lagi.
+  - `Products.test.jsx`: Smoke test untuk halaman Produk (heading, search, filter, tabel, pagination).
+  - `ProfitLoss.test.jsx`: Smoke test halaman Laba Rugi (heading, date picker, filter, tabel).
+  - `CashFlow.test.jsx`: Smoke test halaman Arus Kas (heading, InfoCards, date picker, filter, tombol Tambah).
+  - `Customers.test.jsx`: Smoke test + validasi filter pencarian pelanggan (by name & phone number).
+  - `Dashboard.test.jsx`: Smoke test halaman Dashboard (crash check, date picker, charts).
+  - `OwnerDashboard.test.jsx`: Smoke test halaman Dashboard Owner (heading, filter toko, crash check).
+  - `SmartDatePicker.test.jsx`: Validasi konversi format tanggal `{from, to}` ↔ `{startDate, endDate}`, memastikan `from` = 00:00:00 dan `to` = 23:59:59.
+- **Layout Regression Guard**: Test case `[LAYOUT REGRESSION GUARD]` ditambahkan ke `Transactions.test.jsx` — secara otomatis gagal jika grid Info Cards berubah dari `xl:grid-cols-4` ke nilai lain, mencegah regresi layout terulang.
+
+## [0.26.7] - 2026-03-27
+### Fixed
+- **Sinkronisasi Fee Pet Hotel**: Memperbaiki bug di mana fee karyawan lama (yang menggunakan batas maksimal 3 shift) tidak terhapus saat melakukan sinkronisasi ulang. Proses rilis ini kini secara otomatis menghapus rekaman biaya sistem dan menghitungnya kembali menggunakan batas 2 shift per daftar masuk per hari.
+- **Ringkasan Laporan Transaksi**: Merestrukturisasi pengambilan data statistik "Card" total untuk menggunakan query pada tingkat klien dan bebas batas dibandingkan metode RPC sebelumnya. Hal ini memastikan "Total Penjualan", "Pendapatan Barang/"Jasa", dll dapat memfilter angka *real-time* dari tipe stok, metode pembayaran, status, dan rentang tanggal untuk histori pembelian di atas batas default Supabase (1000 baris).
+- Mengupdate tata letak Antarmuka Filter Transaksi agar lebih nyaman digunakan.
 ## [0.26.6] - 2026-03-27
 ### Changed
 - Bumped version to 0.26.6

@@ -277,4 +277,26 @@ describe('Transactions Page', () => {
         expect(selects.length).toBeGreaterThan(0);
         expect(screen.getByText(/Semua Stok/i)).toBeInTheDocument();
     });
+
+    it('[LAYOUT REGRESSION GUARD] summary cards grid uses 4-column layout (not 7)', async () => {
+        // This test explicitly guards against the accidental revert to xl:grid-cols-7 that caused
+        // cards to overflow/get cut off on wide screens. If this test fails, it means the layout
+        // was changed — review before merging.
+        render(
+            <BrowserRouter>
+                <Transactions />
+            </BrowserRouter>
+        );
+
+        await act(async () => {
+            vi.runAllTimers();
+            await Promise.resolve();
+            await Promise.resolve();
+        });
+
+        const container = document.querySelector('[data-testid="summary-cards-container"]');
+        expect(container).toBeInTheDocument();
+        expect(container.className).toContain('xl:grid-cols-4');
+        expect(container.className).not.toContain('xl:grid-cols-7');
+    });
 });
