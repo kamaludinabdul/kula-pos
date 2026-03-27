@@ -184,15 +184,17 @@ describe('Transactions Page', () => {
         
         // Mock RPC response for summary cards
         safeSupabaseRpc.mockImplementation((args) => {
-            if (args.rpcName === 'get_profit_loss_report') {
+            if (args.rpcName === 'get_transactions_report_stats') {
+                // Return different values if filtered by Jasa to satisfy the filter test
+                const isJasaFilter = args.payload?.p_stock_type_filter === 'Jasa';
                 return Promise.resolve({
-                    total_sales: 15000,
-                    revenue_barang: 10000,
-                    revenue_jasa: 5000,
-                    total_transactions: 2,
-                    total_cash: 10000,
-                    total_qris: 5000,
-                    total_transfer: 0
+                    revenue: 15000,
+                    revenueBarang: isJasaFilter ? 0 : 10000,
+                    revenueJasa: isJasaFilter ? 15000 : 5000,
+                    count: 2,
+                    cash: 10000,
+                    qris: 5000,
+                    transfer: 0
                 });
             }
             return Promise.resolve(null);

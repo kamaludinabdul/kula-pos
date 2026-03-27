@@ -206,7 +206,7 @@ const Transactions = () => {
     }, [storeId]);
 
 
-    // [MOVED] Fetch Summary Logic - using direct table query to avoid RPC issues
+    // [REVERTED] Use Server-Side RPC Aggregator (Fixes 1000 limit & Jasa bug)
     const fetchSummary = useCallback(async () => {
         if (!storeId) return;
         setSummaryStats(prev => ({ ...prev, loading: true }));
@@ -215,88 +215,41 @@ const Transactions = () => {
             const start = startOfDay(new Date(dateFromStr));
             const end = endOfDay(dateToStr ? new Date(dateToStr) : new Date(dateFromStr));
 
-            // Fetch non-void transactions respecting active filters
-            let query = supabase
-                .from('transactions')
-                .select('total, payment_method, items, status')
-                .eq('store_id', storeId)
-                .gte('date', start.toISOString())
-                .lte('date', end.toISOString());
-
-            // Apply same filters as the main list
-            if (searchTerm) {
-                query = query.ilike('id', `%${searchTerm}%`);
-            } else {
-                if (statusFilter !== 'all') {
-                    query = query.eq('status', statusFilter);
-                } else {
-                    // Default behavior: exclude cancelled/void etc if 'all' is not selected
-                    // But usually 'all' in status filter might mean "everything that isn't deleted"
-                    // Let's stick to the current exclusion if statusFilter is 'all'
-                    query = query.not('status', 'in', '("void","cancelled","refunded","batal","rejected")');
-                }
-
-                if (paymentMethodFilter !== 'all') {
-                    query = query.eq('payment_method', paymentMethodFilter);
-                }
-            }
-
-            const { data: txRows, error } = await query;
-            if (error) throw error;
-
-            // Aggregate client-side
-            let revenue = 0, cash = 0, qris = 0, transfer = 0;
-            let revenueBarang = 0, revenueJasa = 0;
-            let count = 0;
-
-            const filterLower = stockTypeFilter.toLowerCase();
-
-            (txRows || []).forEach(tx => {
-                // If filtering by stock type, only count transactions that have that item type
-                const items = Array.isArray(tx.items) ? tx.items : [];
-                const hasMatchingItemType = stockTypeFilter === 'all' || items.some(item => {
-                    const iType = (item.stockType || item.stock_type || 'Barang').toLowerCase();
-                    if (filterLower === 'jasa') return iType === 'jasa' || iType === 'sewa';
-                    return iType === filterLower;
-                });
-
-                if (!hasMatchingItemType) return;
-
-                count++;
-                const total = Number(tx.total) || 0;
-                revenue += total;
-                const pm = (tx.payment_method || '').toLowerCase();
-                if (pm === 'cash' || pm === 'tunai') cash += total;
-                else if (pm === 'qris') qris += total;
-                else if (pm === 'transfer') transfer += total;
-
-                items.forEach(item => {
-                    const qty = Number(item.qty) || 1;
-                    const price = Number(item.price) || 0;
-                    const disc = Number(item.discount) || 0;
-                    const lineTotal = qty * (price - disc);
-                    
-                    const sType = (item.stockType || item.stock_type || 'Barang').toLowerCase();
-                    const isService = sType === 'jasa' || sType === 'sewa';
-
-                    // If filter is Jasa, don't add to Barang revenue. If filter is Barang, don't add to Jasa revenue.
-                    if (stockTypeFilter === 'all') {
-                        if (isService) revenueJasa += lineTotal;
-                        else revenueBarang += lineTotal;
-                    } else if (filterLower === 'jasa') {
-                        if (isService) revenueJasa += lineTotal;
-                    } else if (filterLower === 'barang') {
-                        if (!isService) revenueBarang += lineTotal;
-                    }
-                });
+            // Use the safeSupabaseRpc wrapper and the dedicated report stats RPC
+            const { safeSupabaseRpc } = await import('../utils/supabaseHelper');
+            const result = await safeSupabaseRpc({
+                rpcName: 'get_transactions_report_stats',
+                payload: {
+                    p_store_id: storeId,
+                    p_start_date: start.toISOString(),
+                    p_end_date: end.toISOString(),
+                    p_status_filter: statusFilter,
+                    p_payment_method_filter: paymentMethodFilter,
+                    p_stock_type_filter: stockTypeFilter,
+                },
+                errorMessage: "Gagal mengambil ringkasan transaksi"
             });
 
-            setSummaryStats({ revenue, cash, qris, transfer, revenueBarang, revenueJasa, count, loading: false });
+            if (result) {
+                // The DB returns exact matching keys: revenue, count, cash, qris, transfer, revenueBarang, revenueJasa
+                setSummaryStats({
+                    revenue: Number(result.revenue) || 0,
+                    cash: Number(result.cash) || 0,
+                    qris: Number(result.qris) || 0,
+                    transfer: Number(result.transfer) || 0,
+                    revenueBarang: Number(result.revenueBarang) || 0,
+                    revenueJasa: Number(result.revenueJasa) || 0,
+                    count: Number(result.count) || 0,
+                    loading: false
+                });
+            } else {
+                setSummaryStats(prev => ({ ...prev, loading: false }));
+            }
         } catch (error) {
-            console.error("Error fetching summary stats:", error);
+            console.error("Error fetching summary stats via RPC:", error);
             setSummaryStats(prev => ({ ...prev, loading: false }));
         }
-    }, [storeId, dateFromStr, dateToStr, searchTerm, statusFilter, paymentMethodFilter, stockTypeFilter]);
+    }, [storeId, dateFromStr, dateToStr, statusFilter, paymentMethodFilter, stockTypeFilter]);
 
 
     useEffect(() => {
