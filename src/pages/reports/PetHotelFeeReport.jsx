@@ -217,8 +217,11 @@ const PetHotelFeeReport = () => {
                 // Pagi/Sore/Malam = 0.5 Day value. Full = 1.0 Day value.
                 const validShiftSlots = [];
                 let totalDurationWeights = 0;
+                let globalWeightAccumulated = 0; // NEW: Cap per transaction weight at totalDaysPaid
 
                 for (const day of daysInRental) {
+                    if (globalWeightAccumulated >= totalDaysPaid) break; // STOP if we reached paid days limit
+
                     const dayStr = format(day, 'yyyy-MM-dd');
                     const dayMonth = format(day, 'yyyy-MM');
                     const dayOfWeek = String(getDay(day));
@@ -237,16 +240,16 @@ const PetHotelFeeReport = () => {
                     }
 
                     const isWeekendDay = dayOfWeek === '0' || dayOfWeek === '6';
-                    let currentDayWeightAccumulated = 0; // NEW: Cap daily weight to 1.0 (max 2 shifts)
+                    let currentDayWeightAccumulated = 0; // Cap daily weight at 1.0 (max 2 shifts per day)
 
                     for (const shift of shiftsForDay) {
                         if (!shift.name) continue;
+                        if (globalWeightAccumulated >= totalDaysPaid) break;
 
                         const shiftTypeStr = (shift.shift || 'pagi').toLowerCase();
 
                         // On check-in day: skip shifts that started before the pet arrived
                         if (isCheckInDay) {
-                            // Also need to handle 'full' in SHIFT_ORDER rank check
                             let shiftRank = 0;
                             if (shiftTypeStr.includes('malam')) shiftRank = SHIFT_ORDER.malam;
                             else if (shiftTypeStr.includes('sore') || shiftTypeStr.includes('siang')) shiftRank = SHIFT_ORDER.sore;
@@ -256,11 +259,15 @@ const PetHotelFeeReport = () => {
                             if (shiftRank < checkInShiftRank) continue;
                         }
 
-                        // Enforce MAX 1.0 weight per day (2 shifts max)
+                        // Enforce MAX 1.0 weight per day (2 shifts max) AND global cap
                         if (currentDayWeightAccumulated >= 1.0) continue;
 
                         const requestedWeight = shiftTypeStr.includes('full') ? 1.0 : 0.5;
-                        const grantedWeight = Math.min(requestedWeight, 1.0 - currentDayWeightAccumulated);
+                        // Determine weight to grant based on BOTH daily and global remaining budget
+                        const remainingGlobal = totalDaysPaid - globalWeightAccumulated;
+                        const remainingDaily = 1.0 - currentDayWeightAccumulated;
+                        
+                        const grantedWeight = Math.min(requestedWeight, remainingDaily, remainingGlobal);
 
                         if (grantedWeight > 0) {
                             validShiftSlots.push({
@@ -272,6 +279,7 @@ const PetHotelFeeReport = () => {
                             
                             totalDurationWeights += grantedWeight;
                             currentDayWeightAccumulated += grantedWeight;
+                            globalWeightAccumulated += grantedWeight;
                         }
                     }
                 }
