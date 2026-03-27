@@ -8,12 +8,15 @@ import { APP_VERSION } from '../version';
 // For now, we'll maintain it here as a structured constant
 const CHANGELOG_DATA = [
     {
-        "version": "0.26.8",
-        "date": "2026-03-27",
+        "version": "0.26.9",
+        "date": "2026-03-28",
         "type": "patch",
         "title": "Patch Release",
         "changes": [
-            "Bumped version to 0.26.8"
+            "**Format Mata Uang (Full Number)**: Menghapus penyingkatan \"jt\" (juta) dan \"rb\" (ribu) pada InfoCards sesuai permintaan. Kini semua angka ditampilkan penuh (misal: `Rp 15.000.000`) untuk kejelasan data yang lebih maksimal.",
+            "**Filter Ringkasan Transaksi**: Memperbaiki sinkronisasi \"Card Info\" (Total Pendapatan, Tunai, QRIS, dll) dengan filter UI. Sekarang ringkasan statistik akan otomatis terupdate secara real-time berdasarkan filter Status, Tipe Bayar, Tipe Stok (Barang/Jasa), dan Pencarian yang sedang aktif.",
+            "**Unit Test — Filter Regression**: Menambahkan test case di `Transactions.test.jsx` untuk menjamin bahwa perhitungan ringkasan pendapatan selalu akurat saat filter tipe stok diubah-ubah.",
+            "**Bumped version**: Update version internal sistem ke 0.26.9."
         ]
     },
     {
@@ -46,15 +49,6 @@ const CHANGELOG_DATA = [
         "type": "patch",
         "title": "Patch Release",
         "changes": [
-            "Bumped version to 0.26.6"
-        ]
-    },
-    {
-        "version": "0.26.6",
-        "date": "2026-03-27",
-        "type": "patch",
-        "title": "Patch Release",
-        "changes": [
             "**POS Rental Dialog**: Label dan preset durasi sewa kini dinamis berdasarkan `product.unit` (Menit/Jam/Hari), tidak lagi hardcoded \"Jam\".",
             "**POS Keranjang**: Nama item rental di keranjang dan struk kini menampilkan unit asli (contoh: \"PS 3 (30 Menit)\"), bukan selalu \"(X Jam)\".",
             "**POS Stok Unlimited**: Memperbaiki validasi stok yang memblokir item `isUnlimited` (contoh: PS 3) dengan pesan \"Stok Habis\" palsu.",
@@ -62,6 +56,7 @@ const CHANGELOG_DATA = [
             "**Laporan Defecta**: Item bertipe Jasa/Sewa tidak lagi muncul di peringatan stok menipis.",
             "**Laporan Laba Rugi (RPC)**: Query SQL `get_profit_loss_report` dipatch agar revenue split Jasa/Sewa case-insensitive. Debug fields dihapus untuk production.",
             "**Fee Pet Hotel**: Pembagian fee harian dipatenkan maksimal 2 shift (0.5 + 0.5). Shift ke-3 dan seterusnya tidak dihitung untuk menghindari pembulatan pecahan.",
+            "Bumped version to 0.26.6",
             "**Production SQL Script**: `scripts/production_deploy_2026-03-27.sql` siap dijalankan di Supabase SQL Editor."
         ]
     },

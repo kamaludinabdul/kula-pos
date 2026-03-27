@@ -73,21 +73,21 @@ describe('Utility Functions', () => {
 
     describe('formatCompactNumber', () => {
 
-        it('should format thousands correctly with rb', () => {
-            expect(formatCompactNumber(1000)).toBe('1 rb');
-            expect(formatCompactNumber(1500)).toBe('1,5 rb');
-            expect(formatCompactNumber(10500)).toBe('10,5 rb');
+        it('should format thousands correctly without rb', () => {
+            // Note: toLocaleString('id-ID') uses dot as thousands separator
+            expect(formatCompactNumber(1000)).toBe('1.000');
+            expect(formatCompactNumber(10500)).toBe('10.500');
         });
 
-        it('should format millions correctly with jt', () => {
-            expect(formatCompactNumber(1000000)).toBe('1 jt');
-            expect(formatCompactNumber(1500000)).toBe('1,5 jt');
-            expect(formatCompactNumber(10500000)).toBe('10,5 jt');
+        it('should format millions correctly without jt', () => {
+            expect(formatCompactNumber(1000000)).toBe('1.000.000');
+            expect(formatCompactNumber(1500000).replace(/\u00a0/g, ' ')).toBe('1.500.000');
+            expect(formatCompactNumber(10500000)).toBe('10.500.000');
         });
 
         it('should handle negative numbers', () => {
-            expect(formatCompactNumber(-1000)).toBe('-1 rb');
-            expect(formatCompactNumber(-1500000)).toBe('-1,5 jt');
+            expect(formatCompactNumber(-1000)).toBe('-1.000');
+            expect(formatCompactNumber(-1500000)).toBe('-1.500.000');
         });
 
         it('should handle numbers less than 1000', () => {
@@ -99,7 +99,7 @@ describe('Utility Functions', () => {
         it('should handle non-number inputs gracefully', () => {
             expect(formatCompactNumber(null)).toBe('0');
             expect(formatCompactNumber(undefined)).toBe('0');
-            expect(formatCompactNumber('1000')).toBe('1 rb');
+            expect(formatCompactNumber('1000')).toBe('1.000');
         });
     });
 });

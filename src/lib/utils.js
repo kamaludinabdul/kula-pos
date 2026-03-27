@@ -195,16 +195,6 @@ export const formatDate = (date) => {
 export const formatCompactNumber = (val) => {
     if (val === undefined || val === null || isNaN(Number(val))) return '0';
     const num = Number(val);
-    const absVal = Math.abs(num);
-    const sign = num < 0 ? '-' : '';
-
-    if (absVal >= 1000000) {
-        const formatted = Number((absVal / 1000000).toFixed(2)).toString().replace('.', ',');
-        return `${sign}${formatted} jt`;
-    }
-    if (absVal >= 1000) {
-        const formatted = Number((absVal / 1000).toFixed(2)).toString().replace('.', ',');
-        return `${sign}${formatted} rb`;
-    }
-    return `${sign}${absVal}`;
+    // User requested "jangan disingkat jadi jt ya" -> use full number with id-ID format
+    return num.toLocaleString('id-ID');
 };

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import Transactions from './Transactions';
@@ -64,29 +64,31 @@ const mockTransactions = [
     }
 ];
 
-vi.mock('../supabase', () => ({
-    supabase: {
-        from: vi.fn(() => ({
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            gte: vi.fn().mockReturnThis(),
-            lte: vi.fn().mockReturnThis(),
-            not: vi.fn().mockResolvedValue({
+vi.mock('../supabase', () => {
+    const mockQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        gte: vi.fn().mockReturnThis(),
+        lte: vi.fn().mockReturnThis(),
+        not: vi.fn().mockReturnThis(),
+        ilike: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        range: vi.fn().mockReturnThis(),
+        // Make the query object thenable so it can be awaited
+        then: vi.fn((resolve) => {
+            resolve({
                 data: mockTransactions,
-                count: 2,
+                count: mockTransactions.length,
                 error: null
-            }),
-            order: vi.fn().mockReturnThis(),
-            range: vi.fn().mockImplementation(() => {
-                return Promise.resolve({
-                    data: mockTransactions,
-                    count: 2,
-                    error: null
-                });
-            }),
-        })),
-    }
-}));
+            });
+        })
+    };
+    return {
+        supabase: {
+            from: vi.fn(() => mockQuery),
+        }
+    };
+});
 
 // Mock lucide-react icons
 vi.mock('lucide-react', () => ({
@@ -298,5 +300,43 @@ describe('Transactions Page', () => {
         expect(container).toBeInTheDocument();
         expect(container.className).toContain('xl:grid-cols-4');
         expect(container.className).not.toContain('xl:grid-cols-7');
+    });
+
+    it('updates summary stats when stock type filter is changed', async () => {
+        render(
+            <BrowserRouter>
+                <Transactions />
+            </BrowserRouter>
+        );
+
+        // Wait for initial load
+        await act(async () => {
+            vi.runAllTimers();
+        });
+
+        // Use test ID to avoid ambiguity with "pendapatan" in description
+        expect(screen.getByTestId('info-card-Total Pendapatan')).toBeInTheDocument();
+
+        // The Stock Type filter is the one containing the "Tipe Stok" option
+        const selects = screen.getAllByTestId('mock-select');
+        const stockSelect = selects.find(s => {
+            return Array.from(s.options).some(opt => opt.text.includes('Tipe Stok'));
+        });
+        
+        expect(stockSelect).toBeDefined();
+
+        await act(async () => {
+            // Change to 'Jasa'
+            fireEvent.change(stockSelect, { target: { value: 'Jasa' } });
+            // Advance timers to trigger the 300ms debounce in useEffect
+            vi.advanceTimersByTime(350);
+        });
+
+        // After filtering for Jasa, the Items aggregation logic in fetchSummary 
+        // will skip 'Barang' types, so revenueBarang becomes 0.
+        const barangCard = screen.getByTestId('info-card-Pendapatan Barang');
+        // According to mock InfoCard: <span>{title}</span><span>{value}</span>
+        const valueSpan = barangCard.querySelectorAll('span')[1];
+        expect(valueSpan.textContent).toContain('Rp 0');
     });
 });

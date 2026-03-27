@@ -215,23 +215,54 @@ const Transactions = () => {
             const start = startOfDay(new Date(dateFromStr));
             const end = endOfDay(dateToStr ? new Date(dateToStr) : new Date(dateFromStr));
 
-            // Fetch all non-void transactions directly from the table
-            const { data: txRows, error } = await supabase
+            // Fetch non-void transactions respecting active filters
+            let query = supabase
                 .from('transactions')
-                .select('total, payment_method, items')
+                .select('total, payment_method, items, status')
                 .eq('store_id', storeId)
                 .gte('date', start.toISOString())
-                .lte('date', end.toISOString())
-                .not('status', 'in', '("void","cancelled","refunded","batal","rejected")');
+                .lte('date', end.toISOString());
 
+            // Apply same filters as the main list
+            if (searchTerm) {
+                query = query.ilike('id', `%${searchTerm}%`);
+            } else {
+                if (statusFilter !== 'all') {
+                    query = query.eq('status', statusFilter);
+                } else {
+                    // Default behavior: exclude cancelled/void etc if 'all' is not selected
+                    // But usually 'all' in status filter might mean "everything that isn't deleted"
+                    // Let's stick to the current exclusion if statusFilter is 'all'
+                    query = query.not('status', 'in', '("void","cancelled","refunded","batal","rejected")');
+                }
+
+                if (paymentMethodFilter !== 'all') {
+                    query = query.eq('payment_method', paymentMethodFilter);
+                }
+            }
+
+            const { data: txRows, error } = await query;
             if (error) throw error;
 
             // Aggregate client-side
             let revenue = 0, cash = 0, qris = 0, transfer = 0;
             let revenueBarang = 0, revenueJasa = 0;
-            let count = txRows.length;
+            let count = 0;
 
-            txRows.forEach(tx => {
+            const filterLower = stockTypeFilter.toLowerCase();
+
+            (txRows || []).forEach(tx => {
+                // If filtering by stock type, only count transactions that have that item type
+                const items = Array.isArray(tx.items) ? tx.items : [];
+                const hasMatchingItemType = stockTypeFilter === 'all' || items.some(item => {
+                    const iType = (item.stockType || item.stock_type || 'Barang').toLowerCase();
+                    if (filterLower === 'jasa') return iType === 'jasa' || iType === 'sewa';
+                    return iType === filterLower;
+                });
+
+                if (!hasMatchingItemType) return;
+
+                count++;
                 const total = Number(tx.total) || 0;
                 revenue += total;
                 const pm = (tx.payment_method || '').toLowerCase();
@@ -239,17 +270,23 @@ const Transactions = () => {
                 else if (pm === 'qris') qris += total;
                 else if (pm === 'transfer') transfer += total;
 
-                const items = Array.isArray(tx.items) ? tx.items : [];
                 items.forEach(item => {
                     const qty = Number(item.qty) || 1;
                     const price = Number(item.price) || 0;
                     const disc = Number(item.discount) || 0;
                     const lineTotal = qty * (price - disc);
+                    
                     const sType = (item.stockType || item.stock_type || 'Barang').toLowerCase();
-                    if (sType === 'jasa' || sType === 'sewa') {
-                        revenueJasa += lineTotal;
-                    } else {
-                        revenueBarang += lineTotal;
+                    const isService = sType === 'jasa' || sType === 'sewa';
+
+                    // If filter is Jasa, don't add to Barang revenue. If filter is Barang, don't add to Jasa revenue.
+                    if (stockTypeFilter === 'all') {
+                        if (isService) revenueJasa += lineTotal;
+                        else revenueBarang += lineTotal;
+                    } else if (filterLower === 'jasa') {
+                        if (isService) revenueJasa += lineTotal;
+                    } else if (filterLower === 'barang') {
+                        if (!isService) revenueBarang += lineTotal;
                     }
                 });
             });
@@ -259,7 +296,7 @@ const Transactions = () => {
             console.error("Error fetching summary stats:", error);
             setSummaryStats(prev => ({ ...prev, loading: false }));
         }
-    }, [storeId, dateFromStr, dateToStr]);
+    }, [storeId, dateFromStr, dateToStr, searchTerm, statusFilter, paymentMethodFilter, stockTypeFilter]);
 
 
     useEffect(() => {
