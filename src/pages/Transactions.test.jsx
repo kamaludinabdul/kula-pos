@@ -186,7 +186,7 @@ describe('Transactions Page', () => {
         safeSupabaseRpc.mockImplementation((args) => {
             if (args.rpcName === 'get_transactions_report_stats') {
                 // Return different values if filtered by Jasa to satisfy the filter test
-                const isJasaFilter = args.payload?.p_stock_type_filter === 'Jasa';
+                const isJasaFilter = args.params?.p_stock_type_filter === 'Jasa';
                 return Promise.resolve({
                     revenue: 15000,
                     revenueBarang: isJasaFilter ? 0 : 10000,

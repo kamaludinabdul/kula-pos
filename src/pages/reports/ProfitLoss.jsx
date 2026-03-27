@@ -14,7 +14,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '../../components/ui/label';
 import { Input } from '../../components/ui/input';
 import { safeSupabaseQuery, safeSupabaseRpc } from '../../utils/supabaseHelper';
+import { supabase } from '../../supabase';
 import { Calendar } from 'lucide-react';
+import { startOfDay, endOfDay } from 'date-fns';
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -89,39 +91,67 @@ const ProfitLoss = () => {
         totalAssets: 0
     });
 
+    // [REGRESSION GUARD] Helper to safely detect Jasa/Sewa in item JSON
+    const isServiceItem = (item) => {
+        if (!item) return false;
+        const iType = (item.stockType || item.stock_type || '').toLowerCase();
+        if (iType === 'jasa' || iType === 'sewa') return true;
+        if (!item.stockType && !item.stock_type) {
+            const strCheck = (item.category || item.name || '').toLowerCase();
+            if (strCheck.includes('jasa') || strCheck.includes('sewa') || strCheck.includes('service') || strCheck.includes('grooming') || strCheck.includes('hotel') || strCheck.includes('klinik') || strCheck.includes('titip')) {
+                return true;
+            }
+        }
+        return false;
+    };
+
     // Data Fetching Effect
     const fetchReportData = React.useCallback(async () => {
         if (!currentStore?.id || !datePickerDate?.from || !datePickerDate?.to) return;
 
         setIsLoading(true);
         try {
-            const start = new Date(datePickerDate.from);
-            start.setHours(0, 0, 0, 0);
-
-            const end = datePickerDate.to ? new Date(datePickerDate.to) : new Date(start);
-            end.setHours(23, 59, 59, 999);
+            const start = startOfDay(new Date(datePickerDate.from));
+            const end = endOfDay(datePickerDate.to ? new Date(datePickerDate.to) : start);
 
             const startDateStr = start.toISOString();
             const endDateStr = end.toISOString();
 
-            // 1. Fetch Transactions for the table
-            const transData = await safeSupabaseQuery({
-                tableName: 'transactions',
-                queryBuilder: (q) => q.eq('store_id', currentStore.id)
+            // [GOLDEN PATH] Fetch ALL transactions via chunking to bypass 1000 limit
+            // [CRITICAL LOGIC] DO NOT replace this with a single query, it will cap data at 1000 records.
+            let allTransactions = [];
+            let currentOffset = 0;
+            const FETCH_LIMIT = 1000;
+            let keepFetching = true;
+
+            while (keepFetching) {
+                const { data, error } = await supabase
+                    .from('transactions')
+                    .select('*, profiles:cashier_id(name)')
+                    .eq('store_id', currentStore.id)
                     .gte('date', startDateStr)
                     .lte('date', endDateStr)
                     .order('date', { ascending: false })
-                    .limit(10000)
-                    .select('*, profiles:cashier_id(name)'),
-                fallbackParams: `?select=*,profiles:cashier_id(name)&store_id=eq.${currentStore.id}&date=gte.${startDateStr}&date=lte.${endDateStr}&order=date.desc&limit=10000`
-            });
+                    .range(currentOffset, currentOffset + FETCH_LIMIT - 1);
+
+                if (error) throw error;
+                
+                if (data && data.length > 0) {
+                    allTransactions = allTransactions.concat(data);
+                    currentOffset += FETCH_LIMIT;
+                    if (data.length < FETCH_LIMIT) keepFetching = false;
+                } else {
+                    keepFetching = false;
+                }
+            }
 
             // Map snake_case to camelCase for UI compatibility
-            const mappedTransData = (transData || []).map(t => ({
+            const mappedTransData = allTransactions.map(t => ({
                 ...t,
                 paymentMethod: t.payment_method,
                 customerName: t.customer_name,
-                cashier: t.profiles?.name || t.cashier || '-'
+                cashier: t.profiles?.name || t.cashier || '-',
+                items: Array.isArray(t.items) ? t.items : (JSON.parse(t.items || '[]'))
             }));
 
             setTransactions(mappedTransData);

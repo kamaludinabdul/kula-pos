@@ -116,85 +116,107 @@ const Transactions = () => {
 
         setIsLoading(true);
         try {
-            let query = supabase
-                .from('transactions')
-                .select('*, profiles:cashier_id(name)', { count: 'exact' })
-                .eq('store_id', currentStore.id);
+            // Helper to build the base query
+            const buildQuery = () => {
+                let q = supabase
+                    .from('transactions')
+                    .select('*, profiles:cashier_id(name)', { count: 'exact' })
+                    .eq('store_id', currentStore.id);
 
-            // Filter Application
-            if (searchTerm) {
-                query = query.ilike('id', `%${searchTerm}%`);
-            } else {
-                if (statusFilter !== 'all') {
-                    query = query.eq('status', statusFilter);
+                if (searchTerm) {
+                    q = q.ilike('id', `%${searchTerm}%`);
+                } else {
+                    if (statusFilter !== 'all') {
+                        q = q.eq('status', statusFilter);
+                    }
+                    if (paymentMethodFilter !== 'all') {
+                        q = q.eq('payment_method', paymentMethodFilter);
+                    }
+                    if (datePickerDate?.from) {
+                        q = q.gte('date', datePickerDate.from.toISOString());
+                        const endDate = datePickerDate.to ? new Date(datePickerDate.to) : new Date(datePickerDate.from);
+                        endDate.setHours(23, 59, 59, 999);
+                        q = q.lte('date', endDate.toISOString());
+                    }
                 }
-                if (paymentMethodFilter !== 'all') {
-                    query = query.eq('payment_method', paymentMethodFilter);
-                }
+                return q.order('date', { ascending: false });
+            };
 
-                if (datePickerDate?.from) {
-                    query = query.gte('date', datePickerDate.from.toISOString());
-                    const endDate = datePickerDate.to ? new Date(datePickerDate.to) : new Date(datePickerDate.from);
-                    endDate.setHours(23, 59, 59, 999);
-                    query = query.lte('date', endDate.toISOString());
-                }
-            }
-
-            // Sorting and Pagination
             const from = (page - 1) * itemsPerPage;
             const to = from + itemsPerPage - 1;
+            
+            let finalData = [];
+            let finalCount = 0;
 
-            console.log("Transaction.jsx fetchTransactions: Calling range", from, to);
-            const { data, count, error } = await query
-                .order('date', { ascending: false })
-                .range(from, to);
+            if (stockTypeFilter === 'all') {
+                // VERY FAST path - no JSON manipulation needed, let DB handle pagination
+                const { data, count, error } = await buildQuery().range(from, to);
+                if (error) throw error;
+                finalData = data || [];
+                finalCount = count || 0;
+            } else {
+                // [GOLDEN PATH] Fetch ALL transactions via chunking to bypass 1000 limit
+                // [CRITICAL LOGIC] DO NOT replace this with a single query, it will cap data at 1000 records.
+                let allRows = [];
+                let currentOffset = 0;
+                const FETCH_LIMIT = 1000;
+                let keepFetching = true;
 
-            if (error) throw error;
+                while (keepFetching) {
+                    const { data, error } = await buildQuery().range(currentOffset, currentOffset + FETCH_LIMIT - 1);
+                    if (error) throw error;
+                    
+                    if (data && data.length > 0) {
+                        allRows = allRows.concat(data);
+                        currentOffset += FETCH_LIMIT;
+                        if (data.length < FETCH_LIMIT) keepFetching = false;
+                    } else {
+                        keepFetching = false;
+                    }
+                }
 
-            // Map snake_case to camelCase for UI components (ReceiptModal, Table)
-            const mappedData = (data || []).map(t => ({
+                // Filter deeply in JS
+                const filterLower = stockTypeFilter.toLowerCase();
+                const filteredRows = allRows.filter(tx => {
+                    const items = Array.isArray(tx.items) ? tx.items : (JSON.parse(tx.items || '[]'));
+                    return items.some(item => {
+                        const isSvc = isServiceItem(item);
+                        return filterLower === 'jasa' ? isSvc : !isSvc;
+                    });
+                });
+
+                finalCount = filteredRows.length;
+                // Manual pagination slice!
+                finalData = filteredRows.slice(from, to + 1);
+            }
+
+            // Map snake_case to camelCase for UI components
+            const mappedData = finalData.map(t => ({
                 ...t,
                 paymentMethod: t.payment_method,
                 customerName: t.customer_name,
-                cashier: t.profiles?.name || t.cashier || '-', // From joined profiles table or direct cashier column
-                // Extract details from payment_details JSONB if available
+                cashier: t.profiles?.name || t.cashier || '-', 
                 amountPaid: t.payment_details?.amount_paid || t.amount_paid || t.total,
                 change: t.payment_details?.change || t.change || 0,
-                // Prioritize top-level column for points earned, fallback to snapshot
                 pointsEarned: t.points_earned !== undefined ? t.points_earned : (t.payment_details?.points_earned || 0),
                 customerTotalPoints: t.payment_details?.customer_remaining_points || 0,
-                // Ensure items is array
                 items: Array.isArray(t.items) ? t.items : (JSON.parse(t.items || '[]'))
             }));
 
-            // Apply stock type filter client-side if active
-            let filteredResults = mappedData;
-            if (stockTypeFilter !== 'all') {
-                const filterLower = stockTypeFilter.toLowerCase();
-                filteredResults = mappedData.filter(tx => 
-                    tx.items?.some(item => {
-                        const iType = (item.stockType || item.stock_type || 'Barang').toLowerCase();
-                        if (filterLower === 'jasa') {
-                            return iType === 'jasa' || iType === 'sewa';
-                        }
-                        return iType === filterLower;
-                    })
-                );
-            }
-
-            setTransactionsList(filteredResults);
-            setTotalItems(count || 0);
+            setTransactionsList(mappedData);
+            setTotalItems(finalCount);
 
         } catch (error) {
             console.error("Error fetching transactions:", error);
             setTransactionsList([]);
+            setTotalItems(0);
         } finally {
             setIsLoading(false);
         }
     }, [currentStore?.id, searchTerm, statusFilter, paymentMethodFilter, stockTypeFilter, datePickerDate, itemsPerPage]);
 
-
     // Use stable primitives for dependencies to avoid infinite loops
+
     const storeId = currentStore?.id;
     const dateFromStr = datePickerDate?.from?.getTime();
     const dateToStr = datePickerDate?.to?.getTime();
@@ -206,7 +228,24 @@ const Transactions = () => {
     }, [storeId]);
 
 
-    // [REVERTED] Use Server-Side RPC Aggregator (Fixes 1000 limit & Jasa bug)
+    // Helper function to safely detect Jasa/Sewa in item JSON
+    const isServiceItem = (item) => {
+        if (!item) return false;
+        const iType = (item.stockType || item.stock_type || '').toLowerCase();
+        if (iType === 'jasa' || iType === 'sewa') return true;
+        
+        // Fallback to name/category heuristic if stockType is completely missing
+        if (!item.stockType && !item.stock_type) {
+            const strCheck = (item.category || item.name || '').toLowerCase();
+            if (strCheck.includes('jasa') || strCheck.includes('sewa') || strCheck.includes('service') || strCheck.includes('grooming') || strCheck.includes('hotel') || strCheck.includes('klinik') || strCheck.includes('titip')) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    // [GOLDEN PATH] Fetch ALL transactions via chunking to bypass 1000 limit
+    // [CRITICAL LOGIC] DO NOT replace this with a single query, it will cap data at 1000 records.
     const fetchSummary = useCallback(async () => {
         if (!storeId) return;
         setSummaryStats(prev => ({ ...prev, loading: true }));
@@ -215,38 +254,88 @@ const Transactions = () => {
             const start = startOfDay(new Date(dateFromStr));
             const end = endOfDay(dateToStr ? new Date(dateToStr) : new Date(dateFromStr));
 
-            // Use the safeSupabaseRpc wrapper and the dedicated report stats RPC
-            const { safeSupabaseRpc } = await import('../utils/supabaseHelper');
-            const result = await safeSupabaseRpc({
-                rpcName: 'get_transactions_report_stats',
-                payload: {
-                    p_store_id: storeId,
-                    p_start_date: start.toISOString(),
-                    p_end_date: end.toISOString(),
-                    p_status_filter: statusFilter,
-                    p_payment_method_filter: paymentMethodFilter,
-                    p_stock_type_filter: stockTypeFilter,
-                },
-                errorMessage: "Gagal mengambil ringkasan transaksi"
+            let allRows = [];
+            let currentOffset = 0;
+            const FETCH_LIMIT = 1000;
+            let keepFetching = true;
+
+            while (keepFetching) {
+                let query = supabase
+                    .from('transactions')
+                    .select('total, payment_method, items, status')
+                    .eq('store_id', storeId)
+                    .gte('date', start.toISOString())
+                    .lte('date', end.toISOString());
+
+                if (statusFilter !== 'all') {
+                    query = query.eq('status', statusFilter);
+                } else {
+                    query = query.not('status', 'in', '("void","cancelled","refunded","batal","rejected")');
+                }
+                if (paymentMethodFilter !== 'all') {
+                    query = query.eq('payment_method', paymentMethodFilter);
+                }
+
+                const { data, error } = await query.range(currentOffset, currentOffset + FETCH_LIMIT - 1);
+                if (error) throw error;
+                
+                if (data && data.length > 0) {
+                    allRows = allRows.concat(data);
+                    currentOffset += FETCH_LIMIT;
+                    if (data.length < FETCH_LIMIT) keepFetching = false;
+                } else {
+                    keepFetching = false;
+                }
+            }
+
+            // Aggregate perfectly on client-side
+            let revenue = 0, cash = 0, qris = 0, transfer = 0;
+            let revenueBarang = 0, revenueJasa = 0;
+            let count = 0;
+
+            const filterLower = stockTypeFilter.toLowerCase();
+
+            allRows.forEach(tx => {
+                const items = Array.isArray(tx.items) ? tx.items : [];
+                
+                // Check if transaction matches the expected stock type
+                const hasMatchingItemType = stockTypeFilter === 'all' || items.some(item => {
+                    const isSvc = isServiceItem(item);
+                    return filterLower === 'jasa' ? isSvc : !isSvc;
+                });
+
+                if (!hasMatchingItemType) return;
+
+                count++;
+                const total = Number(tx.total) || 0;
+                revenue += total;
+                const pm = (tx.payment_method || '').toLowerCase();
+                if (pm === 'cash' || pm === 'tunai') cash += total;
+                else if (pm === 'qris') qris += total;
+                else if (pm === 'transfer') transfer += total;
+
+                items.forEach(item => {
+                    const qty = Number(item.qty) || 1;
+                    const price = Number(item.price) || 0;
+                    const disc = Number(item.discount) || 0;
+                    const lineTotal = qty * (price - disc);
+                    
+                    const isSvc = isServiceItem(item);
+
+                    if (stockTypeFilter === 'all') {
+                        if (isSvc) revenueJasa += lineTotal;
+                        else revenueBarang += lineTotal;
+                    } else if (filterLower === 'jasa' && isSvc) {
+                        revenueJasa += lineTotal;
+                    } else if (filterLower === 'barang' && !isSvc) {
+                        revenueBarang += lineTotal;
+                    }
+                });
             });
 
-            if (result) {
-                // The DB returns exact matching keys: revenue, count, cash, qris, transfer, revenueBarang, revenueJasa
-                setSummaryStats({
-                    revenue: Number(result.revenue) || 0,
-                    cash: Number(result.cash) || 0,
-                    qris: Number(result.qris) || 0,
-                    transfer: Number(result.transfer) || 0,
-                    revenueBarang: Number(result.revenueBarang) || 0,
-                    revenueJasa: Number(result.revenueJasa) || 0,
-                    count: Number(result.count) || 0,
-                    loading: false
-                });
-            } else {
-                setSummaryStats(prev => ({ ...prev, loading: false }));
-            }
+            setSummaryStats({ revenue, cash, qris, transfer, revenueBarang, revenueJasa, count, loading: false });
         } catch (error) {
-            console.error("Error fetching summary stats via RPC:", error);
+            console.error("Error fetching summary stats:", error);
             setSummaryStats(prev => ({ ...prev, loading: false }));
         }
     }, [storeId, dateFromStr, dateToStr, statusFilter, paymentMethodFilter, stockTypeFilter]);

@@ -21,6 +21,27 @@ vi.mock('../../context/DataContext', () => ({
     })
 }));
 
+const mockSelect = vi.fn().mockReturnThis();
+const mockEq = vi.fn().mockReturnThis();
+const mockGte = vi.fn().mockReturnThis();
+const mockLte = vi.fn().mockReturnThis();
+const mockOrder = vi.fn().mockReturnThis();
+const mockRange = vi.fn().mockResolvedValue({ data: [], error: null });
+
+vi.mock('../../supabase', () => ({
+    supabase: {
+        from: vi.fn(() => ({
+            select: mockSelect,
+            eq: mockEq,
+            gte: mockGte,
+            lte: mockLte,
+            order: mockOrder,
+            range: mockRange,
+        })),
+        rpc: vi.fn().mockResolvedValue({ data: null, error: null })
+    }
+}));
+
 vi.mock('../../utils/supabaseHelper', () => ({
     safeSupabaseQuery: vi.fn().mockResolvedValue([]),
     safeSupabaseRpc: vi.fn().mockResolvedValue({
@@ -33,7 +54,7 @@ vi.mock('../../lib/utils', () => ({
     exportToCSV: vi.fn(),
     getDateRange: vi.fn(() => {
         const today = new Date();
-        return { startDate: today, endDate: today };
+        return { from: today, to: today };
     }),
     formatPaymentMethod: vi.fn((m) => m),
     cn: (...args) => args.filter(Boolean).join(' '),
@@ -132,5 +153,25 @@ describe('ProfitLoss (Laporan Laba Rugi)', () => {
             // "Status" column is unambiguous in ProfitLoss table header
             expect(screen.getAllByText(/Status/i).length).toBeGreaterThan(0);
         }, { timeout: 3000 });
+    });
+
+    it('[GOLDEN PATH REGRESSION GUARD] uses chunked fetching for transactions', async () => {
+        // Prepare mock data: 1000 rows for the first chunk to trigger a second fetch
+        const firstChunk = Array.from({ length: 1000 }, (_, i) => ({ id: `tx-${i}` }));
+        const secondChunk = [{ id: 'tx-1001' }];
+
+        mockRange
+            .mockResolvedValueOnce({ data: firstChunk, error: null })
+            .mockResolvedValueOnce({ data: secondChunk, error: null });
+
+        renderComponent();
+
+        // Wait for both chunks to be fetched
+        await waitFor(() => {
+            expect(mockRange).toHaveBeenCalledTimes(2);
+        }, { timeout: 8000 });
+
+        // Final check: table or count should reflect all 1001 transactions
+        expect(screen.getByText(/1.001/)).toBeInTheDocument();
     });
 });
