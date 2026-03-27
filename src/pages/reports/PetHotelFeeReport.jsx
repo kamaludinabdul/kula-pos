@@ -237,6 +237,7 @@ const PetHotelFeeReport = () => {
                     }
 
                     const isWeekendDay = dayOfWeek === '0' || dayOfWeek === '6';
+                    let currentDayWeightAccumulated = 0; // NEW: Cap daily weight to 1.0 (max 2 shifts)
 
                     for (const shift of shiftsForDay) {
                         if (!shift.name) continue;
@@ -255,16 +256,23 @@ const PetHotelFeeReport = () => {
                             if (shiftRank < checkInShiftRank) continue;
                         }
 
-                        const weight = shiftTypeStr.includes('full') ? 1.0 : 0.5;
-                        
-                        validShiftSlots.push({
-                            employeeName: shift.name,
-                            label: `${format(day, 'dd/MM')} - ${shift.shift || 'pagi'}`,
-                            isWeekend: isWeekendDay,
-                            weight: weight
-                        });
-                        
-                        totalDurationWeights += weight;
+                        // Enforce MAX 1.0 weight per day (2 shifts max)
+                        if (currentDayWeightAccumulated >= 1.0) continue;
+
+                        const requestedWeight = shiftTypeStr.includes('full') ? 1.0 : 0.5;
+                        const grantedWeight = Math.min(requestedWeight, 1.0 - currentDayWeightAccumulated);
+
+                        if (grantedWeight > 0) {
+                            validShiftSlots.push({
+                                employeeName: shift.name,
+                                label: `${format(day, 'dd/MM')} - ${shift.shift || 'pagi'}`,
+                                isWeekend: isWeekendDay,
+                                weight: grantedWeight
+                            });
+                            
+                            totalDurationWeights += grantedWeight;
+                            currentDayWeightAccumulated += grantedWeight;
+                        }
                     }
                 }
 

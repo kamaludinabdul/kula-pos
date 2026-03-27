@@ -65,8 +65,8 @@ export const InfoCard = ({
                 )}
             </CardHeader>
             <CardContent className="p-4 pt-0">
-                <div className="flex items-baseline gap-2">
-                    <div className="text-lg sm:text-2xl font-extrabold text-slate-900 break-words">
+                <div className="flex items-baseline gap-2 min-w-0">
+                    <div className="text-base sm:text-xl font-extrabold text-slate-900 truncate min-w-0 leading-tight" title={String(displayValue)}>
                         {displayValue}
                     </div>
                     {/* Optional Trend Indicator */}

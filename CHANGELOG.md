@@ -1,3 +1,22 @@
+## [0.26.6] - 2026-03-27
+### Changed
+- Bumped version to 0.26.6
+
+## [0.26.6] - 2026-03-27
+### Fixed
+- **POS Rental Dialog**: Label dan preset durasi sewa kini dinamis berdasarkan `product.unit` (Menit/Jam/Hari), tidak lagi hardcoded "Jam".
+- **POS Keranjang**: Nama item rental di keranjang dan struk kini menampilkan unit asli (contoh: "PS 3 (30 Menit)"), bukan selalu "(X Jam)".
+- **POS Stok Unlimited**: Memperbaiki validasi stok yang memblokir item `isUnlimited` (contoh: PS 3) dengan pesan "Stok Habis" palsu.
+- **Laporan Transaksi**: Pendapatan Jasa/Sewa kini dihitung secara case-insensitive (`jasa`, `Jasa`, `sewa` semuanya masuk "Pendapatan Jasa").
+- **Laporan Defecta**: Item bertipe Jasa/Sewa tidak lagi muncul di peringatan stok menipis.
+- **Laporan Laba Rugi (RPC)**: Query SQL `get_profit_loss_report` dipatch agar revenue split Jasa/Sewa case-insensitive. Debug fields dihapus untuk production.
+
+### Changed
+- **Fee Pet Hotel**: Pembagian fee harian dipatenkan maksimal 2 shift (0.5 + 0.5). Shift ke-3 dan seterusnya tidak dihitung untuk menghindari pembulatan pecahan.
+
+### Added
+- **Production SQL Script**: `scripts/production_deploy_2026-03-27.sql` siap dijalankan di Supabase SQL Editor.
+
 ## [0.26.5] - 2026-03-26
 ### Added
 - **AI Smart Insight**: Laporan tutup shift Telegram kini lebih pintar dengan perbandingan data historis (kemarin, minggu lalu, bulan lalu) dan analisis kondisi cuaca lokal untuk evaluasi performa yang lebih akurat.

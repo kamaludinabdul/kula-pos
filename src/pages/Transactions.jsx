@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { safeSupabaseRpc } from '../utils/supabaseHelper';
+
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -26,7 +26,7 @@ import { SmartDatePicker } from '../components/SmartDatePicker';
 import { format, startOfDay, endOfDay } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import AlertDialog from '../components/AlertDialog';
-import { formatPaymentMethod } from '../lib/utils';
+import { formatPaymentMethod, cn } from '../lib/utils';
 import { hasFeatureAccess } from '../utils/plans';
 import { getAnomalyDetectionInsights } from '../utils/ai';
 import { Sparkles, ShieldAlert, Lock, Info, Loader2 } from 'lucide-react';
@@ -56,6 +56,7 @@ const Transactions = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all'); // all, completed, void
     const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
+    const [stockTypeFilter, setStockTypeFilter] = useState('all'); // all, Barang, Jasa
     const [datePickerDate, setDatePickerDate] = useState({
         from: new Date(new Date().setHours(0, 0, 0, 0)),
         to: new Date()
@@ -80,6 +81,8 @@ const Transactions = () => {
     // -- Summary Cards State --
     const [summaryStats, setSummaryStats] = useState({
         revenue: 0,
+        revenueBarang: 0,
+        revenueJasa: 0,
         count: 0,
         cash: 0,
         qris: 0,
@@ -138,6 +141,7 @@ const Transactions = () => {
             const from = (page - 1) * itemsPerPage;
             const to = from + itemsPerPage - 1;
 
+            console.log("Transaction.jsx fetchTransactions: Calling range", from, to);
             const { data, count, error } = await query
                 .order('date', { ascending: false })
                 .range(from, to);
@@ -160,7 +164,22 @@ const Transactions = () => {
                 items: Array.isArray(t.items) ? t.items : (JSON.parse(t.items || '[]'))
             }));
 
-            setTransactionsList(mappedData);
+            // Apply stock type filter client-side if active
+            let filteredResults = mappedData;
+            if (stockTypeFilter !== 'all') {
+                const filterLower = stockTypeFilter.toLowerCase();
+                filteredResults = mappedData.filter(tx => 
+                    tx.items?.some(item => {
+                        const iType = (item.stockType || item.stock_type || 'Barang').toLowerCase();
+                        if (filterLower === 'jasa') {
+                            return iType === 'jasa' || iType === 'sewa';
+                        }
+                        return iType === filterLower;
+                    })
+                );
+            }
+
+            setTransactionsList(filteredResults);
             setTotalItems(count || 0);
 
         } catch (error) {
@@ -169,7 +188,7 @@ const Transactions = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [currentStore?.id, searchTerm, statusFilter, paymentMethodFilter, datePickerDate, itemsPerPage]);
+    }, [currentStore?.id, searchTerm, statusFilter, paymentMethodFilter, stockTypeFilter, datePickerDate, itemsPerPage]);
 
 
     // Use stable primitives for dependencies to avoid infinite loops
@@ -184,38 +203,55 @@ const Transactions = () => {
     }, [storeId]);
 
 
-    // [MOVED] Fetch Summary Logic (Refactored to be callable)
+    // [MOVED] Fetch Summary Logic - using direct table query to avoid RPC issues
     const fetchSummary = useCallback(async () => {
         if (!storeId) return;
         setSummaryStats(prev => ({ ...prev, loading: true }));
 
         try {
-            console.log("Transactions: Fetching Summary for store", storeId);
-            // Use date-fns for robust date range calculation
             const start = startOfDay(new Date(dateFromStr));
             const end = endOfDay(dateToStr ? new Date(dateToStr) : new Date(dateFromStr));
 
-            const reportStats = await safeSupabaseRpc({
-                rpcName: 'get_profit_loss_report',
-                params: {
-                    p_store_id: storeId,
-                    p_start_date: start.toISOString(),
-                    p_end_date: end.toISOString()
-                }
+            // Fetch all non-void transactions directly from the table
+            const { data: txRows, error } = await supabase
+                .from('transactions')
+                .select('total, payment_method, items')
+                .eq('store_id', storeId)
+                .gte('date', start.toISOString())
+                .lte('date', end.toISOString())
+                .not('status', 'in', '("void","cancelled","refunded","batal","rejected")');
+
+            if (error) throw error;
+
+            // Aggregate client-side
+            let revenue = 0, cash = 0, qris = 0, transfer = 0;
+            let revenueBarang = 0, revenueJasa = 0;
+            let count = txRows.length;
+
+            txRows.forEach(tx => {
+                const total = Number(tx.total) || 0;
+                revenue += total;
+                const pm = (tx.payment_method || '').toLowerCase();
+                if (pm === 'cash' || pm === 'tunai') cash += total;
+                else if (pm === 'qris') qris += total;
+                else if (pm === 'transfer') transfer += total;
+
+                const items = Array.isArray(tx.items) ? tx.items : [];
+                items.forEach(item => {
+                    const qty = Number(item.qty) || 1;
+                    const price = Number(item.price) || 0;
+                    const disc = Number(item.discount) || 0;
+                    const lineTotal = qty * (price - disc);
+                    const sType = (item.stockType || item.stock_type || 'Barang').toLowerCase();
+                    if (sType === 'jasa' || sType === 'sewa') {
+                        revenueJasa += lineTotal;
+                    } else {
+                        revenueBarang += lineTotal;
+                    }
+                });
             });
 
-            if (reportStats) {
-                setSummaryStats({
-                    revenue: reportStats.total_sales || 0,
-                    count: reportStats.total_transactions || 0,
-                    cash: reportStats.total_cash || 0,
-                    qris: reportStats.total_qris || 0,
-                    transfer: reportStats.total_transfer || 0,
-                    loading: false
-                });
-            } else {
-                setSummaryStats(prev => ({ ...prev, loading: false }));
-            }
+            setSummaryStats({ revenue, cash, qris, transfer, revenueBarang, revenueJasa, count, loading: false });
         } catch (error) {
             console.error("Error fetching summary stats:", error);
             setSummaryStats(prev => ({ ...prev, loading: false }));
@@ -239,11 +275,10 @@ const Transactions = () => {
     // Effect: Trigger fetch on filters change
     useEffect(() => {
         setCurrentPage(1);
-    }, [storeId, searchTerm, statusFilter, paymentMethodFilter, dateFromStr, dateToStr, itemsPerPage]);
+    }, [storeId, searchTerm, statusFilter, paymentMethodFilter, stockTypeFilter, dateFromStr, dateToStr, itemsPerPage]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            console.log("Transactions: Fetching List");
             fetchTransactions(currentPage);
         }, 600);
         return () => clearTimeout(timer);
@@ -636,7 +671,7 @@ const Transactions = () => {
 
             {/* Summary Cards */}
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4">
                 <InfoCard
                     title="Total Pendapatan"
                     value={summaryStats.loading ? "..." : `Rp ${summaryStats.revenue.toLocaleString()}`}
@@ -666,28 +701,42 @@ const Transactions = () => {
                     description="Transfer langsung"
                 />
                 <InfoCard
+                    title="Pendapatan Barang"
+                    value={summaryStats.loading ? "..." : `Rp ${summaryStats.revenueBarang.toLocaleString()}`}
+                    icon={Wallet}
+                    variant="primary"
+                    description="Item fisik"
+                />
+                <InfoCard
+                    title="Pendapatan Jasa"
+                    value={summaryStats.loading ? "..." : `Rp ${summaryStats.revenueJasa.toLocaleString()}`}
+                    icon={Wallet}
+                    variant="pink"
+                    description="Layanan jasa"
+                />
+                <InfoCard
                     title="Total Transaksi"
-                    value={summaryStats.loading ? "..." : `${summaryStats.count} Transaksi`}
+                    value={summaryStats.loading ? "..." : `${summaryStats.count} Trans`}
                     icon={TrendingUp}
                     variant="primary"
-                    description="Jumlah transaksi sukses"
+                    description="Transaksi sukses"
                 />
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
-                <div className="relative w-full md:w-96">
+            <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
+                <div className="relative w-full xl:w-80">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Cari ID Transaksi..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 w-full rounded-[10px]"
+                        className="pl-10 w-full rounded-xl border-slate-200 focus:ring-primary/20"
                     />
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+                <div className="grid grid-cols-2 lg:grid-cols-4 xl:flex xl:flex-row items-center gap-2 w-full xl:w-auto">
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-[140px] max-w-full flex-1 md:flex-none rounded-[10px] px-3">
+                        <SelectTrigger className="w-full xl:w-[130px] rounded-xl px-3 border-slate-200 h-10">
                             <SelectValue placeholder="Status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -698,7 +747,7 @@ const Transactions = () => {
                     </Select>
 
                     <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
-                        <SelectTrigger className="w-[160px] max-w-full flex-1 md:flex-none rounded-[10px] px-3">
+                        <SelectTrigger className="w-full xl:w-[140px] rounded-xl px-3 border-slate-200 h-10">
                             <SelectValue placeholder="Tipe Bayar" />
                         </SelectTrigger>
                         <SelectContent>
@@ -708,11 +757,35 @@ const Transactions = () => {
                             <SelectItem value="transfer">Transfer</SelectItem>
                         </SelectContent>
                     </Select>
+                    
+                    <Select value={stockTypeFilter} onValueChange={setStockTypeFilter}>
+                        <SelectTrigger className="w-full xl:w-[130px] rounded-xl px-3 border-slate-200 h-10">
+                            <SelectValue placeholder="Tipe Stok" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Semua Stok</SelectItem>
+                            <SelectItem value="Barang">Barang</SelectItem>
+                            <SelectItem value="Jasa">Jasa</SelectItem>
+                        </SelectContent>
+                    </Select>
 
-                    <SmartDatePicker
-                        date={datePickerDate}
-                        onDateChange={setDatePickerDate}
-                    />
+                    <div className="col-span-2 lg:col-span-1">
+                        <SmartDatePicker
+                            date={datePickerDate}
+                            onDateChange={setDatePickerDate}
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-end xl:justify-start">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleRefresh}
+                            className={cn("rounded-full h-10 w-10 text-slate-500 hover:bg-slate-100", isLoading && "animate-spin")}
+                        >
+                            <RefreshCw className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
             </div>
 

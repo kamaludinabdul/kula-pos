@@ -1444,7 +1444,7 @@ export const DataProvider = ({ children }) => {
     }, [activeStoreId, categories, mapProductData, products]);
 
     // New RPC-based Pagination
-    const fetchProductsPage = useCallback(async ({ page, pageSize, search = '', category = 'all', satuanPO = 'all', sortKey = 'name', sortDir = 'asc' }) => {
+    const fetchProductsPage = useCallback(async ({ page, pageSize, search = '', category = 'all', satuanPO = 'all', stockType = 'all', sortKey = 'name', sortDir = 'asc' }) => {
         if (!activeStoreId) return { data: [], total: 0 };
 
         try {
@@ -1457,6 +1457,7 @@ export const DataProvider = ({ children }) => {
                     p_search: search,
                     p_category: category,
                     p_satuan_po: satuanPO,
+                    p_stock_type: stockType,
                     p_sort_key: sortKey,
                     p_sort_dir: sortDir
                 }

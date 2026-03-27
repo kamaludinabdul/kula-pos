@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -6,9 +6,23 @@ import { Label } from '../ui/label';
 import { Clock } from 'lucide-react';
 
 const RentalDurationDialog = ({ isOpen, onClose, product, onConfirm }) => {
-    const [duration, setDuration] = useState('1');
+    // Determine the unit from the product, defaulting to 'Jam' if missing
+    // Remove leading slash if it exists (e.g. "/Menit" -> "Menit")
+    const unitLabel = product?.unit ? product.unit.replace(/^\//, '').trim() : 'Jam';
+    const isMinute = unitLabel.toLowerCase() === 'menit';
+    const isDay = unitLabel.toLowerCase() === 'hari';
 
+    const defaultDuration = isMinute ? '30' : '1';
+    
+    const [duration, setDuration] = useState(defaultDuration);
 
+    // Reset duration to sensible baseline when dialog opens for a product
+    useEffect(() => {
+        if (isOpen) {
+            // eslint-disable-next-line
+            setDuration(defaultDuration);
+        }
+    }, [isOpen, product?.id, defaultDuration]);
 
     const handleConfirm = () => {
         const val = parseFloat(duration);
@@ -18,7 +32,12 @@ const RentalDurationDialog = ({ isOpen, onClose, product, onConfirm }) => {
         }
     };
 
-    const presets = [0.5, 1, 1.5, 2, 3, 4, 5];
+    let presets = [0.5, 1, 1.5, 2, 3, 4, 5];
+    if (isMinute) {
+        presets = [15, 30, 45, 60, 90, 120];
+    } else if (isDay) {
+        presets = [1, 2, 3, 4, 5, 7, 30];
+    }
 
     if (!product) return null;
 
@@ -47,24 +66,24 @@ const RentalDurationDialog = ({ isOpen, onClose, product, onConfirm }) => {
                                     onClick={() => setDuration(hr.toString())}
                                     className="h-8"
                                 >
-                                    {hr} Jam
+                                    {hr} {unitLabel}
                                 </Button>
                             ))}
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Atau Input Manual (Jam)</Label>
+                        <Label>Atau Input Manual ({unitLabel})</Label>
                         <div className="flex items-center gap-2">
                             <Input
                                 type="number"
                                 value={duration}
                                 onChange={(e) => setDuration(e.target.value)}
-                                placeholder="Contoh: 2.5"
+                                placeholder={`Contoh: ${isMinute ? '30' : '2.5'}`}
                                 className="text-lg font-bold text-center"
                                 autoFocus
                             />
-                            <span className="font-medium">Jam</span>
+                            <span className="font-medium">{unitLabel}</span>
                         </div>
                         <p className="text-sm text-muted-foreground text-center">
                             Total: Rp {(parseFloat(duration || 0) * product.price).toLocaleString('id-ID')}

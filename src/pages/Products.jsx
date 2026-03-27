@@ -59,6 +59,7 @@ const Products = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [filterSatuanPO, setFilterSatuanPO] = useState('all');
+    const [filterStockType, setFilterStockType] = useState('all');
 
     // Debounce Search
     const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -109,6 +110,7 @@ const Products = () => {
                 search: debouncedSearch,
                 category: selectedCategory,
                 satuanPO: filterSatuanPO,
+                stockType: filterStockType,
                 sortKey: sortConfig.key || 'name',
                 sortDir: sortConfig.direction
             });
@@ -119,7 +121,7 @@ const Products = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [fetchProductsPage, currentPage, itemsPerPage, debouncedSearch, selectedCategory, filterSatuanPO, sortConfig]);
+    }, [fetchProductsPage, currentPage, itemsPerPage, debouncedSearch, selectedCategory, filterSatuanPO, filterStockType, sortConfig]);
 
     // Reload when filters change
     useEffect(() => {
@@ -129,7 +131,7 @@ const Products = () => {
     // Reset page when filter changes (except pagination itself)
     useEffect(() => {
         setCurrentPage(1);
-    }, [debouncedSearch, selectedCategory, filterSatuanPO]);
+    }, [debouncedSearch, selectedCategory, filterSatuanPO, filterStockType]);
 
     // Toggle select all (Current Page Only)
     const handleSelectAll = (checked) => {
@@ -636,6 +638,16 @@ const Products = () => {
                             <SelectItem value="all">Semua Satuan</SelectItem>
                             <SelectItem value="yes">Ada Satuan PO</SelectItem>
                             <SelectItem value="no">Tanpa Satuan PO</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Select value={filterStockType} onValueChange={setFilterStockType}>
+                        <SelectTrigger className="w-full sm:w-[150px] px-3">
+                            <SelectValue placeholder="Jenis Stok" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Semua Jenis</SelectItem>
+                            <SelectItem value="Barang">Barang</SelectItem>
+                            <SelectItem value="Jasa">Jasa</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>

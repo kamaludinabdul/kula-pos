@@ -77,23 +77,22 @@ export const usePOS = () => {
     // Add Item to Cart
     const addToCart = useCallback((product, scannedUnit = null) => {
         // Basic stock check (can be expanded for services vs goods)
-        const currentStock = parseInt(product.stock) || 0;
+        const rawStock = product.stock;
+        const currentStock = parseInt(rawStock) || 0;
+        const sType = (product.stock_type || product.stockType || '').toLowerCase();
+        const isUnlimitedStock = product.isUnlimited === true || product.is_unlimited === true || rawStock === null || rawStock === undefined || rawStock === -1 || rawStock === '-1' || (currentStock <= 0 && sType !== 'barang');
         const minStock = parseInt(product.minStock) || 5;
-        const isService = product.type === 'service';
+        const isService = product.type === 'service' || product.type === 'rental' || sType === 'jasa' || sType === 'sewa';
 
         // Determine added unit multiplier
         const addedMultiplier = scannedUnit ? scannedUnit.multiplier : 1;
 
         setCart((prev) => {
-            // If they scan a Box, we want to group it with the Box entry if it exists, or base if we just increment qty?
-            // Usually, cart items are identified by ID. If we mix units, it's safer to have distinct cart items 
-            // OR just update the selectedUnit of the existing item. Kasir Pro currently uses single product ID per row.
-            // Let's stick to single row per product ID, and override the unit/price if a new unit is scanned.
             const existing = prev.find((item) => item.id === product.id);
             const currentQtyInCart = existing ? (existing.qty * (existing.multiplier || 1)) : 0;
             const nextQtyBase = currentQtyInCart + addedMultiplier;
 
-            if (!isService && nextQtyBase > currentStock) {
+            if (!isService && !isUnlimitedStock && nextQtyBase > currentStock) {
                 // Notify via callback if available
                 if (window.onPOSNotification) window.onPOSNotification('Stok Habis', `Stok produk "${product.name}" tidak mencukupi.`);
                 return prev;
@@ -158,7 +157,8 @@ export const usePOS = () => {
                 discount: initialDiscountAmount,
                 selectedUnit: targetUnitName,
                 multiplier: targetMultiplier,
-                baseUnit: product.unit || 'Pcs'
+                baseUnit: product.unit || 'Pcs',
+                stockType: product.stock_type || product.stockType || product.type || 'Barang'
             }];
         });
     }, []);
@@ -260,7 +260,8 @@ export const usePOS = () => {
                         qty: 1,
                         recordId: record.id,
                         doctorId: record.doctor_id || null, // Attribute to record's doctor
-                        patientName: record.pets?.name || record.pet_name || ''
+                        patientName: record.pets?.name || record.pet_name || '',
+                        stockType: product.stock_type || product.stockType || product.type || 'Barang'
                     });
                 }
             });
@@ -279,7 +280,8 @@ export const usePOS = () => {
                         recordId: record.id,
                         aturanPakai: p.dosage || p.instructions, // 'dosage' is used for instructions in dialog
                         doctorId: record.doctor_id || null, // Attribute to record's doctor
-                        patientName: record.pets?.name || record.pet_name || ''
+                        patientName: record.pets?.name || record.pet_name || '',
+                        stockType: product.stock_type || product.stockType || product.type || 'Barang'
                     });
                 }
             });

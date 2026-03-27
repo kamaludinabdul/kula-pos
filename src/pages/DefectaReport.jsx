@@ -39,8 +39,10 @@ const DefectaReport = () => {
             const stock = Number(p.stock) || 0;
             const minStock = Number(p.minStock || p.min_stock) || 0;
 
-            // Defecta: Stock <= Min Stock AND not Unlimited AND not Jasa
-            const isDefecta = !p.isUnlimited && p.stockType !== 'Jasa' && stock <= minStock;
+            // Defecta: Stock <= Min Stock AND not Unlimited AND not Jasa/Sewa
+            const sType = (p.stockType || p.stock_type || 'Barang').toLowerCase();
+            const isServiceOrRental = sType === 'jasa' || sType === 'sewa';
+            const isDefecta = !p.isUnlimited && !isServiceOrRental && stock <= minStock;
 
             if (!isDefecta) return false;
 

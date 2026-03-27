@@ -265,11 +265,11 @@ const CartPanel = ({
                                         <div className="font-medium text-sm truncate" title={item.name}>{item.name}</div>
                                         <div className="mt-1 flex items-center gap-2">
                                             <span className="text-xs font-bold text-indigo-600">
-                                                Rp {(item.price - (item.discount || 0)).toLocaleString()}
+                                                Rp {((Number(item.price) || 0) - (Number(item.discount) || 0)).toLocaleString()}
                                             </span>
-                                            {item.discount > 0 && (
+                                            {(item.discount > 0) && (
                                                 <span className="text-[10px] line-through text-muted-foreground">
-                                                    Rp {item.price.toLocaleString()}
+                                                    Rp {(Number(item.price) || 0).toLocaleString()}
                                                 </span>
                                             )}
                                         </div>
@@ -497,7 +497,7 @@ const CartPanel = ({
                 <div className="space-y-1">
                     <div className="flex justify-between text-xs text-muted-foreground">
                         <span>Subtotal</span>
-                        <span>Rp {totals.subtotal.toLocaleString()}</span>
+                        <span>Rp {(Number(totals.subtotal) || 0).toLocaleString()}</span>
                     </div>
 
                     {/* Prescription Form (Apotek) */}
@@ -567,7 +567,7 @@ const CartPanel = ({
                     <div className="flex justify-between items-end pt-2">
                         <span className="font-bold text-sm">Total</span>
                         <span className="font-extrabold text-xl text-primary">
-                            Rp {totals.finalTotal.toLocaleString()}
+                            Rp {(Number(totals.finalTotal) || 0).toLocaleString()}
                         </span>
                     </div>
                 </div>

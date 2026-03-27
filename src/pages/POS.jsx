@@ -129,8 +129,23 @@ const POS = () => {
     };
 
     const handleRentalConfirm = (product, duration) => {
-        // Add to cart with duration as Qty
-        addToCart(product, duration);
+        // Pre-compute the total price (pricePerHour * duration), then add with qty=1
+        const pricePerHour = Number(product.sellPrice || product.price) || 0;
+        const totalPrice = pricePerHour * duration;
+
+        let unitLabel = 'Jam';
+        if (product.unit) {
+            const rawUnit = product.unit.replace(/^\//, '').trim();
+            if (rawUnit) unitLabel = rawUnit;
+        }
+
+        const rentalProduct = {
+            ...product,
+            price: totalPrice,
+            sellPrice: totalPrice,
+            name: `${product.name} (${duration} ${unitLabel})`,
+        };
+        addToCart(rentalProduct); // qty=1, price already total
     };
     const [isStartShiftOpen, setIsStartShiftOpen] = useState(false);
     const [isEndShiftOpen, setIsEndShiftOpen] = useState(false);
